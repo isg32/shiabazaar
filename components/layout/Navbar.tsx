@@ -49,9 +49,14 @@ export function Navbar() {
             <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
             <circle cx="50" cy="50" r="8" />
           </svg>
-          <span className="text-2xl font-normal tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Shia Bazaar
-          </span>
+          <div className="flex flex-col leading-none">
+            <span className="text-[22px] font-normal tracking-tight leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+              Shia Bazaar
+            </span>
+            <span className="text-[7.5px] font-medium tracking-[0.22em] text-accent-amber uppercase mt-0.5">
+              Tanzeemul Makatib
+            </span>
+          </div>
         </Link>
 
         {/* Desktop nav */}

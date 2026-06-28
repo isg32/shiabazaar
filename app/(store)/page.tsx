@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BookOpen, Gift, Sparkles, Crown } from "lucide-react";
 import type { ElementType } from "react";
+import { ScrollBook } from "@/components/shared/ScrollBook";
 
 const catMeta: Record<string, { Icon: ElementType; color: string }> = {
   books:  { Icon: BookOpen,  color: "#cc785c" },
@@ -9,7 +10,7 @@ const catMeta: Record<string, { Icon: ElementType; color: string }> = {
   ladies: { Icon: Sparkles,  color: "#5db8a6" },
   gents:  { Icon: Crown,     color: "#8b7fc7" },
 };
-import { homepageFeatured, categories, trustSignals, featuredProducts } from "@/data/mock";
+import { homepageFeatured, categories, trustSignals } from "@/data/mock";
 import { ProductCard } from "@/components/shared/ProductCard";
 
 const W = "https://shiabazaar.com/wp-content/uploads";
@@ -32,8 +33,6 @@ const marqueeItems = [
 ];
 
 export default function HomePage() {
-  const promoProduct = featuredProducts.find((p) => p.type === "gift");
-
   return (
     <>
       {/* ── Brand header ─────────────────────────── */}
@@ -206,16 +205,8 @@ export default function HomePage() {
                 Shop New Arrivals <ArrowRight size={15} />
               </Link>
             </div>
-            <div className="relative min-h-[260px] lg:min-h-0 bg-primary-active/20 flex items-center justify-center p-8">
-              {promoProduct && (
-                <Image
-                  src={promoProduct.coverImage}
-                  alt={promoProduct.title}
-                  fill
-                  className="object-contain p-8"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
-              )}
+            <div className="min-h-[280px] lg:min-h-0" style={{ background: "rgba(169,88,62,0.2)" }}>
+              <ScrollBook />
             </div>
           </div>
         </div>

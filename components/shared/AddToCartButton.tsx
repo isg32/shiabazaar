@@ -16,7 +16,7 @@ export function AddToCartButton({ disabled }: { disabled?: boolean }) {
     <button
       onClick={handleClick}
       disabled={disabled}
-      className={`flex-1 inline-flex items-center justify-center gap-2 h-11 px-6 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+      className={`w-full inline-flex items-center justify-center gap-2 h-11 px-6 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         added
           ? "bg-success text-white"
           : "bg-primary text-on-primary hover:bg-primary-active"
