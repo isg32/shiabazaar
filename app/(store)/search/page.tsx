@@ -74,8 +74,8 @@ export default function SearchPage() {
         </div>
       ) : (
         <div className="py-24 text-center">
-          <p className="text-sm text-muted">No results for &ldquo;{query}&rdquo;</p>
-          <p className="text-xs text-muted mt-1.5">Try a different word or browse categories.</p>
+          <p className="text-sm text-body">No results for &ldquo;{query}&rdquo;</p>
+          <p className="text-xs text-body mt-1.5">Try a different word or browse categories.</p>
         </div>
       )}
 

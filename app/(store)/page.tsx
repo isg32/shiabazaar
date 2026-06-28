@@ -183,7 +183,7 @@ export default function HomePage() {
             >
               <span className="text-2xl">{signal.icon}</span>
               <p className="text-sm font-medium text-ink">{signal.title}</p>
-              <p className="text-xs text-muted leading-snug">{signal.description}</p>
+              <p className="text-xs text-body leading-snug">{signal.description}</p>
             </div>
           ))}
         </div>

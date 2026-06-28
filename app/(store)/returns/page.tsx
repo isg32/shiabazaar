@@ -13,7 +13,7 @@ export default function ReturnsPage() {
   return (
     <div className="max-w-[800px] mx-auto px-6 py-16">
       <h1 className="display-lg text-ink mb-3">Returns & Refunds</h1>
-      <p className="text-muted mb-10">We want you to be happy with every purchase. If something isn&apos;t right, here&apos;s how returns work.</p>
+      <p className="text-body mb-10">We want you to be happy with every purchase. If something isn&apos;t right, here&apos;s how returns work.</p>
 
       <div className="geometric-divider mb-10" />
 
@@ -24,7 +24,7 @@ export default function ReturnsPage() {
             <div className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-sm font-medium shrink-0">{s.step}</div>
             <div>
               <p className="font-medium text-ink">{s.title}</p>
-              <p className="text-sm text-muted mt-1 leading-relaxed">{s.desc}</p>
+              <p className="text-sm text-body mt-1 leading-relaxed">{s.desc}</p>
             </div>
           </div>
         ))}

@@ -32,7 +32,7 @@ export function ProductGallery({ images, title }: ProductGalleryProps) {
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`relative w-16 h-20 overflow-hidden shrink-0 transition-opacity ${
+              className={`relative w-14 aspect-[3/4] overflow-hidden shrink-0 transition-opacity ${
                 i === active ? "ring-2 ring-primary ring-offset-1" : "opacity-50 hover:opacity-80"
               }`}
             >

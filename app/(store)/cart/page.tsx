@@ -32,7 +32,7 @@ export default function CartPage() {
       <div className="max-w-[1200px] mx-auto px-6 py-24 text-center">
         <ShoppingBag size={48} className="mx-auto text-hairline mb-4" />
         <h1 className="display-sm text-ink mb-3">Your cart is empty</h1>
-        <p className="text-muted text-sm mb-8">Add some books and gifts to get started.</p>
+        <p className="text-body text-sm mb-8">Add some books and gifts to get started.</p>
         <Link href="/products" className="inline-flex items-center gap-2 h-10 px-6 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors">
           Browse Products <ArrowRight size={15} />
         </Link>

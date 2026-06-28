@@ -126,7 +126,7 @@ export function CollectionView({ label, crumbs, products }: CollectionViewProps)
         </div>
       ) : (
         <div className="py-24 text-center">
-          <p className="text-sm text-muted">No products match this filter.</p>
+          <p className="text-sm text-body">No products match this filter.</p>
           <button
             onClick={() => applyFilter("all")}
             className="mt-4 text-xs text-primary hover:text-primary-active underline underline-offset-2"

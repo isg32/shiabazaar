@@ -29,7 +29,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       className={cn("group flex flex-col", className)}
     >
       {/* Image — fills card, no radius, zooms out on hover */}
-      <div className="relative overflow-hidden bg-surface-soft" style={{ aspectRatio: "3/4" }}>
+      <div className="relative aspect-[3/4] overflow-hidden bg-surface-soft">
         <Image
           src={product.coverImage}
           alt={product.title}
