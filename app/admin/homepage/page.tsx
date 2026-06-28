@@ -1,28 +1,53 @@
+"use client";
+
+import { useState } from "react";
 import { Pencil, Trash2, Plus, Eye, EyeOff, GripVertical } from "lucide-react";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Admin — Homepage" };
+type Banner = { id: number; title: string; subtitle: string; cta: string; active: boolean };
+type Popup  = { id: number; title: string; code: string; trigger: string; delay: string; active: boolean };
+type Featured = { id: number; name: string; type: string; price: string; pinned: boolean };
 
-const banners = [
+const INIT_BANNERS: Banner[] = [
   { id: 1, title: "Eid al-Adha Collection", subtitle: "New arrivals — books, gifts & more", cta: "Shop Now", active: true  },
   { id: 2, title: "Muharram Special",        subtitle: "Exclusive titles for the new year",  cta: "Explore", active: false },
 ];
-
-const featured = [
-  { id: 1, name: "Nahjul Balagha",           type: "Book",  price: "₹620",   pinned: true  },
-  { id: 2, name: "Tafseer e Namoona Vol 1",  type: "Book",  price: "₹480",   pinned: true  },
-  { id: 3, name: "Alam Panja (Brass Large)", type: "Gift",  price: "₹1,200", pinned: true  },
-  { id: 4, name: "Mashak Brass Small",       type: "Gift",  price: "₹890",   pinned: true  },
-  { id: 5, name: "Prayer Mat — Ladies",      type: "Ladies",price: "₹350",   pinned: false },
-  { id: 6, name: "Hijab — Chiffon Cream",    type: "Ladies",price: "₹280",   pinned: false },
+const INIT_FEATURED: Featured[] = [
+  { id: 1, name: "Nahjul Balagha",           type: "Book",   price: "₹620",   pinned: true  },
+  { id: 2, name: "Tafseer e Namoona Vol 1",  type: "Book",   price: "₹480",   pinned: true  },
+  { id: 3, name: "Alam Panja (Brass Large)", type: "Gift",   price: "₹1,200", pinned: true  },
+  { id: 4, name: "Mashak Brass Small",       type: "Gift",   price: "₹890",   pinned: true  },
+  { id: 5, name: "Prayer Mat — Ladies",      type: "Ladies", price: "₹350",   pinned: false },
+  { id: 6, name: "Hijab — Chiffon Cream",    type: "Ladies", price: "₹280",   pinned: false },
 ];
-
-const popups = [
+const INIT_POPUPS: Popup[] = [
   { id: 1, title: "10% off your first order", code: "WELCOME10", trigger: "On page load", delay: "3s", active: true  },
   { id: 2, title: "Eid Sale — 20% off",       code: "EID2025",   trigger: "Exit intent",   delay: "—",  active: false },
 ];
 
 export default function AdminHomepage() {
+  const [banners,  setBanners]  = useState<Banner[]>(INIT_BANNERS);
+  const [featured, setFeatured] = useState<Featured[]>(INIT_FEATURED);
+  const [popups,   setPopups]   = useState<Popup[]>(INIT_POPUPS);
+
+  function toggleBanner(id: number) {
+    setBanners(prev => prev.map(b => b.id === id ? { ...b, active: !b.active } : b));
+  }
+  function deleteBanner(id: number) {
+    setBanners(prev => prev.filter(b => b.id !== id));
+  }
+  function togglePinned(id: number) {
+    setFeatured(prev => prev.map(f => f.id === id ? { ...f, pinned: !f.pinned } : f));
+  }
+  function removeFeatured(id: number) {
+    setFeatured(prev => prev.filter(f => f.id !== id));
+  }
+  function togglePopup(id: number) {
+    setPopups(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+  }
+  function deletePopup(id: number) {
+    setPopups(prev => prev.filter(p => p.id !== id));
+  }
+
   return (
     <div className="px-8 py-8 text-on-dark">
       <div className="mb-8">
@@ -44,24 +69,34 @@ export default function AdminHomepage() {
               <GripVertical size={14} className="text-on-dark-soft cursor-grab shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-on-dark font-medium">{b.title}</p>
-                <p className="text-xs text-on-dark-soft mt-0.5">{b.subtitle} · CTA: "{b.cta}"</p>
+                <p className="text-xs text-on-dark-soft mt-0.5">{b.subtitle} · CTA: &ldquo;{b.cta}&rdquo;</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${b.active ? "bg-success/12 text-success" : "bg-white/8 text-on-dark-soft"}`}>
                   {b.active ? "Live" : "Draft"}
                 </span>
-                <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
+                <button
+                  onClick={() => toggleBanner(b.id)}
+                  title={b.active ? "Set to draft" : "Set to live"}
+                  className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors"
+                >
                   {b.active ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
                 <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
                   <Pencil size={13} />
                 </button>
-                <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
+                <button
+                  onClick={() => deleteBanner(b.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
+                >
                   <Trash2 size={13} />
                 </button>
               </div>
             </div>
           ))}
+          {banners.length === 0 && (
+            <p className="text-sm text-on-dark-soft py-4 text-center">No banners yet.</p>
+          )}
         </div>
       </section>
 
@@ -90,10 +125,17 @@ export default function AdminHomepage() {
                   <td className="px-4 py-3.5"><span className="text-xs px-2 py-0.5 rounded bg-white/5 text-on-dark-soft">{p.type}</span></td>
                   <td className="px-4 py-3.5 text-on-dark">{p.price}</td>
                   <td className="px-4 py-3.5">
-                    <div className={`w-8 h-4 rounded-full transition-colors ${p.pinned ? "bg-primary" : "bg-white/15"}`} />
+                    <button
+                      onClick={() => togglePinned(p.id)}
+                      className={`w-8 h-4 rounded-full transition-colors ${p.pinned ? "bg-primary" : "bg-white/15"}`}
+                      title={p.pinned ? "Unpin" : "Pin to featured"}
+                    />
                   </td>
                   <td className="px-4 py-3.5">
-                    <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
+                    <button
+                      onClick={() => removeFeatured(p.id)}
+                      className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
+                    >
                       <Trash2 size={13} />
                     </button>
                   </td>
@@ -122,13 +164,19 @@ export default function AdminHomepage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.active ? "bg-success/12 text-success" : "bg-white/8 text-on-dark-soft"}`}>
+                <button
+                  onClick={() => togglePopup(p.id)}
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors cursor-pointer ${p.active ? "bg-success/12 text-success hover:bg-success/20" : "bg-white/8 text-on-dark-soft hover:bg-white/15"}`}
+                >
                   {p.active ? "Active" : "Inactive"}
-                </span>
+                </button>
                 <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
                   <Pencil size={13} />
                 </button>
-                <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
+                <button
+                  onClick={() => deletePopup(p.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
+                >
                   <Trash2 size={13} />
                 </button>
               </div>

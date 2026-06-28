@@ -1,9 +1,9 @@
+"use client";
+
+import { useState, useMemo } from "react";
 import { Search, ShieldOff, Shield, Mail } from "lucide-react";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Admin — Users" };
-
-const users = [
+const BASE_USERS = [
   { name: "Ahmed K.",   email: "ahmed@example.com",   orders: 8,  spent: "₹4,820", joined: "Jan 2025", status: "Active" },
   { name: "Fatima R.",  email: "fatima@example.com",  orders: 12, spent: "₹7,200", joined: "Feb 2024", status: "Active" },
   { name: "Hussain M.", email: "hussain@example.com", orders: 3,  spent: "₹2,100", joined: "Mar 2025", status: "Active" },
@@ -17,7 +17,27 @@ const users = [
   { name: "Ibrahim S.", email: "ibrahim@example.com", orders: 4,  spent: "₹1,680", joined: "Apr 2025", status: "Banned" },
 ];
 
+const STATUS_TABS = ["All", "Active", "Banned"];
+
 export default function AdminUsers() {
+  const [query,     setQuery]     = useState("");
+  const [statusTab, setStatusTab] = useState("All");
+  const [users,     setUsers]     = useState(BASE_USERS);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return users.filter(u =>
+      (statusTab === "All" || u.status === statusTab) &&
+      (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    );
+  }, [users, query, statusTab]);
+
+  function toggleBan(email: string) {
+    setUsers(prev => prev.map(u =>
+      u.email === email ? { ...u, status: u.status === "Banned" ? "Active" : "Banned" } : u
+    ));
+  }
+
   const active = users.filter(u => u.status === "Active").length;
   const banned = users.filter(u => u.status === "Banned").length;
 
@@ -32,16 +52,24 @@ export default function AdminUsers() {
 
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-dark-soft" />
           <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
             placeholder="Search by name or email…"
             className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
           />
         </div>
-        <div className="flex items-center gap-1 bg-surface-dark-elevated border border-white/8 rounded-md p-0.5">
-          {["All", "Active", "Banned"].map((f, i) => (
-            <button key={f} className={`px-3 h-7 text-xs font-medium rounded transition-colors ${i === 0 ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}>{f}</button>
+        <div className="flex items-center gap-1 bg-surface-dark-elevated border border-white/8 rounded-md p-0.5 shrink-0">
+          {STATUS_TABS.map(f => (
+            <button
+              key={f}
+              onClick={() => setStatusTab(f)}
+              className={`px-3 h-7 text-xs font-medium rounded transition-colors ${statusTab === f ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
+            >
+              {f}
+            </button>
           ))}
         </div>
       </div>
@@ -56,8 +84,12 @@ export default function AdminUsers() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u, i) => (
-              <tr key={u.email} className={`hover:bg-white/3 transition-colors ${i < users.length - 1 ? "border-b border-white/8" : ""}`}>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-sm text-on-dark-soft">No users match your search.</td>
+              </tr>
+            ) : filtered.map((u, i) => (
+              <tr key={u.email} className={`hover:bg-white/3 transition-colors ${i < filtered.length - 1 ? "border-b border-white/8" : ""}`}>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold shrink-0">
@@ -82,11 +114,15 @@ export default function AdminUsers() {
                     <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors" title="Email user">
                       <Mail size={13} />
                     </button>
-                    <button className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
-                      u.status === "Banned"
-                        ? "text-success hover:bg-success/10"
-                        : "text-on-dark-soft hover:text-error hover:bg-error/10"
-                    }`} title={u.status === "Banned" ? "Unban" : "Ban"}>
+                    <button
+                      onClick={() => toggleBan(u.email)}
+                      title={u.status === "Banned" ? "Unban" : "Ban"}
+                      className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
+                        u.status === "Banned"
+                          ? "text-success hover:bg-success/10"
+                          : "text-on-dark-soft hover:text-error hover:bg-error/10"
+                      }`}
+                    >
                       {u.status === "Banned" ? <Shield size={13} /> : <ShieldOff size={13} />}
                     </button>
                   </div>
@@ -96,7 +132,7 @@ export default function AdminUsers() {
           </tbody>
         </table>
         <div className="px-5 py-3 border-t border-white/8 flex items-center justify-between">
-          <span className="text-xs text-on-dark-soft">891 total users</span>
+          <span className="text-xs text-on-dark-soft">{filtered.length} of {users.length} users</span>
           <div className="flex items-center gap-1">
             <button className="h-7 px-3 text-xs text-on-dark-soft bg-white/5 rounded hover:bg-white/10 transition-colors">Prev</button>
             <button className="h-7 px-3 text-xs text-on-dark bg-white/12 rounded">1</button>
