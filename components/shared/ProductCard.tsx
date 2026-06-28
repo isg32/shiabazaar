@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Check } from "lucide-react";
 import { Badge } from "./Badge";
 import type { Product } from "@/data/mock";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
+  const [added, setAdded] = useState(false);
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    if (added) return;
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
+
   return (
     <Link
       href={`/products/${product.slug}`}
@@ -41,15 +51,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
         )}
 
         {/* Add to Cart — slides up from bottom on hover */}
-        <div
-          className="absolute bottom-0 left-0 right-0 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none group-hover:pointer-events-auto"
-        >
+        <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none group-hover:pointer-events-auto">
           <button
-            className="w-full flex items-center justify-center gap-2 bg-surface-dark text-on-dark py-4 text-[13px] font-medium tracking-wide hover:bg-primary transition-colors duration-200"
-            onClick={(e) => e.preventDefault()}
+            onClick={handleAddToCart}
+            className={`w-full flex items-center justify-center gap-2 py-4 text-[13px] font-medium tracking-wide transition-colors duration-200 ${
+              added
+                ? "bg-success text-white"
+                : "bg-surface-dark text-on-dark hover:bg-primary"
+            }`}
           >
-            <ShoppingCart size={14} strokeWidth={2} />
-            Add to Cart
+            {added ? <Check size={14} strokeWidth={2} /> : <ShoppingCart size={14} strokeWidth={2} />}
+            {added ? "Added!" : "Add to Cart"}
           </button>
         </div>
       </div>

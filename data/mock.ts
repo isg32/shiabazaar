@@ -9,6 +9,7 @@ export interface Product {
   price: number;
   originalPrice?: number;
   coverImage: string;
+  images?: string[];   // additional gallery images
   badge?: string;
   inStock: boolean;
   rating: number;
@@ -50,6 +51,10 @@ export const featuredProducts: Product[] = [
     author: "Imam Ali (AS)",
     price: 400,
     coverImage: `${W}/2025/08/61K7xs9V9vL._UF10001000_QL80_-1.jpg`,
+    images: [
+      `${W}/2025/08/61K7xs9V9vL._UF10001000_QL80_.jpg`,
+      `${W}/2025/08/images-75.jpeg`,
+    ],
     badge: "BESTSELLER",
     inStock: true,
     rating: 4.9,
@@ -100,6 +105,10 @@ export const featuredProducts: Product[] = [
     price: 950,
     originalPrice: 1200,
     coverImage: `${W}/2026/06/pngtree-shia-alam-panja-design-ya-hussain-gazi-abass-alamdar-vector-png-image_9803932-800x800.png`,
+    images: [
+      `${W}/2026/06/IMG-20260622-WA0015-removebg-preview.png`,
+      `${W}/2026/06/images__11_-removebg-preview-1-1.png`,
+    ],
     badge: "SALE",
     inStock: true,
     rating: 4.8,
