@@ -6,17 +6,6 @@ import { ProductCard } from "@/components/shared/ProductCard";
 
 const W = "https://shiabazaar.com/wp-content/uploads";
 
-const heroImages = [
-  {
-    src: `${W}/2025/08/61K7xs9V9vL._UF10001000_QL80_-1.jpg`,
-    alt: "Nahjul Balagha — Islamic books at Shia Bazaar",
-  },
-  {
-    src: `${W}/2026/06/IMG-20260622-WA0015-removebg-preview.png`,
-    alt: "Alam Panja Metal — Religious gifts at Shia Bazaar",
-  },
-];
-
 const marqueeItems = [
   "Nahjul Balagha",
   "Tafseer e Namoona",
@@ -41,22 +30,31 @@ export default function HomePage() {
     <>
       {/* ── Hero — 2 images, no text ──────────────── */}
       <section className="bg-surface-soft">
-        <div className="max-w-[1200px] mx-auto px-6 py-10 lg:py-14 grid grid-cols-2 gap-4 lg:gap-6">
-          {heroImages.map((img) => (
-            <div
-              key={img.src}
-              className="relative rounded-xl overflow-hidden aspect-[3/4] bg-canvas"
-            >
+        <div className="max-w-[1200px] mx-auto px-6 py-10 lg:py-14">
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 lg:gap-5 lg:h-[560px]">
+            {/* Landscape image */}
+            <div className="relative overflow-hidden rounded-xl aspect-video lg:aspect-auto">
               <Image
-                src={img.src}
-                alt={img.alt}
+                src={`${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`}
+                alt="Shia Bazaar — Islamic books and gifts"
                 fill
-                className="object-contain p-4 lg:p-8"
+                className="object-cover"
                 priority
-                sizes="(max-width: 1024px) 50vw, 580px"
+                sizes="(max-width: 1024px) 100vw, 60vw"
               />
             </div>
-          ))}
+            {/* Portrait 3:4 image */}
+            <div className="relative overflow-hidden rounded-xl aspect-[3/4] lg:aspect-auto">
+              <Image
+                src={`${W}/2026/06/Gemini_Generated_Image_-3.png`}
+                alt="Shia Bazaar — curated collection"
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 1024px) 100vw, 40vw"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
