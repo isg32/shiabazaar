@@ -19,13 +19,22 @@ export function Navbar() {
     <header className="sticky top-0 z-50 h-16 bg-surface-dark border-b border-white/10">
       <div className="max-w-[1200px] mx-auto px-6 h-full flex items-center justify-between gap-4">
 
-        {/* Wordmark */}
+        {/* Logo + Wordmark */}
         <Link
           href="/"
-          className="text-on-dark font-display text-2xl font-normal tracking-tight shrink-0"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="flex items-center gap-2.5 text-on-dark shrink-0"
         >
-          Shia Bazaar
+          <svg viewBox="0 0 100 100" className="w-7 h-7 text-on-dark" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="25" y="25" width="50" height="50" />
+            <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
+            <circle cx="50" cy="50" r="8" />
+          </svg>
+          <span
+            className="text-2xl font-normal tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Shia Bazaar
+          </span>
         </Link>
 
         {/* Desktop nav */}
