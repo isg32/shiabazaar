@@ -1,9 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { featuredProducts, categories, trustSignals } from "@/data/mock";
+import { homepageFeatured, categories, trustSignals, heroBanner, featuredProducts } from "@/data/mock";
 import { ProductCard } from "@/components/shared/ProductCard";
 
 export default function HomePage() {
+  // Coral callout — use first gift product as promo image
+  const promoProduct = featuredProducts.find((p) => p.type === "gift");
+
   return (
     <>
       {/* ── Hero band (dark) ──────────────────────────── */}
@@ -14,11 +18,10 @@ export default function HomePage() {
               Islamic Books & Gifts
             </p>
             <h1 className="display-lg text-on-dark">
-              Knowledge, Faith &amp; Meaning — Delivered to Your Door
+              {heroBanner.headline}
             </h1>
             <p className="text-base text-on-dark-soft leading-relaxed max-w-md">
-              A thoughtfully curated store for the Shia community — from sacred
-              texts and scholarly works to meaningful everyday gifts.
+              {heroBanner.subline}
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
@@ -36,14 +39,16 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero image placeholder — admin-controlled in later phases */}
-          <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-surface-dark-elevated border border-white/10 flex items-center justify-center">
-            <div className="text-center text-on-dark-soft">
-              <p className="font-display text-4xl font-normal tracking-tight text-on-dark" style={{ fontFamily: "var(--font-display)" }}>
-                Shia Bazaar
-              </p>
-              <p className="text-sm mt-2">Hero banner — admin configurable</p>
-            </div>
+          {/* Hero — site logo on dark */}
+          <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-surface-dark-elevated border border-white/10 flex items-center justify-center p-10">
+            <Image
+              src={heroBanner.image}
+              alt="Shia Bazaar"
+              fill
+              className="object-contain p-8"
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
           </div>
         </div>
       </section>
@@ -87,13 +92,13 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {featuredProducts.slice(0, 8).map((product) => (
+          {homepageFeatured.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
 
-      {/* ── Coral callout card (with image) ──────────── */}
+      {/* ── Coral callout card (with real product image) ── */}
       <section className="max-w-[1200px] mx-auto px-6 pb-section">
         <div className="bg-primary rounded-xl overflow-hidden">
           <div className="grid lg:grid-cols-2 gap-0">
@@ -106,7 +111,7 @@ export default function HomePage() {
               </h2>
               <p className="text-sm text-on-primary/80 leading-relaxed max-w-sm">
                 New titles added weekly — scholarly works, duas, history, and
-                children&apos;s Islamic books for the whole family.
+                books for the whole family.
               </p>
               <Link
                 href="/products?sort=newest"
@@ -115,9 +120,17 @@ export default function HomePage() {
                 Shop New Arrivals <ArrowRight size={15} />
               </Link>
             </div>
-            {/* Promo image */}
-            <div className="relative min-h-[240px] lg:min-h-0 bg-primary-active/30 flex items-center justify-center border-t lg:border-t-0 lg:border-l border-white/10">
-              <p className="text-on-primary/50 text-sm">Promo image — admin configurable</p>
+            {/* Real product image from shiabazaar.com */}
+            <div className="relative min-h-[280px] lg:min-h-0 bg-primary-active/20 flex items-center justify-center p-8">
+              {promoProduct && (
+                <Image
+                  src={promoProduct.coverImage}
+                  alt={promoProduct.title}
+                  fill
+                  className="object-contain p-8"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              )}
             </div>
           </div>
         </div>
