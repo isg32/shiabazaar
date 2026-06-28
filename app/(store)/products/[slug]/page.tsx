@@ -64,7 +64,7 @@ export default async function ProductDetailPage({ params }: Props) {
           <h1 className="display-md text-ink">{product.title}</h1>
 
           {product.author && (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-body">
               by <span className="text-ink font-medium">{product.author}</span>
             </p>
           )}
@@ -84,7 +84,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 />
               ))}
             </div>
-            <span className="text-sm text-muted">
+            <span className="text-sm text-body">
               {product.rating} ({product.reviewCount} reviews)
             </span>
           </div>
@@ -94,7 +94,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <span className="text-3xl font-semibold text-ink">₹{product.price}</span>
             {product.originalPrice && (
               <>
-                <span className="text-muted line-through text-base">₹{product.originalPrice}</span>
+                <span className="text-body line-through text-base">₹{product.originalPrice}</span>
                 <Badge label="SALE" />
               </>
             )}
@@ -112,7 +112,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 ["ISBN",      product.isbn ?? "—"],
               ] as [string, string | number | undefined][]).filter(([, v]) => v).map(([label, value]) => (
                 <div key={label}>
-                  <p className="text-xs text-muted uppercase tracking-wide">{label}</p>
+                  <p className="text-xs text-body-strong uppercase tracking-wide">{label}</p>
                   <p className="text-sm text-ink font-medium mt-0.5">{value}</p>
                 </div>
               ))}
@@ -126,7 +126,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {/* Stock */}
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${product.inStock ? "bg-success" : "bg-error"}`} />
-            <span className="text-sm text-muted">{product.inStock ? "In Stock" : "Out of Stock"}</span>
+            <span className="text-sm text-body">{product.inStock ? "In Stock" : "Out of Stock"}</span>
           </div>
 
           {/* CTAs */}
@@ -159,7 +159,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 ))}
               </div>
               <p className="text-sm text-body leading-relaxed">{review.body}</p>
-              <div className="flex justify-between items-center text-xs text-muted mt-auto pt-2 border-t border-hairline-soft">
+              <div className="flex justify-between items-center text-xs text-body mt-auto pt-2 border-t border-hairline-soft">
                 <span className="font-medium text-ink">{review.author}</span>
                 <span>{review.date}</span>
               </div>
