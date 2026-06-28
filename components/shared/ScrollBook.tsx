@@ -1,157 +1,156 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
+import * as THREE from "three";
 
 export function ScrollBook() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0); // 0 = closed, 1 = fully open
+  const mountRef   = useRef<HTMLDivElement>(null);
+  const progressRef = useRef(0);
 
   useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const W = mount.clientWidth  || 400;
+    const H = mount.clientHeight || 320;
+
+    // ── Renderer ──────────────────────────────────────────────────
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    mount.appendChild(renderer.domElement);
+
+    // ── Scene / Camera ────────────────────────────────────────────
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 50);
+    camera.position.set(0, 2.2, 5.5);
+    camera.lookAt(0, 0, 0);
+
+    // ── Lights ───────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0xfff5e6, 1.1));
+
+    const key = new THREE.DirectionalLight(0xfff0d8, 2.2);
+    key.position.set(4, 7, 5);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    scene.add(key);
+
+    // warm fill from the left — echoes the coral brand
+    const fill = new THREE.DirectionalLight(0xcc785c, 0.5);
+    fill.position.set(-4, 2, 2);
+    scene.add(fill);
+
+    // ── Book geometry helper ──────────────────────────────────────
+    function makeBook(
+      w: number, h: number, d: number,
+      coverColor: number, pageColor: number,
+      posY: number, rotY: number,
+    ): THREE.Group {
+      const book = new THREE.Group();
+
+      // main body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshStandardMaterial({ color: coverColor, roughness: 0.82, metalness: 0.04 }),
+      );
+      body.castShadow = true;
+      body.receiveShadow = true;
+      book.add(body);
+
+      // page block — slightly inset on all sides, lighter color
+      const pages = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.92, h * 0.78, d * 0.94),
+        new THREE.MeshStandardMaterial({ color: pageColor, roughness: 0.9, metalness: 0 }),
+      );
+      pages.position.x = w * 0.04; // shifted toward fore-edge
+      book.add(pages);
+
+      // spine strip — slightly raised, gold tint
+      const spine = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, h * 1.002, d),
+        new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.5, metalness: 0.3 }),
+      );
+      spine.position.x = -w / 2;
+      book.add(spine);
+
+      book.position.y = posY;
+      book.rotation.y = rotY;
+      return book;
+    }
+
+    // ── Stack of books ────────────────────────────────────────────
+    const stack = new THREE.Group();
+    scene.add(stack);
+
+    // books bottom → top: (w, h, d, cover, pages, y, rotY)
+    const bookDefs = [
+      [2.2, 0.22, 1.5,  0x2d1508, 0xe8dcc8,  0.00,  0.05 ],
+      [2.0, 0.20, 1.38, 0x6b3b1e, 0xf0e4cc,  0.22, -0.10 ],
+      [2.3, 0.24, 1.55, 0x8b1a1a, 0xe8dcc8,  0.42,  0.08 ],
+      [1.9, 0.18, 1.30, 0x1a2a1a, 0xf4ead8,  0.66,  0.16 ],
+      [2.1, 0.20, 1.42, 0x4a2010, 0xede0c4,  0.84, -0.06 ],
+    ] as const;
+
+    bookDefs.forEach(([w, h, d, cover, page, y, rot]) =>
+      stack.add(makeBook(w, h, d, cover, page, y - 0.52, rot))
+    );
+
+    // ── Subtle ground shadow plane ────────────────────────────────
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(6, 6),
+      new THREE.ShadowMaterial({ opacity: 0.18 }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -0.54;
+    shadow.receiveShadow = true;
+    scene.add(shadow);
+
+    // ── Scroll → progress ────────────────────────────────────────
+    // Progress runs 0→1 over the full traversal of the element through
+    // the viewport: starts when bottom edge enters, ends when top edge exits.
     const onScroll = () => {
-      const el = ref.current;
+      const el = mountRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      // Open as element scrolls from entering viewport (bottom) to 30% from top
-      const p = Math.max(0, Math.min(1, (vh - rect.top) / (vh * 0.7)));
-      setProgress(p);
+      const vh   = window.innerHeight;
+      progressRef.current = Math.max(0, Math.min(1, (vh - rect.top) / (rect.height + vh)));
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+
+    // Cubic ease-in-out: slow start, fast middle, slow end
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    // ── Render loop ──────────────────────────────────────────────
+    let raf: number;
+    const animate = () => {
+      raf = requestAnimationFrame(animate);
+      stack.rotation.y = easeInOut(progressRef.current) * (150 * Math.PI / 180);
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // ── Resize ───────────────────────────────────────────────────
+    const onResize = () => {
+      const w = mount.clientWidth  || 400;
+      const h = mount.clientHeight || 320;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      renderer.dispose();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+    };
   }, []);
 
-  const coverAngle = progress * 162; // 0° closed → 162° fully open
-  const tiltX = 12 - progress * 12;  // tilt down when closed, flatten as it opens
-  const tiltY = -8 + progress * 8;   // slight Y angle when closed → straight when open
-  const floatY = Math.sin(progress * Math.PI) * -10; // arc up during mid-open
-
-  return (
-    <div
-      ref={ref}
-      className="w-full h-full min-h-[280px] flex items-center justify-center"
-      style={{ perspective: "1000px" }}
-    >
-      {/* Entire book group tilts as it opens */}
-      <div
-        style={{
-          transformStyle: "preserve-3d",
-          transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(${floatY}px)`,
-          position: "relative",
-          width: "200px",
-          height: "140px",
-        }}
-      >
-        {/* ── Left page (always present, revealed as cover opens) ── */}
-        <div style={{
-          position: "absolute", left: 0, top: 0,
-          width: "100px", height: "140px",
-          background: "linear-gradient(95deg, #f2e8d5 0%, #ede0c4 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "inset 8px 0 16px rgba(0,0,0,0.12)",
-        }}>
-          <svg viewBox="0 0 70 100" width="52" height="74" fill="none">
-            {/* Ruled lines */}
-            {[14, 22, 30, 38, 46, 54, 62, 70, 78, 86].map((y) => (
-              <line key={y} x1="8" y1={y} x2="62" y2={y} stroke="rgba(120,85,35,0.18)" strokeWidth="0.6" />
-            ))}
-            {/* Central medallion */}
-            <rect x="18" y="28" width="34" height="34" stroke="rgba(180,130,40,0.5)" strokeWidth="0.8" />
-            <rect x="18" y="28" width="34" height="34" stroke="rgba(180,130,40,0.5)" strokeWidth="0.8" transform="rotate(45 35 45)" />
-            <circle cx="35" cy="45" r="7" stroke="rgba(180,130,40,0.55)" strokeWidth="0.8" fill="none" />
-            {/* Page border */}
-            <rect x="4" y="4" width="62" height="92" stroke="rgba(120,85,35,0.3)" strokeWidth="0.6" />
-          </svg>
-        </div>
-
-        {/* ── Right page (always present) ── */}
-        <div style={{
-          position: "absolute", left: "100px", top: 0,
-          width: "100px", height: "140px",
-          background: "linear-gradient(85deg, #ede0c4 0%, #f2e8d5 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "inset -8px 0 16px rgba(0,0,0,0.08)",
-        }}>
-          <svg viewBox="0 0 70 100" width="52" height="74" fill="none">
-            {[14, 22, 30, 38, 46, 54, 62, 70, 78, 86].map((y) => (
-              <line key={y} x1="8" y1={y} x2="62" y2={y} stroke="rgba(120,85,35,0.18)" strokeWidth="0.6" />
-            ))}
-            {/* Corner ornaments */}
-            <path d="M8 8 L18 8 L18 18" stroke="rgba(180,130,40,0.4)" strokeWidth="0.7" fill="none" />
-            <path d="M62 8 L52 8 L52 18" stroke="rgba(180,130,40,0.4)" strokeWidth="0.7" fill="none" />
-            <path d="M8 92 L18 92 L18 82" stroke="rgba(180,130,40,0.4)" strokeWidth="0.7" fill="none" />
-            <path d="M62 92 L52 92 L52 82" stroke="rgba(180,130,40,0.4)" strokeWidth="0.7" fill="none" />
-            <rect x="4" y="4" width="62" height="92" stroke="rgba(120,85,35,0.3)" strokeWidth="0.6" />
-            {/* Page number */}
-            <text x="35" y="96" textAnchor="middle" fontSize="6" fill="rgba(120,85,35,0.5)" fontFamily="serif">٢</text>
-          </svg>
-        </div>
-
-        {/* ── Spine ── */}
-        <div style={{
-          position: "absolute", left: "97px", top: 0,
-          width: "6px", height: "140px",
-          background: "linear-gradient(90deg, #1c0b04, #5c3517, #1c0b04)",
-          zIndex: 20,
-        }} />
-
-        {/* ── Front cover — rotates open on scroll ── */}
-        <div
-          style={{
-            position: "absolute", left: "100px", top: 0,
-            width: "100px", height: "140px",
-            transformOrigin: "left center",
-            transform: `rotateY(-${coverAngle}deg)`,
-            transformStyle: "preserve-3d",
-            zIndex: coverAngle < 88 ? 15 : 2,
-          }}
-        >
-          {/* Outer face (leather cover, visible when closed) */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "linear-gradient(150deg, #6b3b1e 0%, #2d1508 100%)",
-            backfaceVisibility: "hidden",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            overflow: "hidden",
-          }}>
-            <div style={{ position: "absolute", inset: "5px", border: "1px solid rgba(201,162,39,0.55)" }} />
-            <svg viewBox="0 0 60 80" width="38" height="52" fill="none">
-              <rect x="10" y="10" width="40" height="40" stroke="rgba(201,162,39,0.65)" strokeWidth="0.9" />
-              <rect x="10" y="10" width="40" height="40" stroke="rgba(201,162,39,0.65)" strokeWidth="0.9" transform="rotate(45 30 30)" />
-              <circle cx="30" cy="30" r="6"  stroke="rgba(201,162,39,0.72)" strokeWidth="0.9" fill="none" />
-              <circle cx="30" cy="30" r="15" stroke="rgba(201,162,39,0.28)" strokeWidth="0.5" strokeDasharray="2.5 2.5" fill="none" />
-            </svg>
-            {/* Left-edge shadow */}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(0,0,0,0.4) 0%, transparent 25%)" }} />
-          </div>
-
-          {/* Inner face (inside of cover, cream, visible when open and rotated past 90°) */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "#e8dcc8",
-            transform: "rotateY(180deg)",
-            backfaceVisibility: "hidden",
-          }} />
-
-          {/* Cover depth (right edge visible when closed at angle) */}
-          <div style={{
-            position: "absolute", width: "14px", height: "140px",
-            right: "-14px", top: 0,
-            transformOrigin: "left center",
-            transform: "rotateY(90deg)",
-            background: "linear-gradient(90deg, #ede5d6, #c8bfaf)",
-          }} />
-        </div>
-
-        {/* ── Book thickness — bottom edge ── */}
-        <div style={{
-          position: "absolute", width: "200px", height: "14px",
-          bottom: "-14px", left: 0,
-          transformOrigin: "top center",
-          transform: "rotateX(-90deg)",
-          background: "linear-gradient(180deg, #c8bfaf, #ede5d6)",
-        }} />
-      </div>
-    </div>
-  );
+  return <div ref={mountRef} className="w-full h-full min-h-[280px]" />;
 }

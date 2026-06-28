@@ -5,7 +5,7 @@ import { featuredProducts } from "@/data/mock";
 import { Badge } from "@/components/shared/Badge";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductGallery } from "@/components/shared/ProductGallery";
-import { AddToCartButton } from "@/components/shared/AddToCartButton";
+import { ProductActions } from "@/components/shared/ProductActions";
 import { ProductAccordion } from "@/components/shared/ProductAccordion";
 import { ReviewForm } from "@/components/shared/ReviewForm";
 import { MembershipBar } from "@/components/shared/MembershipBar";
@@ -98,6 +98,15 @@ export default async function ProductDetailPage({ params }: Props) {
               </p>
             )}
 
+            {/* Summary */}
+            {product.description && (
+              <p className="text-sm text-body leading-relaxed">
+                {product.description.length > 180
+                  ? product.description.slice(0, 177) + "…"
+                  : product.description}
+              </p>
+            )}
+
             {/* Rating */}
             <div className="flex items-center gap-2">
               <div className="flex gap-0.5">
@@ -135,16 +144,8 @@ export default async function ProductDetailPage({ params }: Props) {
               <span className="text-sm text-body">{product.inStock ? "In Stock" : "Out of Stock"}</span>
             </div>
 
-            {/* Add to Cart + Buy Now */}
-            <div className="flex flex-col gap-2 pt-1">
-              <AddToCartButton disabled={!product.inStock} />
-              <button
-                disabled={!product.inStock}
-                className="w-full h-11 px-6 text-sm font-medium bg-canvas border border-hairline text-ink rounded hover:bg-surface-card transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Buy Now
-              </button>
-            </div>
+            {/* Quantity + Add to Cart + Buy Now */}
+            <ProductActions disabled={!product.inStock} />
 
             {/* ── Pincode — Coming Soon ── */}
             <div className="pt-3 border-t border-hairline">
