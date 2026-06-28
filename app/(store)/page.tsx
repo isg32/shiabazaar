@@ -36,6 +36,57 @@ export default function HomePage() {
 
   return (
     <>
+      {/* ── Brand header ─────────────────────────── */}
+      <section id="brand-header" className="bg-canvas flex flex-col items-center justify-center text-center px-6 py-20 lg:py-28">
+        {/* Star icon */}
+        <svg viewBox="0 0 100 100" className="w-12 h-12 mb-8 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
+          <rect x="25" y="25" width="50" height="50" />
+          <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
+          <circle cx="50" cy="50" r="8" />
+        </svg>
+
+        {/* Wordmark */}
+        <h1
+          className="text-ink font-normal mb-3"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(40px, 8vw, 72px)",
+            letterSpacing: "0.28em",
+            lineHeight: 1.1,
+          }}
+        >
+          SHIA BAZAAR
+        </h1>
+
+        {/* Sub-brand */}
+        <p
+          className="text-accent-amber font-medium mb-6"
+          style={{ fontSize: "11px", letterSpacing: "0.32em" }}
+        >
+          TANZEEMUL MAKATIB
+        </p>
+
+        {/* Decorative divider */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="h-px w-16 bg-accent-amber/60" />
+          <div className="w-1.5 h-1.5 rounded-full bg-accent-amber" />
+          <div className="h-px w-16 bg-accent-amber/60" />
+        </div>
+
+        {/* Tagline */}
+        <p
+          className="text-muted lg:w-80 leading-relaxed"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: "clamp(15px, 2vw, 17px)",
+          }}
+        >
+          A curated collection of Shia Islamic literature, meaningful gifts,
+          and essentials — crafted for the faithful.
+        </p>
+      </section>
+
       {/* ── Hero — 2 images, no text ──────────────── */}
       <section className="bg-surface-soft">
         <div className="max-w-[1200px] mx-auto px-6 py-10 lg:py-14">
@@ -67,10 +118,10 @@ export default function HomePage() {
       </section>
 
       {/* ── Marquee strip ────────────────────────── */}
-      <div className="bg-surface-dark overflow-hidden py-3 border-y border-white/8">
+      <div className="bg-surface-soft overflow-hidden py-3 border-y border-hairline">
         <div className="marquee-track">
           {[...marqueeItems, ...marqueeItems].map((item, i) => (
-            <span key={i} className="inline-flex items-center gap-4 px-4 text-sm font-medium text-on-dark-soft">
+            <span key={i} className="inline-flex items-center gap-4 px-4 text-sm font-medium text-body">
               <span className="text-primary text-base leading-none">✦</span>
               {item}
             </span>
@@ -144,7 +195,7 @@ export default function HomePage() {
               <h2 className="display-sm text-on-primary">
                 Explore Our Latest Collection of Islamic Books
               </h2>
-              <p className="text-sm text-on-primary/80 leading-relaxed max-w-[36ch]">
+              <p className="text-sm text-on-primary/80 leading-relaxed lg:w-80">
                 New titles added weekly — scholarly works, duas, history, and
                 books for the whole family.
               </p>

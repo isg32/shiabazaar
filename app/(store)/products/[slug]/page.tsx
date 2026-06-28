@@ -120,7 +120,7 @@ export default async function ProductDetailPage({ params }: Props) {
           )}
 
           {product.description && (
-            <p className="text-sm text-body leading-relaxed max-w-prose">{product.description}</p>
+            <p className="text-sm text-body leading-relaxed lg:w-80">{product.description}</p>
           )}
 
           {/* Stock */}

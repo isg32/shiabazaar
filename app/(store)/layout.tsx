@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/Navbar";
+import { NavOffset } from "@/components/layout/NavOffset";
 import { Footer } from "@/components/layout/Footer";
 
 export default function StoreLayout({
@@ -9,6 +10,7 @@ export default function StoreLayout({
   return (
     <>
       <Navbar />
+      <NavOffset />
       <main className="flex-1">{children}</main>
       <Footer />
     </>

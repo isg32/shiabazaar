@@ -15,7 +15,6 @@ const footerLinks = {
     { label: "Sign In", href: "/login" },
   ],
   Info: [
-    { label: "About Us", href: "/about" },
     { label: "Contact", href: "/contact" },
     { label: "Returns", href: "/returns" },
     { label: "Track Order", href: "/account/orders" },
@@ -28,22 +27,28 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="bg-surface-dark text-on-dark-soft mt-auto">
+    <footer className="bg-surface-soft border-t border-hairline mt-auto">
       <div className="max-w-[1200px] mx-auto px-6 py-16">
 
         {/* Top row */}
         <div className="flex flex-col lg:flex-row lg:items-start gap-12">
           {/* Brand */}
-          <div className="shrink-0 lg:w-56">
+          <div className="shrink-0 lg:w-80">
             <Link
               href="/"
-              className="text-on-dark font-display text-2xl font-normal tracking-tight"
-              style={{ fontFamily: "var(--font-display)" }}
+              className="flex items-center gap-2 text-ink"
             >
-              Shia Bazaar
+              <svg viewBox="0 0 100 100" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="25" y="25" width="50" height="50" />
+                <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
+                <circle cx="50" cy="50" r="8" />
+              </svg>
+              <span className="font-display text-2xl font-normal tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+                Shia Bazaar
+              </span>
             </Link>
-            <p className="mt-3 text-sm text-on-dark-soft leading-relaxed max-w-xs">
-              A curated collection of Islamic books, meaningful gifts, and everyday essentials.
+            <p className="mt-3 text-sm text-body leading-relaxed">
+              A curated collection of Shia Islamic books, meaningful gifts, and everyday essentials.
             </p>
           </div>
 
@@ -51,7 +56,7 @@ export function Footer() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 flex-1">
             {Object.entries(footerLinks).map(([group, links]) => (
               <div key={group}>
-                <p className="text-xs font-medium uppercase tracking-[1.5px] text-on-dark mb-4">
+                <p className="text-xs font-medium uppercase tracking-[1.5px] text-ink mb-4">
                   {group}
                 </p>
                 <ul className="space-y-2">
@@ -59,7 +64,7 @@ export function Footer() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-on-dark-soft hover:text-on-dark transition-colors"
+                        className="text-sm text-muted hover:text-ink transition-colors"
                       >
                         {link.label}
                       </Link>
@@ -71,8 +76,8 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between gap-3 text-xs text-on-dark-soft">
+        {/* Bottom bar */}
+        <div className="mt-12 pt-6 border-t border-hairline flex flex-col sm:flex-row justify-between gap-3 text-xs text-muted">
           <p>© {new Date().getFullYear()} Shia Bazaar. All rights reserved.</p>
           <p>Made with care for the community.</p>
         </div>

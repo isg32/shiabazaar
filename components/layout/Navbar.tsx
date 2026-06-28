@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { ShoppingCart, Heart, User, Search, Menu, X } from "lucide-react";
 
 const navLinks = [
@@ -13,26 +14,42 @@ const navLinks = [
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const [revealed, setRevealed] = useState(!isHome);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isHome) {
+      setRevealed(true);
+      return;
+    }
+    setRevealed(false);
+    const check = () => {
+      const el = document.getElementById("brand-header");
+      setRevealed(!el || window.scrollY > el.offsetHeight * 0.6);
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => window.removeEventListener("scroll", check);
+  }, [isHome]);
+
   return (
-    <header className="sticky top-0 z-50 h-16 bg-surface-dark border-b border-white/10">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 h-16 bg-canvas border-b border-hairline transition-transform duration-300 ${
+        revealed ? "translate-y-0" : "-translate-y-full"
+      }`}
+    >
       <div className="max-w-[1200px] mx-auto px-6 h-full flex items-center justify-between gap-4">
 
         {/* Logo + Wordmark */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 text-on-dark shrink-0"
-        >
-          <svg viewBox="0 0 100 100" className="w-7 h-7 text-on-dark" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <Link href="/" className="flex items-center gap-2.5 text-ink shrink-0">
+          <svg viewBox="0 0 100 100" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
             <rect x="25" y="25" width="50" height="50" />
             <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
             <circle cx="50" cy="50" r="8" />
           </svg>
-          <span
-            className="text-2xl font-normal tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
+          <span className="text-2xl font-normal tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
             Shia Bazaar
           </span>
         </Link>
@@ -43,7 +60,7 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="px-3 py-2 text-sm font-medium text-on-dark-soft hover:text-on-dark whitespace-nowrap transition-colors rounded-md hover:bg-white/8"
+              className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft"
             >
               {link.label}
             </Link>
@@ -52,26 +69,24 @@ export function Navbar() {
 
         {/* Right cluster */}
         <div className="flex items-center gap-0.5">
-          <Link href="/search" aria-label="Search" className="w-10 h-10 flex items-center justify-center rounded-full text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
+          <Link href="/search" aria-label="Search" className="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
             <Search size={18} />
           </Link>
-          <Link href="/account/wishlist" aria-label="Wishlist" className="w-10 h-10 flex items-center justify-center rounded-full text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
+          <Link href="/account/wishlist" aria-label="Wishlist" className="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
             <Heart size={18} />
           </Link>
-          <Link href="/cart" aria-label="Cart" className="relative w-10 h-10 flex items-center justify-center rounded-full text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
+          <Link href="/cart" aria-label="Cart" className="relative w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
             <ShoppingCart size={18} />
-            {/* ponytail: static badge — dynamic in Phase 3 */}
             <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-on-primary text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
               0
             </span>
           </Link>
-          <Link href="/login" aria-label="Account" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
+          <Link href="/login" aria-label="Account" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
             <User size={18} />
           </Link>
 
-          {/* Hamburger — mobile/tablet only */}
           <button
-            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Toggle menu"
           >
@@ -80,14 +95,14 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu — full-screen dark sheet */}
+      {/* Mobile menu */}
       {menuOpen && (
-        <div className="lg:hidden fixed inset-0 top-16 bg-surface-dark z-40 flex flex-col px-6 py-8 gap-2">
+        <div className="lg:hidden fixed inset-0 top-16 bg-canvas z-40 flex flex-col px-6 py-8 gap-2">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="py-3 text-lg font-medium text-on-dark border-b border-white/10"
+              className="py-3 text-lg font-medium text-ink border-b border-hairline"
               onClick={() => setMenuOpen(false)}
             >
               {link.label}

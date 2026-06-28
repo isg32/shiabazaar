@@ -10,7 +10,7 @@ export default function ContactPage() {
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-16">
       <h1 className="display-lg text-ink mb-3">Contact Us</h1>
-      <p className="text-body mb-12 max-w-md">Have a question, feedback, or need help with an order? We&apos;re here.</p>
+      <p className="text-body mb-12 lg:w-80">Have a question, feedback, or need help with an order? We&apos;re here.</p>
 
       <div className="grid lg:grid-cols-2 gap-12">
         {/* Form */}
