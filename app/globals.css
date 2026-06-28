@@ -101,6 +101,21 @@ body {
   letter-spacing: -0.3px;
 }
 
+/* Marquee infinite scroll */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: marquee 32s linear infinite;
+  width: max-content;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* ponytail: single reusable pattern, applied sparingly as section dividers */
 .geometric-divider {
   height: 1px;

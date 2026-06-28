@@ -51,7 +51,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       </div>
 
       {/* Info */}
-      <div className="p-4 flex flex-col gap-1 flex-1">
+      <div className="p-4 flex flex-col gap-1 flex-1 min-w-0">
         <p className="text-xs text-muted uppercase tracking-wide font-medium">
           {product.author ?? product.type}
         </p>
