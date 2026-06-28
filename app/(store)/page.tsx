@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ArrowRight, BookOpen, Gift, Sparkles, Crown } from "lucide-react";
 import type { ElementType } from "react";
 import { ScrollBook } from "@/components/shared/ScrollBook";
+import { FadeIn } from "@/components/shared/FadeIn";
 
 const catMeta: Record<string, { Icon: ElementType; color: string }> = {
   books:  { Icon: BookOpen,  color: "#cc785c" },
@@ -133,33 +134,34 @@ export default function HomePage() {
 
       {/* ── Category tile grid ───────────────────── */}
       <section className="max-w-[1200px] mx-auto px-6 py-section">
-        <div className="flex items-end justify-between mb-8">
+        <FadeIn className="flex items-end justify-between mb-8">
           <h2 className="display-sm text-ink">Browse by Category</h2>
           <Link href="/products" className="text-sm font-medium text-primary hover:text-primary-active flex items-center gap-1 whitespace-nowrap">
             All products <ArrowRight size={14} />
           </Link>
-        </div>
+        </FadeIn>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {categories.map((cat) => {
+          {categories.map((cat, i) => {
             const meta = catMeta[cat.slug];
             return (
-              <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className="group bg-canvas border border-hairline rounded-xl p-6 hover:border-primary/40 hover:bg-surface-card transition-all flex flex-col items-center text-center"
-              >
-                {meta && (
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                    style={{ backgroundColor: `${meta.color}1a` }}
-                  >
-                    <meta.Icon size={32} style={{ color: meta.color }} />
-                  </div>
-                )}
-                <p className="text-sm font-medium text-ink">{cat.label}</p>
-                <p className="text-xs text-body mt-1 leading-snug">{cat.description}</p>
-                <p className="text-xs text-primary mt-3 font-medium">{cat.count} items</p>
-              </Link>
+              <FadeIn key={cat.slug} delay={i * 70}>
+                <Link
+                  href={`/category/${cat.slug}`}
+                  className="group bg-canvas border border-hairline rounded-xl p-6 hover:border-primary/40 hover:bg-surface-card transition-all flex flex-col items-center text-center h-full"
+                >
+                  {meta && (
+                    <div
+                      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                      style={{ backgroundColor: `${meta.color}1a` }}
+                    >
+                      <meta.Icon size={32} style={{ color: meta.color }} />
+                    </div>
+                  )}
+                  <p className="text-sm font-medium text-ink">{cat.label}</p>
+                  <p className="text-xs text-body mt-1 leading-snug">{cat.description}</p>
+                  <p className="text-xs text-primary mt-3 font-medium">{cat.count} items</p>
+                </Link>
+              </FadeIn>
             );
           })}
         </div>
@@ -170,21 +172,24 @@ export default function HomePage() {
 
       {/* ── Featured products ────────────────────── */}
       <section className="max-w-[1200px] mx-auto px-6 py-section">
-        <div className="flex items-end justify-between mb-8">
+        <FadeIn className="flex items-end justify-between mb-8">
           <h2 className="display-sm text-ink">Featured Products</h2>
           <Link href="/products" className="text-sm font-medium text-primary hover:text-primary-active flex items-center gap-1 whitespace-nowrap">
             View all <ArrowRight size={14} />
           </Link>
-        </div>
+        </FadeIn>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {homepageFeatured.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {homepageFeatured.map((product, i) => (
+            <FadeIn key={product.id} delay={i * 60}>
+              <ProductCard product={product} />
+            </FadeIn>
           ))}
         </div>
       </section>
 
       {/* ── Coral callout card ───────────────────── */}
       <section className="max-w-[1200px] mx-auto px-6 pb-section">
+        <FadeIn>
         <div className="bg-primary rounded-xl overflow-hidden">
           <div className="grid lg:grid-cols-2 gap-0">
             <div className="px-10 py-12 lg:px-12 lg:py-16 flex flex-col justify-center gap-5">
@@ -210,6 +215,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        </FadeIn>
       </section>
 
       {/* ── Geometric divider ────────────────────── */}
@@ -218,15 +224,16 @@ export default function HomePage() {
       {/* ── Trust signals ────────────────────────── */}
       <section className="max-w-[1200px] mx-auto px-6 py-section">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {trustSignals.map((signal) => (
-            <div
+          {trustSignals.map((signal, i) => (
+            <FadeIn
               key={signal.title}
+              delay={i * 80}
               className="bg-surface-card rounded-xl p-6 flex flex-col gap-3 min-w-0"
             >
               <span className="text-2xl">{signal.icon}</span>
               <p className="text-sm font-medium text-ink">{signal.title}</p>
               <p className="text-xs text-body leading-snug">{signal.description}</p>
-            </div>
+            </FadeIn>
           ))}
         </div>
       </section>

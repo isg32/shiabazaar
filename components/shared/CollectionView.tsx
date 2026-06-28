@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard } from "./ProductCard";
+import { FadeIn } from "./FadeIn";
 import type { Product } from "@/data/mock";
 
 const PRICE_FILTERS = [
@@ -120,8 +121,10 @@ export function CollectionView({ label, crumbs, products }: CollectionViewProps)
       {/* Grid */}
       {paged.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
-          {paged.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {paged.map((p, i) => (
+            <FadeIn key={p.id} delay={Math.min(i, 7) * 60}>
+              <ProductCard product={p} />
+            </FadeIn>
           ))}
         </div>
       ) : (
