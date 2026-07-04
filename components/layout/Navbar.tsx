@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X } from "lucide-react";
-import { SignedIn, SignedOut, UserButton } from "@neondatabase/auth-ui";
+import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon } from "lucide-react";
+import { authClient } from "@/lib/auth/client";
 
 const navLinks = [
   { label: "Tazeem Publication", href: "/category/tazeem-publication" },
@@ -14,17 +14,100 @@ const navLinks = [
   { label: "Other Products", href: "/category/other-products" },
 ];
 
+function initials(name: string | null | undefined, email: string) {
+  if (name?.trim()) {
+    const parts = name.trim().split(" ");
+    return parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase();
+  }
+  return email.slice(0, 2).toUpperCase();
+}
+
+function UserMenu() {
+  const router = useRouter();
+  const session = authClient.useSession();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  if (session.isPending) return <div className="w-8 h-8 rounded-full bg-surface-soft animate-pulse" />;
+  if (!session.data?.user) {
+    return (
+      <Link href="/auth/sign-in" aria-label="Sign in" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
+        <User size={18} />
+      </Link>
+    );
+  }
+
+  const user = session.data.user;
+  const inits = initials(user.name, user.email);
+
+  async function signOut() {
+    await authClient.signOut();
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <div ref={ref} className="relative hidden sm:block">
+      <button
+        onClick={() => setOpen(v => !v)}
+        aria-label="Account menu"
+        className="w-8 h-8 rounded-full bg-primary text-on-primary text-[12px] font-semibold flex items-center justify-center hover:bg-primary-active transition-colors select-none"
+      >
+        {inits}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-10 z-50 w-52 bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5 overflow-hidden">
+          {/* User info */}
+          <div className="px-4 py-3 border-b border-hairline">
+            <p className="text-[13px] font-medium text-ink truncate">{user.name || "Account"}</p>
+            <p className="text-[11px] text-muted truncate mt-0.5">{user.email}</p>
+          </div>
+
+          <div className="py-1">
+            <Link href="/account/orders" onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors">
+              <Package size={14} className="text-muted" /> Orders
+            </Link>
+            <Link href="/account/wishlist" onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors">
+              <HeartIcon size={14} className="text-muted" /> Wishlist
+            </Link>
+          </div>
+
+          <div className="border-t border-hairline pt-1 pb-1">
+            <button onClick={signOut}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-muted hover:text-error hover:bg-error/5 transition-colors">
+              <LogOut size={14} /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [revealed, setRevealed] = useState(!isHome);
   const [menuOpen, setMenuOpen] = useState(false);
+  const session = authClient.useSession();
+  const router = useRouter();
 
   useEffect(() => {
-    if (!isHome) {
-      setRevealed(true);
-      return;
-    }
+    if (!isHome) { setRevealed(true); return; }
     setRevealed(false);
     const check = () => {
       const el = document.getElementById("brand-header");
@@ -34,6 +117,8 @@ export function Navbar() {
     check();
     return () => window.removeEventListener("scroll", check);
   }, [isHome]);
+
+  const user = session.data?.user;
 
   return (
     <>
@@ -64,11 +149,8 @@ export function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft"
-              >
+              <Link key={link.href} href={link.href}
+                className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
                 {link.label}
               </Link>
             ))}
@@ -88,16 +170,8 @@ export function Navbar() {
                 0
               </span>
             </Link>
-            <SignedOut>
-              <Link href="/auth/sign-in" aria-label="Account" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
-                <User size={18} />
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <div className="hidden sm:flex">
-                <UserButton />
-              </div>
-            </SignedIn>
+
+            <UserMenu />
 
             <button
               className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors"
@@ -110,36 +184,39 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile menu — sibling to header so it has its own stacking context */}
+      {/* Mobile menu */}
       {menuOpen && (
         <div
           className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col px-6 py-8 gap-2"
           style={{ top: "64px", backgroundColor: "#faf9f5" }}
         >
           {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
+            <Link key={link.href} href={link.href}
               className="py-3 text-lg font-medium text-ink border-b border-hairline"
-              onClick={() => setMenuOpen(false)}
-            >
+              onClick={() => setMenuOpen(false)}>
               {link.label}
             </Link>
           ))}
-          <SignedOut>
-            <Link
-              href="/auth/sign-in"
-              className="mt-4 py-3 text-lg font-medium text-primary"
-              onClick={() => setMenuOpen(false)}
-            >
+          {user ? (
+            <>
+              <Link href="/account/orders" className="mt-4 py-3 text-lg font-medium text-ink border-b border-hairline" onClick={() => setMenuOpen(false)}>
+                Orders
+              </Link>
+              <Link href="/account/wishlist" className="py-3 text-lg font-medium text-ink border-b border-hairline" onClick={() => setMenuOpen(false)}>
+                Wishlist
+              </Link>
+              <button
+                className="mt-4 py-3 text-left text-lg font-medium text-error"
+                onClick={async () => { await authClient.signOut(); setMenuOpen(false); router.push("/"); router.refresh(); }}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <Link href="/auth/sign-in" className="mt-4 py-3 text-lg font-medium text-primary" onClick={() => setMenuOpen(false)}>
               Sign In
             </Link>
-          </SignedOut>
-          <SignedIn>
-            <div className="mt-4 py-3">
-              <UserButton />
-            </div>
-          </SignedIn>
+          )}
         </div>
       )}
     </>
