@@ -5,13 +5,17 @@ import { db } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { data: session } = await auth.getSession();
-  if (!session?.user) return NextResponse.json({ isAdmin: false });
+  try {
+    const { data: session } = await auth.getSession();
+    if (!session?.user) return NextResponse.json({ isAdmin: false });
 
-  const user = await db.user.findUnique({
-    where: { email: session.user.email },
-    select: { isAdmin: true },
-  });
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+      select: { isAdmin: true },
+    });
 
-  return NextResponse.json({ isAdmin: user?.isAdmin ?? false });
+    return NextResponse.json({ isAdmin: user?.isAdmin ?? false });
+  } catch {
+    return NextResponse.json({ isAdmin: false });
+  }
 }
