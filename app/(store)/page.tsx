@@ -37,10 +37,10 @@ const W = "https://shiabazaar.com/wp-content/uploads";
 
 export default async function HomePage() {
   const [featured, banners, categoryCounts, activePopup] = await Promise.all([
-    getFeaturedProducts(8),
-    db.banner.findMany({ where: { active: true }, orderBy: { position: "asc" } }),
-    db.product.groupBy({ by: ["type"], _count: { id: true } }),
-    db.popup.findFirst({ where: { active: true }, orderBy: { createdAt: "desc" } }),
+    getFeaturedProducts(8).catch(() => []),
+    db.banner.findMany({ where: { active: true }, orderBy: { position: "asc" } }).catch(() => []),
+    db.product.groupBy({ by: ["type"], _count: { id: true } }).catch(() => []),
+    db.popup.findFirst({ where: { active: true }, orderBy: { createdAt: "desc" } }).catch(() => null),
   ]);
 
   const countMap = Object.fromEntries(categoryCounts.map(r => [r.type, r._count.id]));

@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@neondatabase/auth": "^0.4.2-beta",
+    "@neondatabase/serverless": "^1.1.0",
     "@prisma/client": "^5.22.0",
     "@types/three": "^0.185.0",
     "class-variance-authority": "^0.7.1",
