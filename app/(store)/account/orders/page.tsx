@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, RotateCcw, Loader2 } from "lucide-react";
+import { ChevronRight, RotateCcw, Loader2, X } from "lucide-react";
 import { Badge } from "@/components/shared/Badge";
 
 type OrderItem = { title: string; qty: number; price: number };
@@ -33,14 +33,34 @@ function fmtDate(iso: string) {
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,      setOrders]      = useState<Order[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [returnOrder, setReturnOrder] = useState<string | null>(null);
+  const [reason,      setReason]      = useState("");
+  const [submitting,  setSubmitting]  = useState(false);
+  const [returnDone,  setReturnDone]  = useState<string[]>([]);
+  const [returnErr,   setReturnErr]   = useState("");
 
   useEffect(() => {
     fetch("/api/account/orders")
       .then(r => r.json())
       .then(d => { setOrders(d.orders ?? []); setLoading(false); });
   }, []);
+
+  async function submitReturn(orderId: string) {
+    if (!reason.trim()) { setReturnErr("Please describe the reason for your return"); return; }
+    setSubmitting(true);
+    setReturnErr("");
+    const res = await fetch("/api/account/returns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, reason }),
+    });
+    const d = await res.json();
+    if (!res.ok) { setReturnErr(d.error ?? "Failed to submit return request"); }
+    else { setReturnDone(prev => [...prev, orderId]); setReturnOrder(null); setReason(""); }
+    setSubmitting(false);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -92,10 +112,16 @@ export default function OrdersPage() {
                   <p className="text-xs text-muted">Tracking will appear once shipped</p>
                 )}
                 <div className="flex gap-3">
-                  {order.status === "delivered" && (
-                    <button className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-error transition-colors">
+                  {order.status === "delivered" && !returnDone.includes(order.id) && returnOrder !== order.id && (
+                    <button
+                      onClick={() => { setReturnOrder(order.id); setReason(""); setReturnErr(""); }}
+                      className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-error transition-colors"
+                    >
                       <RotateCcw size={12} /> Request Return
                     </button>
+                  )}
+                  {returnDone.includes(order.id) && (
+                    <span className="text-xs text-success">Return requested</span>
                   )}
                   <Link
                     href={`/order/${order.id}`}
@@ -105,6 +131,41 @@ export default function OrdersPage() {
                   </Link>
                 </div>
               </div>
+
+              {/* Inline return form */}
+              {returnOrder === order.id && (
+                <div className="px-5 py-4 border-t border-hairline bg-surface-soft">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-medium text-ink">Return Request — {orderRef(order.id)}</p>
+                    <button onClick={() => setReturnOrder(null)} className="text-muted hover:text-ink">
+                      <X size={13} />
+                    </button>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    placeholder="Describe why you'd like to return this order…"
+                    className="w-full px-3 py-2 text-sm border border-hairline rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 resize-none mb-2"
+                  />
+                  {returnErr && <p className="text-xs text-error mb-2">{returnErr}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => submitReturn(order.id)}
+                      disabled={submitting}
+                      className="h-8 px-4 text-xs font-medium bg-primary text-on-primary rounded-md hover:bg-primary-active transition-colors disabled:opacity-60"
+                    >
+                      {submitting ? "Submitting…" : "Submit Request"}
+                    </button>
+                    <button
+                      onClick={() => setReturnOrder(null)}
+                      className="h-8 px-4 text-xs font-medium border border-hairline text-muted rounded-md hover:text-ink hover:bg-surface-card transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

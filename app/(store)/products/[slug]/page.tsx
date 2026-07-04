@@ -2,12 +2,14 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Star, MapPin, Scale, TrendingDown } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
+import { db } from "@/lib/db";
 import { Badge } from "@/components/shared/Badge";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductGallery } from "@/components/shared/ProductGallery";
 import { ProductActions } from "@/components/shared/ProductActions";
 import { ProductAccordion } from "@/components/shared/ProductAccordion";
 import { ReviewForm } from "@/components/shared/ReviewForm";
+import { WishlistButton } from "@/components/shared/WishlistButton";
 import { MembershipBar } from "@/components/shared/MembershipBar";
 import type { Metadata } from "next";
 
@@ -22,11 +24,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: product.title, description: product.description };
 }
 
-const mockReviews = [
-  { id: 1, author: "Ahmed K.",   rating: 5, date: "12 Jun 2025", body: "Excellent quality, arrived well packaged. Highly recommend." },
-  { id: 2, author: "Fatima R.",  rating: 5, date: "4 Jun 2025",  body: "Beautiful book, the translation is clear and the paper quality is great." },
-  { id: 3, author: "Hussain M.", rating: 4, date: "28 May 2025", body: "Good product, delivery was a day late but packaging was perfect." },
-];
+function reviewerName(user: { name: string | null; email: string }) {
+  if (user.name) {
+    const parts = user.name.trim().split(" ");
+    return parts.length >= 2 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+  }
+  return user.email.split("@")[0];
+}
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
@@ -34,7 +38,14 @@ export default async function ProductDetailPage({ params }: Props) {
   if (!product) notFound();
 
   const allImages = [product.coverImage, ...(product.images ?? [])];
-  const related = await getRelatedProducts(product.id, product.type, 4);
+  const [related, reviews] = await Promise.all([
+    getRelatedProducts(product.id, product.type, 4),
+    db.review.findMany({
+      where: { productId: product.id },
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { name: true, email: true } } },
+    }),
+  ]);
 
   /* ── Accordion content ── */
   const descriptionContent = product.description
@@ -146,6 +157,8 @@ export default async function ProductDetailPage({ params }: Props) {
               product={{ id: product.id, title: product.title, price: product.price, coverImage: product.coverImage, author: product.author, type: product.type }}
             />
 
+            <WishlistButton productId={product.id} />
+
             {/* ── Pincode — Coming Soon ── */}
             <div className="pt-3 border-t border-hairline">
               <div className="flex items-center gap-2 mb-2">
@@ -226,31 +239,35 @@ export default async function ProductDetailPage({ params }: Props) {
         {/* ── Reviews ──────────────────────────────────── */}
         <section className="mb-16">
           <h2 className="display-sm text-ink mb-8">Customer Reviews</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockReviews.map((review) => (
-              <div key={review.id} className="bg-surface-card p-6 flex flex-col gap-3">
-                <div className="flex gap-0.5">
-                  {[1,2,3,4,5].map((s) => (
-                    <Star
-                      key={s}
-                      size={13}
-                      className={
-                        s <= review.rating
-                          ? "fill-accent-amber text-accent-amber"
-                          : "fill-hairline text-hairline"
-                      }
-                    />
-                  ))}
+          {reviews.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-2">
+              {reviews.map((review) => (
+                <div key={review.id} className="bg-surface-card p-6 flex flex-col gap-3">
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star
+                        key={s}
+                        size={13}
+                        className={
+                          s <= review.rating
+                            ? "fill-accent-amber text-accent-amber"
+                            : "fill-hairline text-hairline"
+                        }
+                      />
+                    ))}
+                  </div>
+                  {review.body && <p className="text-sm text-body leading-relaxed">{review.body}</p>}
+                  <div className="flex justify-between items-center text-xs text-body mt-auto pt-2 border-t border-hairline-soft">
+                    <span className="font-medium text-ink">{reviewerName(review.user)}</span>
+                    <span>{new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  </div>
                 </div>
-                <p className="text-sm text-body leading-relaxed">{review.body}</p>
-                <div className="flex justify-between items-center text-xs text-body mt-auto pt-2 border-t border-hairline-soft">
-                  <span className="font-medium text-ink">{review.author}</span>
-                  <span>{review.date}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <ReviewForm />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted mb-2">No reviews yet. Be the first to review this product.</p>
+          )}
+          <ReviewForm productId={product.id} />
         </section>
 
         <div className="geometric-divider mb-16" />

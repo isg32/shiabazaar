@@ -1,34 +1,61 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Star, Upload, X } from "lucide-react";
-import Image from "next/image";
+import { useState } from "react";
+import { Star } from "lucide-react";
+import { authClient } from "@/lib/auth/client";
+import { useRouter } from "next/navigation";
 
-export function ReviewForm() {
-  const [rating, setRating] = useState(0);
+export function ReviewForm({ productId }: { productId?: string }) {
+  const session = authClient.useSession();
+  const router = useRouter();
+  const [rating,  setRating]  = useState(0);
   const [hovered, setHovered] = useState(0);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [body,    setBody]    = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+  const [done,    setDone]    = useState(false);
 
-  const addFiles = (files: FileList | null) => {
-    if (!files) return;
-    Array.from(files)
-      .slice(0, 4 - previews.length)
-      .forEach((f) => setPreviews((p) => [...p, URL.createObjectURL(f)]));
-  };
+  async function submit() {
+    if (!session.data?.user) { router.push("/auth/sign-in"); return; }
+    if (!productId) return;
+    if (rating === 0) { setError("Please select a rating"); return; }
 
-  const removeImage = (i: number) => {
-    setPreviews((p) => {
-      URL.revokeObjectURL(p[i]);
-      return p.filter((_, j) => j !== i);
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId, rating, body }),
     });
-  };
+    const d = await res.json();
+    if (!res.ok) { setError(d.error ?? "Failed to submit review"); }
+    else { setDone(true); }
+    setLoading(false);
+  }
+
+  if (!productId) return null;
+
+  if (done) {
+    return (
+      <div className="bg-surface-card border border-hairline rounded-xl p-6 mt-8 text-center">
+        <p className="text-sm font-medium text-success mb-1">Review submitted!</p>
+        <p className="text-xs text-muted">Thank you for your feedback.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-surface-card border border-hairline rounded-xl p-6 mt-8">
       <h3 className="font-medium text-ink mb-5">Write a Review</h3>
 
-      {/* Star selector */}
+      {!session.data?.user && (
+        <p className="text-xs text-muted mb-4">
+          You must{" "}
+          <button onClick={() => router.push("/auth/sign-in")} className="text-primary underline">sign in</button>
+          {" "}and have purchased this product to leave a review.
+        </p>
+      )}
+
       <div className="mb-4">
         <p className="text-xs text-muted uppercase tracking-wide mb-2">Your rating</p>
         <div className="flex gap-1">
@@ -53,59 +80,25 @@ export function ReviewForm() {
         </div>
       </div>
 
-      {/* Review text */}
-      <div className="mb-4">
+      <div className="mb-5">
         <textarea
           rows={4}
+          value={body}
+          onChange={e => setBody(e.target.value)}
           placeholder="Share your experience with this product…"
           className="w-full px-3 py-2.5 text-sm border border-hairline rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors resize-none"
         />
       </div>
 
-      {/* Image upload */}
-      <div className="mb-5">
-        <p className="text-xs text-muted uppercase tracking-wide mb-2">Add photos of your product (up to 4)</p>
-        <div className="flex flex-wrap gap-2">
-          {previews.map((src, i) => (
-            <div
-              key={i}
-              className="relative w-16 h-16 rounded-md overflow-hidden border border-hairline shrink-0"
-            >
-              <Image src={src} alt="" fill className="object-cover" />
-              <button
-                type="button"
-                onClick={() => removeImage(i)}
-                className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-ink/70 text-white flex items-center justify-center"
-              >
-                <X size={9} />
-              </button>
-            </div>
-          ))}
-          {previews.length < 4 && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-16 h-16 rounded-md border border-dashed border-hairline flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-colors shrink-0"
-            >
-              <Upload size={16} />
-            </button>
-          )}
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="sr-only"
-          onChange={(e) => addFiles(e.target.files)}
-        />
-      </div>
+      {error && <p className="text-xs text-error mb-3">{error}</p>}
 
       <button
         type="button"
-        className="h-10 px-6 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors"
+        onClick={submit}
+        disabled={loading}
+        className="h-10 px-6 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors disabled:opacity-60"
       >
-        Submit Review
+        {loading ? "Submitting…" : "Submit Review"}
       </button>
     </div>
   );

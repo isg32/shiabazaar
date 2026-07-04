@@ -35,6 +35,22 @@ export async function GET() {
   return NextResponse.json({ items });
 }
 
+export async function POST(request: Request) {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = await ensureUser(session.user.email, session.user.name);
+  const { productId } = await request.json();
+
+  await db.wishlist.upsert({
+    where: { userId_productId: { userId, productId } },
+    create: { userId, productId },
+    update: {},
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(request: Request) {
   const { data: session } = await auth.getSession();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
