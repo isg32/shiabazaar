@@ -29,6 +29,7 @@ function UserMenu() {
   const router = useRouter();
   const session = authClient.useSession();
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,11 @@ function UserMenu() {
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!session.data?.user) return;
+    fetch("/api/auth/admin-status").then(r => r.json()).then(d => setIsAdmin(d.isAdmin ?? false));
+  }, [session.data?.user]);
 
   if (session.isPending) return <div className="w-8 h-8 rounded-full bg-surface-soft animate-pulse" />;
   if (!session.data?.user) {
@@ -85,7 +91,7 @@ function UserMenu() {
               className="flex items-center gap-2.5 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors">
               <HeartIcon size={14} className="text-muted" /> Wishlist
             </Link>
-            {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+            {isAdmin && (
               <Link href="/admin" onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-sm text-primary hover:text-primary-active hover:bg-surface-soft transition-colors">
                 <LayoutDashboard size={14} /> Admin Panel

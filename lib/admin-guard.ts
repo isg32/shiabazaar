@@ -1,4 +1,5 @@
 import { auth } from "./auth/server";
+import { db } from "./db";
 import { NextResponse } from "next/server";
 
 export async function requireAdmin(): Promise<{ error: NextResponse } | null> {
@@ -6,7 +7,11 @@ export async function requireAdmin(): Promise<{ error: NextResponse } | null> {
   if (!session?.user) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
-  if (session.user.email !== process.env.ADMIN_EMAIL) {
+  const user = await db.user.findUnique({
+    where: { email: session.user.email },
+    select: { isAdmin: true },
+  });
+  if (!user?.isAdmin) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   return null;
