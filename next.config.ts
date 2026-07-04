@@ -3,10 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "shiabazaar.com",
-      },
+      { protocol: "https", hostname: "shiabazaar.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
 };

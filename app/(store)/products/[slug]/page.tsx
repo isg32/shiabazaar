@@ -141,7 +141,10 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             {/* Quantity + Add to Cart + Buy Now */}
-            <ProductActions disabled={!product.inStock} />
+            <ProductActions
+              disabled={!product.inStock}
+              product={{ id: product.id, title: product.title, price: product.price, coverImage: product.coverImage, author: product.author, type: product.type }}
+            />
 
             {/* ── Pincode — Coming Soon ── */}
             <div className="pt-3 border-t border-hairline">

@@ -1,22 +1,62 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ShoppingCart, Check, Minus, Plus } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
-export function ProductActions({ disabled }: { disabled?: boolean }) {
+interface Props {
+  disabled?: boolean;
+  product: {
+    id: string;
+    title: string;
+    price: number;        // rupees
+    coverImage: string;
+    author?: string | null;
+    type: string;
+  };
+}
+
+export function ProductActions({ disabled, product }: Props) {
+  const { addItem } = useCart();
+  const router = useRouter();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
-  function handleAdd() {
+  async function handleAdd() {
     if (disabled || added) return;
+    await addItem({
+      productId:  product.id,
+      variantId:  null,
+      title:      product.title,
+      price:      product.price,
+      coverImage: product.coverImage,
+      author:     product.author ?? null,
+      type:       product.type,
+      qty,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  }
+
+  async function handleBuyNow() {
+    if (disabled) return;
+    await addItem({
+      productId:  product.id,
+      variantId:  null,
+      title:      product.title,
+      price:      product.price,
+      coverImage: product.coverImage,
+      author:     product.author ?? null,
+      type:       product.type,
+      qty,
+    });
+    router.push("/cart");
   }
 
   return (
     <div className="flex flex-col gap-3 pt-1">
 
-      {/* Quantity stepper */}
       <div className="flex items-center self-start">
         <button
           onClick={() => setQty(q => Math.max(1, q - 1))}
@@ -37,7 +77,6 @@ export function ProductActions({ disabled }: { disabled?: boolean }) {
         </button>
       </div>
 
-      {/* Add to Cart — outlined coral */}
       <button
         onClick={handleAdd}
         disabled={disabled}
@@ -51,8 +90,8 @@ export function ProductActions({ disabled }: { disabled?: boolean }) {
         {added ? "Added to Cart" : "Add to Cart"}
       </button>
 
-      {/* Buy Now — coral primary */}
       <button
+        onClick={handleBuyNow}
         disabled={disabled}
         className="w-full h-11 inline-flex items-center justify-center text-sm font-medium rounded bg-primary text-on-primary hover:bg-primary-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >

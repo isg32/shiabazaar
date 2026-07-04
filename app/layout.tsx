@@ -42,6 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         cormorant.variable,
         jakartaSans.variable,

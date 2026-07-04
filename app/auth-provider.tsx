@@ -4,6 +4,7 @@ import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
 import { authClient } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { CartProvider } from "@/context/CartContext";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       onSessionChange={() => router.refresh()}
       Link={Link}
     >
-      {children}
+      <CartProvider>{children}</CartProvider>
     </NeonAuthUIProvider>
   );
 }

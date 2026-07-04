@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
+import { useCart } from "@/context/CartContext";
 
 const navLinks = [
   { label: "Tazeem Publication", href: "/category/tazeem-publication" },
@@ -119,6 +120,7 @@ export function Navbar() {
   }, [isHome]);
 
   const user = session.data?.user;
+  const { count: cartCount } = useCart();
 
   return (
     <>
@@ -166,9 +168,11 @@ export function Navbar() {
             </Link>
             <Link href="/cart" aria-label="Cart" className="relative w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
               <ShoppingCart size={18} />
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-on-primary text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
-                0
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-on-primary text-[10px] font-medium rounded-full flex items-center justify-center leading-none">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
             </Link>
 
             <UserMenu />
