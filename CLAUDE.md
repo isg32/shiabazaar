@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Styling | Tailwind CSS + shadcn/ui |
 | Database | Neon (serverless Postgres) |
 | ORM | Prisma (`prisma/schema.prisma`, migrations in `prisma/migrations/`) |
-| Auth | Firebase Auth — email + password only |
+| Auth | Neon Auth (Stack Auth) — email + password only |
 | File storage | Cloudinary — signed uploads server-side, store URL/ID in Postgres |
 | Payments | Razorpay — webhook at `app/api/webhooks/razorpay/` |
 | Email | Coming soon — deferred |
@@ -24,9 +24,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 — Design | Scaffold Next.js, Tailwind, shadcn/ui. Build all pages and components with static/mock data. No live integrations. | **Current** |
-| 2 — DB + Storage | Wire Neon (Prisma) + Cloudinary. Products, images, orders persisted. | Pending |
-| 3 — Auth | Firebase Auth + Admin SDK. Login, register, protected routes, admin middleware. | Pending |
+| 1 — Design | Scaffold Next.js, Tailwind, shadcn/ui. Build all pages and components with static/mock data. No live integrations. | **Complete** |
+| 2 — DB + Storage | Wire Neon (Prisma) + Cloudinary. Products, images, orders persisted. | **Current** |
+| 3 — Auth | Neon Auth (Stack Auth). Login, register, protected routes, admin middleware. | Pending |
 | 4 — Payments | Razorpay checkout + webhook. Live order flow. | Pending |
 
 During Phase 1 all data is hardcoded or mocked. No API keys are needed.
@@ -37,12 +37,30 @@ During Phase 1 all data is hardcoded or mocked. No API keys are needed.
 
 - **Server Components** for product/category/book pages (SEO + performance).
 - **Client Components** only for: cart, checkout form, payment flow, wishlist toggles.
-- **Firebase Admin SDK** in middleware verifies ID token before trusting any user identity server-side.
-- **Single admin** — role is hardcoded via env var (`ADMIN_UID`), no role management system needed.
+- **Neon Auth** middleware verifies session before trusting any user identity server-side. User records live in Postgres alongside all other tables — no separate auth service.
+- **Single admin** — role is hardcoded via env var (`ADMIN_EMAIL`), no role management system needed.
 - **Cart**: persistent in DB for logged-in users; localStorage for guests; merge on login.
-- **Cloudinary**: API secret never exposed to client — uploads go through a signed Route Handler.
+- **Cloudinary**: API secret never exposed to client — uploads go through a signed Route Handler. All assets stored under the `shiabazaar/` root folder (see folder structure below).
 - **Razorpay webhook**: always verify signature before updating order status.
 - No separate API layer — Next.js Route Handlers (`app/api/`) cover all backend needs.
+
+## Cloudinary folder structure
+
+All assets live under `shiabazaar/` in Cloudinary:
+
+```
+shiabazaar/
+  products/
+    [product-slug]/      ← all images for a specific product
+  banners/               ← homepage hero banners (admin-uploaded)
+  categories/            ← category tile images
+  misc/                  ← popups, promotional images, other one-offs
+```
+
+- Public IDs follow the pattern `shiabazaar/products/[slug]/[filename]`
+- Signed uploads via `POST /api/upload` — returns `{ url, public_id }`
+- `public_id` stored in `product_images.cloudinary_id`; `url` stored in `product_images.url`
+- Deletes go through the same Route Handler using the stored `public_id`
 
 ## Design system
 
@@ -316,7 +334,7 @@ Four product types, one unified products table with a `type` discriminator:
 ### Auth
 - `/login` — Email + password sign in
 - `/register` — Account creation
-- `/forgot-password` — Password reset via Firebase
+- `/forgot-password` — Password reset via Neon Auth
 
 ### Customer account (requires login)
 - `/account` — Dashboard
@@ -368,7 +386,7 @@ Four product types, one unified products table with a `type` discriminator:
 - `reviews` — rating + text, gated by completed order
 - `coupons` — code, type (% / flat), value, expiry, usage limit
 - `return_requests` — linked to order, status, reason
-- `users` — Firebase Auth UID, ban status, extended profile
+- `users` — Neon Auth user ID, ban status, extended profile
 - `addresses` — saved addresses per user
 - `shipping_zones` — weight + location rules
 - `banners` / `popups` — admin-controlled homepage content
