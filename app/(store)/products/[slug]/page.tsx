@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Star, MapPin, Scale, TrendingDown } from "lucide-react";
-import { featuredProducts } from "@/data/mock";
+import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
 import { Badge } from "@/components/shared/Badge";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductGallery } from "@/components/shared/ProductGallery";
@@ -13,15 +13,13 @@ import type { Metadata } from "next";
 
 interface Props { params: Promise<{ slug: string }> }
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = featuredProducts.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
   if (!product) return {};
   return { title: product.title, description: product.description };
-}
-
-export async function generateStaticParams() {
-  return featuredProducts.map((p) => ({ slug: p.slug }));
 }
 
 const mockReviews = [
@@ -32,13 +30,11 @@ const mockReviews = [
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = featuredProducts.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
   const allImages = [product.coverImage, ...(product.images ?? [])];
-  const related = featuredProducts.filter(
-    (p) => p.id !== product.id && p.type === product.type
-  ).slice(0, 4);
+  const related = await getRelatedProducts(product.id, product.type, 4);
 
   /* ── Accordion content ── */
   const descriptionContent = product.description

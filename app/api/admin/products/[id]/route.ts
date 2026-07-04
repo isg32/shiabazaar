@@ -1,0 +1,26 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin-guard";
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { id } = await params;
+  const body = await req.json();
+  const data: Record<string, unknown> = { ...body };
+  if (body.price !== undefined) data.price = Math.round(body.price * 100);
+  if (body.originalPrice !== undefined) data.originalPrice = body.originalPrice ? Math.round(body.originalPrice * 100) : null;
+
+  const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });
+  return NextResponse.json({ product });
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { id } = await params;
+  await db.product.delete({ where: { id } });
+  return NextResponse.json({ deleted: true });
+}

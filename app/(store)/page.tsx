@@ -11,7 +11,8 @@ const catMeta: Record<string, { Icon: ElementType; color: string }> = {
   ladies: { Icon: Sparkles,  color: "#5db8a6" },
   gents:  { Icon: Crown,     color: "#8b7fc7" },
 };
-import { homepageFeatured, categories, trustSignals } from "@/data/mock";
+import { categories, trustSignals } from "@/data/mock";
+import { getFeaturedProducts } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 
 const W = "https://shiabazaar.com/wp-content/uploads";
@@ -33,7 +34,10 @@ const marqueeItems = [
   "Gents Collection",
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const homepageFeatured = await getFeaturedProducts(8);
   return (
     <>
       {/* ── Brand header ─────────────────────────── */}

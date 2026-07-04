@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ShoppingCart, Check } from "lucide-react";
 import { Badge } from "./Badge";
-import type { Product } from "@/data/mock";
+import type { ProductUI as Product } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard } from "./ProductCard";
 import { FadeIn } from "./FadeIn";
-import type { Product } from "@/data/mock";
+import type { ProductUI as Product } from "@/lib/queries";
 
 const PRICE_FILTERS = [
   { label: "All prices", value: "all" },

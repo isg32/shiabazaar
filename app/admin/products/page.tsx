@@ -1,47 +1,52 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Plus, Search, Pencil, Trash2, Filter } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Search, Pencil, Trash2, Filter, Loader2 } from "lucide-react";
 
-const ALL_PRODUCTS = [
-  { id: 1,  name: "Nahjul Balagha",             type: "Book",   price: "₹620",   stock: 24, status: "Active",       img: "📗" },
-  { id: 2,  name: "Tafseer e Namoona Vol 1",    type: "Book",   price: "₹480",   stock: 18, status: "Active",       img: "📘" },
-  { id: 3,  name: "Tafseer e Namoona Vol 2",    type: "Book",   price: "₹480",   stock: 9,  status: "Active",       img: "📘" },
-  { id: 4,  name: "Tafseer e Saafi Vol 1",      type: "Book",   price: "₹540",   stock: 14, status: "Active",       img: "📙" },
-  { id: 5,  name: "Tafseer e Saafi Vol 3",      type: "Book",   price: "₹540",   stock: 3,  status: "Low Stock",    img: "📙" },
-  { id: 6,  name: "Alam Panja (Brass Large)",   type: "Gift",   price: "₹1,200", stock: 7,  status: "Active",       img: "🏮" },
-  { id: 7,  name: "Alam Panja (Brass Small)",   type: "Gift",   price: "₹850",   stock: 12, status: "Active",       img: "🏮" },
-  { id: 8,  name: "Alam Patka (Small)",         type: "Gift",   price: "₹620",   stock: 2,  status: "Low Stock",    img: "🏮" },
-  { id: 9,  name: "Mashak Brass Small",         type: "Gift",   price: "₹890",   stock: 15, status: "Active",       img: "🫙" },
-  { id: 10, name: "Islamic Mug — Bismillah",    type: "Gift",   price: "₹350",   stock: 0,  status: "Out of Stock", img: "☕" },
-  { id: 11, name: "Prayer Mat — Ladies Floral", type: "Ladies", price: "₹350",   stock: 20, status: "Active",       img: "🟫" },
-  { id: 12, name: "Abaya — Black (M)",          type: "Ladies", price: "₹1,800", stock: 8,  status: "Active",       img: "👗" },
-  { id: 13, name: "Hijab — Chiffon Cream",      type: "Ladies", price: "₹280",   stock: 35, status: "Active",       img: "🧣" },
-  { id: 14, name: "Gents Kurta — White",        type: "Gents",  price: "₹950",   stock: 1,  status: "Low Stock",    img: "👔" },
-  { id: 15, name: "Attar — Oud Rose 6ml",       type: "Gents",  price: "₹420",   stock: 22, status: "Active",       img: "🌹" },
-];
+interface Product {
+  id: string;
+  title: string;
+  type: string;
+  price: number;     // paise
+  inStock: boolean;
+  _count?: { images: number };
+  variants: { stock: number }[];
+}
 
-const statusStyles: Record<string, string> = {
-  "Active":        "bg-success/10 text-success",
-  "Low Stock":     "bg-accent-amber/15 text-accent-amber",
-  "Out of Stock":  "bg-error/10 text-error",
-};
+function stockLabel(p: Product) {
+  const total = p.variants.length
+    ? p.variants.reduce((s, v) => s + v.stock, 0)
+    : p.inStock ? 99 : 0;
+  if (total === 0) return { label: "Out of stock", cls: "text-error" };
+  if (total <= 3)  return { label: `${total} units`, cls: "text-accent-amber" };
+  return             { label: `${total} units`, cls: "text-success" };
+}
 
-const TYPES = ["All", "Book", "Gift", "Ladies", "Gents"];
+const TYPES = ["All", "book", "gift", "ladies", "gents"];
 const PER_PAGE = 10;
 
 export default function AdminProducts() {
   const [query,    setQuery]    = useState("");
   const [typeTab,  setTypeTab]  = useState("All");
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [products, setProducts] = useState(ALL_PRODUCTS);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/products");
+    const d = await res.json();
+    setProducts(d.products ?? []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter(p =>
       (typeTab === "All" || p.type === typeTab) &&
-      (!q || p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q))
+      (!q || p.title.toLowerCase().includes(q) || p.type.toLowerCase().includes(q))
     );
   }, [products, query, typeTab]);
 
@@ -51,27 +56,23 @@ export default function AdminProducts() {
   function handleTabChange(t: string) { setTypeTab(t); setPage(1); setSelected(new Set()); }
   function handleQuery(q: string)     { setQuery(q);   setPage(1); }
 
-  function toggleSelect(id: number) {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  function toggleSelect(id: string) {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
   function toggleAll() {
     const ids = paged.map(p => p.id);
     const allSel = ids.every(id => selected.has(id));
-    setSelected(prev => {
-      const next = new Set(prev);
-      ids.forEach(id => allSel ? next.delete(id) : next.add(id));
-      return next;
-    });
+    setSelected(prev => { const n = new Set(prev); ids.forEach(id => allSel ? n.delete(id) : n.add(id)); return n; });
   }
-  function deleteProduct(id: number) {
+
+  async function deleteProduct(id: string) {
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
     setProducts(prev => prev.filter(p => p.id !== id));
-    setSelected(prev => { const next = new Set(prev); next.delete(id); return next; });
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
   }
-  function deleteSelected() {
+  async function deleteSelected() {
+    const ids = [...selected];
+    await fetch("/api/admin/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
     setProducts(prev => prev.filter(p => !selected.has(p.id)));
     setSelected(new Set());
   }
@@ -94,9 +95,12 @@ export default function AdminProducts() {
               <Trash2 size={14} /> Delete {selected.size}
             </button>
           )}
-          <button className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+          <a
+            href="/admin/products/new"
+            className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors"
+          >
             <Plus size={14} /> Add Product
-          </button>
+          </a>
         </div>
       </div>
 
@@ -117,31 +121,28 @@ export default function AdminProducts() {
             <button
               key={t}
               onClick={() => handleTabChange(t)}
-              className={`px-3 h-7 text-xs font-medium rounded transition-colors ${typeTab === t ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
+              className={`px-3 h-7 text-xs font-medium rounded capitalize transition-colors ${typeTab === t ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
             >
               {t}
             </button>
           ))}
         </div>
-        <button className="h-9 px-3 flex items-center gap-1.5 text-sm text-on-dark-soft bg-surface-dark-elevated border border-white/8 rounded-md hover:text-on-dark transition-colors">
-          <Filter size={13} /> Filter
-        </button>
       </div>
 
       {/* Table */}
       <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-2 text-on-dark-soft">
+            <Loader2 size={16} className="animate-spin" /> Loading…
+          </div>
+        ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/8">
               <th className="px-5 py-3 text-left w-8">
-                <input
-                  type="checkbox"
-                  checked={allOnPageSelected}
-                  onChange={toggleAll}
-                  className="rounded accent-[#cc785c] cursor-pointer"
-                />
+                <input type="checkbox" checked={allOnPageSelected} onChange={toggleAll} className="rounded accent-[#cc785c] cursor-pointer" />
               </th>
-              {["Product", "Type", "Price", "Stock", "Status", "Actions"].map(h => (
+              {["Product", "Type", "Price", "Stock", "Actions"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -149,82 +150,66 @@ export default function AdminProducts() {
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-sm text-on-dark-soft">
-                  No products match your search.
+                <td colSpan={6} className="px-5 py-10 text-center text-sm text-on-dark-soft">
+                  {products.length === 0 ? "No products yet. Add your first product." : "No products match your search."}
                 </td>
               </tr>
-            ) : paged.map((p, i) => (
-              <tr
-                key={p.id}
-                className={`hover:bg-white/3 transition-colors ${i < paged.length - 1 ? "border-b border-white/8" : ""} ${selected.has(p.id) ? "bg-primary/5" : ""}`}
-              >
-                <td className="px-5 py-3.5">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(p.id)}
-                    onChange={() => toggleSelect(p.id)}
-                    className="rounded accent-[#cc785c] cursor-pointer"
-                  />
-                </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{p.img}</span>
-                    <span className="text-on-dark font-medium">{p.name}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3.5">
-                  <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-on-dark-soft font-medium">{p.type}</span>
-                </td>
-                <td className="px-4 py-3.5 text-on-dark font-medium">{p.price}</td>
-                <td className="px-4 py-3.5">
-                  <span className={`text-xs font-medium ${p.stock === 0 ? "text-error" : p.stock <= 3 ? "text-accent-amber" : "text-success"}`}>
-                    {p.stock === 0 ? "Out of stock" : `${p.stock} units`}
-                  </span>
-                </td>
-                <td className="px-4 py-3.5">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${statusStyles[p.status]}`}>
-                    {p.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <button className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      onClick={() => deleteProduct(p.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            ) : paged.map((p, i) => {
+              const stock = stockLabel(p);
+              return (
+                <tr
+                  key={p.id}
+                  className={`hover:bg-white/3 transition-colors ${i < paged.length - 1 ? "border-b border-white/8" : ""} ${selected.has(p.id) ? "bg-primary/5" : ""}`}
+                >
+                  <td className="px-5 py-3.5">
+                    <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded accent-[#cc785c] cursor-pointer" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-on-dark font-medium">{p.title}</span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-on-dark-soft font-medium capitalize">{p.type}</span>
+                  </td>
+                  <td className="px-4 py-3.5 text-on-dark font-medium">₹{(p.price / 100).toFixed(0)}</td>
+                  <td className="px-4 py-3.5">
+                    <span className={`text-xs font-medium ${stock.cls}`}>{stock.label}</span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`/admin/products/${p.id}/edit`}
+                        className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors"
+                      >
+                        <Pencil size={13} />
+                      </a>
+                      <button
+                        onClick={() => deleteProduct(p.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        )}
         <div className="px-5 py-3 border-t border-white/8 flex items-center justify-between">
           <span className="text-xs text-on-dark-soft">
             Showing {filtered.length === 0 ? 0 : (page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
           </span>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="h-7 px-3 text-xs text-on-dark-soft bg-white/5 rounded hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+            {[...Array(totalPages)].map((_, i) => (
               <button
-                key={pg}
-                onClick={() => setPage(pg)}
-                className={`h-7 px-3 text-xs rounded transition-colors ${pg === page ? "text-on-dark bg-white/12" : "text-on-dark-soft bg-white/5 hover:bg-white/10"}`}
-              >{pg}</button>
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`w-7 h-7 text-xs rounded transition-colors ${page === i + 1 ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
+              >
+                {i + 1}
+              </button>
             ))}
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="h-7 px-3 text-xs text-on-dark-soft bg-white/5 rounded hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >Next</button>
           </div>
         </div>
       </div>

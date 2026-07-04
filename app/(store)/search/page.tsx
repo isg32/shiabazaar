@@ -1,28 +1,35 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { featuredProducts } from "@/data/mock";
+import type { ProductUI } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { FadeIn } from "@/components/shared/FadeIn";
 
 const PER_PAGE = 12;
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
-  const [page, setPage]   = useState(1);
+  const [query, setQuery]       = useState("");
+  const [allProducts, setAll]   = useState<ProductUI[]>([]);
+  const [page, setPage]         = useState(1);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((d) => setAll(d.products ?? []));
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return featuredProducts;
-    return featuredProducts.filter((p) =>
+    if (!q) return allProducts;
+    return allProducts.filter((p) =>
       p.title.toLowerCase().includes(q) ||
       p.author?.toLowerCase().includes(q) ||
       p.genre?.toLowerCase().includes(q) ||
       p.description?.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, allProducts]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / PER_PAGE));
   const paged = results.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -64,7 +71,7 @@ export default function SearchPage() {
       <div className="flex items-center pb-7 mb-8 border-b border-hairline">
         <p className="text-sm text-muted">
           {results.length} result{results.length !== 1 ? "s" : ""}
-          {query.trim() ? <> for <span className="text-ink font-medium">"{query.trim()}"</span></> : ""}
+          {query.trim() ? <> for <span className="text-ink font-medium">&ldquo;{query.trim()}&rdquo;</span></> : ""}
         </p>
       </div>
 
@@ -79,8 +86,12 @@ export default function SearchPage() {
         </div>
       ) : (
         <div className="py-24 text-center">
-          <p className="text-sm text-body">No results for &ldquo;{query}&rdquo;</p>
-          <p className="text-xs text-body mt-1.5">Try a different word or browse categories.</p>
+          <p className="text-sm text-body">
+            {allProducts.length === 0 ? "Loading…" : `No results for "${query}"`}
+          </p>
+          {allProducts.length > 0 && (
+            <p className="text-xs text-body mt-1.5">Try a different word or browse categories.</p>
+          )}
         </div>
       )}
 
