@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-guard";
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { id } = await params;
+  const product = await db.product.findUnique({
+    where: { id },
+    include: { images: true, variants: true },
+  });
+  if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ product });
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin();
   if (guard) return guard.error;

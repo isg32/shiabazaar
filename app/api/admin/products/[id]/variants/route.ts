@@ -21,6 +21,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ variant }, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { id } = await params;
+  const { variantId, label, stock, price } = await req.json();
+
+  const variant = await db.productVariant.update({
+    where: { id: variantId, productId: id },
+    data: {
+      ...(label !== undefined && { label }),
+      ...(stock !== undefined && { stock: Number(stock) }),
+      ...(price !== undefined && { price: price ? Math.round(Number(price) * 100) : null }),
+    },
+  });
+
+  return NextResponse.json({ variant });
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin();
   if (guard) return guard.error;

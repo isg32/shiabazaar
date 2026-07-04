@@ -21,6 +21,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ image }, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { id } = await params;
+  const { imageId, isCover } = await req.json();
+
+  if (isCover) {
+    await db.productImage.updateMany({ where: { productId: id }, data: { isCover: false } });
+  }
+  const image = await db.productImage.update({ where: { id: imageId }, data: { isCover } });
+  return NextResponse.json({ image });
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin();
   if (guard) return guard.error;

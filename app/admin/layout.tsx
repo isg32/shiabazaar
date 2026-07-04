@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Warehouse,
   Tag, Users, Image, Home, LogOut, RotateCcw,
 } from "lucide-react";
+import { authClient } from "@/lib/auth/client";
 
 const nav = [
   { href: "/admin",           label: "Dashboard", Icon: LayoutDashboard },
@@ -21,6 +22,12 @@ const nav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    await authClient.signOut();
+    router.push("/");
+  }
 
   return (
     <div className="min-h-screen flex bg-surface-dark">
@@ -70,13 +77,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Sign out */}
         <div className="px-3 py-4 border-t border-white/8">
-          <Link
-            href="/login"
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated transition-colors"
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors"
           >
             <LogOut size={15} />
             Sign out
-          </Link>
+          </button>
         </div>
 
       </aside>
