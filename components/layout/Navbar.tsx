@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon } from "lucide-react";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
 
@@ -85,6 +85,12 @@ function UserMenu() {
               className="flex items-center gap-2.5 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors">
               <HeartIcon size={14} className="text-muted" /> Wishlist
             </Link>
+            {user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+              <Link href="/admin" onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-primary hover:text-primary-active hover:bg-surface-soft transition-colors">
+                <LayoutDashboard size={14} /> Admin Panel
+              </Link>
+            )}
           </div>
 
           <div className="border-t border-hairline pt-1 pb-1">
