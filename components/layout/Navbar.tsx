@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ShoppingCart, Heart, User, Search, Menu, X } from "lucide-react";
+import { SignedIn, SignedOut, UserButton } from "@neondatabase/auth-ui";
 
 const navLinks = [
   { label: "Tazeem Publication", href: "/category/tazeem-publication" },
@@ -87,9 +88,16 @@ export function Navbar() {
                 0
               </span>
             </Link>
-            <Link href="/login" aria-label="Account" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
-              <User size={18} />
-            </Link>
+            <SignedOut>
+              <Link href="/auth/sign-in" aria-label="Account" className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors">
+                <User size={18} />
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <div className="hidden sm:flex">
+                <UserButton />
+              </div>
+            </SignedIn>
 
             <button
               className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-surface-soft transition-colors"
@@ -118,13 +126,20 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            className="mt-4 py-3 text-lg font-medium text-primary"
-            onClick={() => setMenuOpen(false)}
-          >
-            Sign In
-          </Link>
+          <SignedOut>
+            <Link
+              href="/auth/sign-in"
+              className="mt-4 py-3 text-lg font-medium text-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              Sign In
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <div className="mt-4 py-3">
+              <UserButton />
+            </div>
+          </SignedIn>
         </div>
       )}
     </>

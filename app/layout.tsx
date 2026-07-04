@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { AuthProvider } from "./auth-provider";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -48,7 +49,7 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-screen flex flex-col antialiased bg-canvas text-body">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
