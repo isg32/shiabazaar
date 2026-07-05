@@ -45,8 +45,8 @@ export default async function HomePage() {
 
   const countMap = Object.fromEntries(categoryCounts.map(r => [r.type, r._count.id]));
 
-  // Use first DB banner for hero if available
-  const heroBanner = banners[0] ?? null;
+  const heroLeft  = banners[0]?.imageUrl ?? `${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`;
+  const heroRight = banners[1]?.imageUrl ?? `${W}/2026/06/Gemini_Generated_Image_-3.png`;
 
   return (
     <>
@@ -80,45 +80,14 @@ export default async function HomePage() {
       {/* ── Hero ─────────────────────────────────── */}
       <section className="bg-surface-soft">
         <div className="max-w-[1200px] mx-auto px-6 py-10 lg:py-14">
-          {heroBanner ? (
-            /* DB banner */
-            <div className="relative overflow-hidden rounded-xl bg-surface-dark min-h-[400px] flex items-center">
-              {heroBanner.imageUrl && (
-                <Image
-                  src={heroBanner.imageUrl}
-                  alt={heroBanner.title}
-                  fill
-                  className="object-cover opacity-40"
-                  priority
-                  sizes="100vw"
-                />
-              )}
-              <div className="relative z-10 px-10 py-14 lg:px-16 flex flex-col gap-5 max-w-xl">
-                <h2 className="text-on-dark" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1.1 }}>
-                  {heroBanner.title}
-                </h2>
-                {heroBanner.subtitle && (
-                  <p className="text-on-dark-soft text-sm leading-relaxed">{heroBanner.subtitle}</p>
-                )}
-                <Link
-                  href={heroBanner.ctaUrl}
-                  className="self-start inline-flex items-center gap-2 h-10 px-5 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors"
-                >
-                  {heroBanner.ctaLabel} <ArrowRight size={14} />
-                </Link>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 lg:gap-5 lg:h-[560px]">
+            <div className="relative overflow-hidden rounded-xl aspect-video lg:aspect-auto">
+              <Image src={heroLeft} alt="Shia Bazaar — Islamic books and gifts" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
             </div>
-          ) : (
-            /* Static fallback images */
-            <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 lg:gap-5 lg:h-[560px]">
-              <div className="relative overflow-hidden rounded-xl aspect-video lg:aspect-auto">
-                <Image src={`${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`} alt="Shia Bazaar — Islamic books and gifts" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
-              </div>
-              <div className="relative overflow-hidden rounded-xl aspect-[3/4] lg:aspect-auto">
-                <Image src={`${W}/2026/06/Gemini_Generated_Image_-3.png`} alt="Shia Bazaar — curated collection" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 40vw" />
-              </div>
+            <div className="relative overflow-hidden rounded-xl aspect-[3/4] lg:aspect-auto">
+              <Image src={heroRight} alt="Shia Bazaar — curated collection" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 40vw" />
             </div>
-          )}
+          </div>
         </div>
       </section>
 

@@ -16,12 +16,20 @@ export async function POST(request: Request) {
   const guard = await requireAdmin();
   if (guard) return guard.error;
 
-  const { title, subtitle, ctaLabel, ctaUrl } = await request.json();
+  const { title, subtitle, ctaLabel, ctaUrl, imageUrl, cloudinaryId, position } = await request.json();
   if (!title) return NextResponse.json({ error: "Title required" }, { status: 400 });
 
   const count = await db.banner.count();
   const banner = await db.banner.create({
-    data: { title, subtitle: subtitle || null, ctaLabel: ctaLabel || "Shop Now", ctaUrl: ctaUrl || "/products", position: count },
+    data: {
+      title,
+      subtitle: subtitle || null,
+      ctaLabel: ctaLabel || "Shop Now",
+      ctaUrl: ctaUrl || "/products",
+      imageUrl: imageUrl || null,
+      cloudinaryId: cloudinaryId || null,
+      position: position ?? count,
+    },
   });
   return NextResponse.json({ banner }, { status: 201 });
 }

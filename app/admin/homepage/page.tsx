@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Trash2, Plus, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trash2, Plus, Loader2, X, Upload, ImageIcon } from "lucide-react";
+import Image from "next/image";
 
-type Banner   = { id: string; title: string; subtitle: string | null; ctaLabel: string; ctaUrl: string; active: boolean };
+type Banner   = { id: string; title: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
 type Popup    = { id: string; title: string; code: string | null; trigger: string; delayMs: number; active: boolean };
 type Featured = { id: string; pinned: boolean; product: { id: string; title: string; type: string; price: number } };
 type ProductOption = { id: string; title: string; type: string };
 
-const BLANK_BANNER = { title: "", subtitle: "", ctaLabel: "Shop Now", ctaUrl: "/products" };
-const BLANK_POPUP  = { title: "", code: "", trigger: "page_load", delayMs: 3000 };
+const BLANK_POPUP = { title: "", code: "", trigger: "page_load", delayMs: 3000 };
+
+const HERO_SLOTS = [
+  { label: "Left Image", position: 0, aspect: "aspect-video" },
+  { label: "Right Image", position: 1, aspect: "aspect-[3/4]" },
+] as const;
 
 export default function AdminHomepage() {
   const [banners,   setBanners]   = useState<Banner[]>([]);
@@ -18,12 +23,14 @@ export default function AdminHomepage() {
   const [products,  setProducts]  = useState<ProductOption[]>([]);
   const [loading,   setLoading]   = useState(true);
 
-  const [showBannerForm, setShowBannerForm] = useState(false);
-  const [bannerForm,     setBannerForm]     = useState(BLANK_BANNER);
+  const [uploading,      setUploading]      = useState<Record<number, boolean>>({});
   const [showPopupForm,  setShowPopupForm]  = useState(false);
   const [popupForm,      setPopupForm]      = useState(BLANK_POPUP);
   const [addFeaturedId,  setAddFeaturedId]  = useState("");
   const [saving,         setSaving]         = useState(false);
+  const fileRef0 = useRef<HTMLInputElement>(null);
+  const fileRef1 = useRef<HTMLInputElement>(null);
+  const fileRefs = [fileRef0, fileRef1];
 
   useEffect(() => {
     Promise.all([
@@ -40,23 +47,64 @@ export default function AdminHomepage() {
     });
   }, []);
 
-  async function toggleBanner(id: string, active: boolean) {
-    await fetch(`/api/admin/banners/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !active }) });
-    setBanners(prev => prev.map(b => b.id === id ? { ...b, active: !active } : b));
+  async function uploadHeroImage(slotIndex: number, file: File) {
+    setUploading(u => ({ ...u, [slotIndex]: true }));
+    try {
+      const signRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "shiabazaar/banners" }),
+      });
+      const sign = await signRes.json();
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("timestamp", sign.timestamp);
+      fd.append("signature", sign.signature);
+      fd.append("api_key", sign.apiKey);
+      fd.append("folder", sign.folder);
+      const up = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, { method: "POST", body: fd });
+      const img = await up.json();
+
+      const existing = banners[slotIndex];
+      if (existing) {
+        await fetch(`/api/admin/banners/${existing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: img.secure_url, cloudinaryId: img.public_id }),
+        });
+        setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: img.secure_url, cloudinaryId: img.public_id } : b));
+      } else {
+        const res = await fetch("/api/admin/banners", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: slotIndex === 0 ? "Hero Left" : "Hero Right",
+            imageUrl: img.secure_url,
+            cloudinaryId: img.public_id,
+            position: slotIndex,
+          }),
+        });
+        const d = await res.json();
+        setBanners(prev => {
+          const next = [...prev];
+          next[slotIndex] = d.banner;
+          return next;
+        });
+      }
+    } finally {
+      setUploading(u => ({ ...u, [slotIndex]: false }));
+    }
   }
-  async function deleteBanner(id: string) {
-    await fetch(`/api/admin/banners/${id}`, { method: "DELETE" });
-    setBanners(prev => prev.filter(b => b.id !== id));
-  }
-  async function saveBanner() {
-    if (!bannerForm.title) return;
-    setSaving(true);
-    const res = await fetch("/api/admin/banners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bannerForm) });
-    const d = await res.json();
-    setBanners(prev => [...prev, d.banner]);
-    setBannerForm(BLANK_BANNER);
-    setShowBannerForm(false);
-    setSaving(false);
+
+  async function removeHeroImage(slotIndex: number) {
+    const existing = banners[slotIndex];
+    if (!existing) return;
+    await fetch(`/api/admin/banners/${existing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl: null, cloudinaryId: null }),
+    });
+    setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: null, cloudinaryId: null } : b));
   }
 
   async function togglePinned(id: string, pinned: boolean) {
@@ -111,62 +159,64 @@ export default function AdminHomepage() {
         <p className="text-sm text-on-dark-soft mt-0.5">Manage hero banners, featured products, and popups</p>
       </div>
 
-      {/* ── Hero Banners ── */}
+      {/* ── Hero Images ── */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-medium text-on-dark">Hero Banners</h2>
-          <button onClick={() => setShowBannerForm(v => !v)} className="h-8 px-3 text-xs bg-primary text-white rounded-md flex items-center gap-1.5 hover:bg-primary-active transition-colors">
-            <Plus size={12} /> Add Banner
-          </button>
+        <div className="mb-4">
+          <h2 className="text-base font-medium text-on-dark">Hero Images</h2>
+          <p className="text-xs text-on-dark-soft mt-0.5">Two images shown side-by-side on the homepage.</p>
         </div>
 
-        {showBannerForm && (
-          <div className="bg-surface-dark-elevated border border-white/8 rounded-xl p-5 mb-3">
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <input placeholder="Title *" value={bannerForm.title} onChange={e => setBannerForm(f => ({ ...f, title: e.target.value }))}
-                className="h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary col-span-2" />
-              <input placeholder="Subtitle" value={bannerForm.subtitle} onChange={e => setBannerForm(f => ({ ...f, subtitle: e.target.value }))}
-                className="h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary" />
-              <input placeholder="CTA Label" value={bannerForm.ctaLabel} onChange={e => setBannerForm(f => ({ ...f, ctaLabel: e.target.value }))}
-                className="h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary" />
-              <input placeholder="CTA URL" value={bannerForm.ctaUrl} onChange={e => setBannerForm(f => ({ ...f, ctaUrl: e.target.value }))}
-                className="h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary col-span-2" />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={saveBanner} disabled={saving || !bannerForm.title}
-                className="h-8 px-4 text-xs bg-primary text-white rounded-md hover:bg-primary-active transition-colors disabled:opacity-60">
-                {saving ? "Saving…" : "Save Banner"}
-              </button>
-              <button onClick={() => setShowBannerForm(false)} className="h-8 px-4 text-xs border border-white/10 text-on-dark-soft rounded-md hover:text-on-dark transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          {banners.length === 0 && !showBannerForm && <p className="text-sm text-on-dark-soft py-4 text-center">No banners yet.</p>}
-          {banners.map(b => (
-            <div key={b.id} className="bg-surface-dark-elevated border border-white/8 rounded-xl px-5 py-4 flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-on-dark font-medium">{b.title}</p>
-                <p className="text-xs text-on-dark-soft mt-0.5">{b.subtitle} · CTA: &ldquo;{b.ctaLabel}&rdquo;</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {HERO_SLOTS.map(({ label, position }) => {
+            const banner = banners[position];
+            const isUploading = uploading[position];
+            return (
+              <div key={position} className="bg-surface-dark-elevated border border-white/8 rounded-xl overflow-hidden">
+                {/* Preview */}
+                <div className="relative bg-surface-dark w-full h-40 flex items-center justify-center">
+                  {banner?.imageUrl ? (
+                    <Image src={banner.imageUrl} alt={label} fill className="object-cover" sizes="400px" />
+                  ) : (
+                    <ImageIcon size={32} className="text-white/20" />
+                  )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-on-dark text-sm">
+                      <Loader2 size={16} className="animate-spin" /> Uploading…
+                    </div>
+                  )}
+                </div>
+                {/* Controls */}
+                <div className="px-4 py-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-on-dark">{label}</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileRefs[position]}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadHeroImage(position, f); e.target.value = ""; }}
+                    />
+                    <button
+                      onClick={() => fileRefs[position].current?.click()}
+                      disabled={isUploading}
+                      className="h-7 px-3 text-xs bg-primary text-white rounded flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60"
+                    >
+                      <Upload size={11} /> {banner?.imageUrl ? "Replace" : "Upload"}
+                    </button>
+                    {banner?.imageUrl && (
+                      <button
+                        onClick={() => removeHeroImage(position)}
+                        disabled={isUploading}
+                        className="h-7 w-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors disabled:opacity-60"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${b.active ? "bg-success/12 text-success" : "bg-white/8 text-on-dark-soft"}`}>
-                  {b.active ? "Live" : "Draft"}
-                </span>
-                <button onClick={() => toggleBanner(b.id, b.active)} title={b.active ? "Set to draft" : "Set to live"}
-                  className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-on-dark hover:bg-white/8 transition-colors">
-                  {b.active ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-                <button onClick={() => deleteBanner(b.id)}
-                  className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
