@@ -65,20 +65,14 @@ export default async function HomePage() {
         className="bg-canvas flex flex-col items-center justify-center text-center px-8"
         style={{ minHeight: "10vh" }}
       >
-        <svg viewBox="0 0 100 100" className="w-10 h-10 mb-2 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
-          <rect x="25" y="25" width="50" height="50" />
-          <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
-          <circle cx="50" cy="50" r="8" />
-        </svg>
-        <h1
-          className="text-ink font-normal mb-1"
-          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(22px, 4.5vw, 44px)", letterSpacing: "0.28em", lineHeight: 1.1 }}
-        >
-          SHIA BAZAAR
-        </h1>
-        <p className="text-accent-amber font-medium mb-2" style={{ fontSize: "9px", letterSpacing: "0.32em" }}>
-          TANZEEMUL MAKATIB
-        </p>
+        <Image
+          src="/logo-main.png"
+          alt="Shia Bazaar"
+          width={300}
+          height={104}
+          className="mb-2"
+          priority
+        />
        
       </section>
 

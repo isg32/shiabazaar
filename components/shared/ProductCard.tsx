@@ -7,6 +7,7 @@ import { ShoppingCart, Check } from "lucide-react";
 import { Badge } from "./Badge";
 import type { ProductUI as Product } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: Product;
@@ -15,11 +16,20 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const [added, setAdded] = useState(false);
+  const { addItem } = useCart();
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     if (added) return;
     setAdded(true);
+    addItem({
+      productId: product.id,
+      title: product.title,
+      price: product.price,
+      coverImage: product.coverImage,
+      author: product.author,
+      type: product.type,
+    });
     setTimeout(() => setAdded(false), 2000);
   }
 

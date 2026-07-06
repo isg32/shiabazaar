@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard } from "lucide-react";
@@ -123,19 +124,14 @@ function NavInner({ onClose }: { onClose?: () => void }) {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 text-ink shrink-0">
-          <svg viewBox="0 0 100 100" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="25" y="25" width="50" height="50" />
-            <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
-            <circle cx="50" cy="50" r="8" />
-          </svg>
-          <div className="flex flex-col leading-none">
-            <span className="text-[22px] font-normal tracking-tight leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-              Shia Bazaar
-            </span>
-            <span className="text-[7.5px] font-medium tracking-[0.22em] text-accent-amber uppercase mt-0.5">
-              Tanzeemul Makatib
-            </span>
-          </div>
+          <Image
+            src="/logo-main.png"
+            alt="Shia Bazaar"
+            width={140}
+            height={42}
+            className="object-contain"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const footerLinks = {
   Shop: [
@@ -38,19 +39,14 @@ export function Footer() {
               href="/"
               className="flex items-center gap-2 text-ink"
             >
-              <svg viewBox="0 0 100 100" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="25" y="25" width="50" height="50" />
-                <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
-                <circle cx="50" cy="50" r="8" />
-              </svg>
-              <div className="flex flex-col leading-none">
-                <span className="text-[22px] font-normal tracking-tight leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-                  Shia Bazaar
-                </span>
-                <span className="text-[7.5px] font-medium tracking-[0.22em] text-accent-amber uppercase mt-0.5">
-                  Tanzeemul Makatib
-                </span>
-              </div>
+              <Image
+                src="/logo-main.png"
+                alt="Shia Bazaar"
+                width={160}
+                height={48}
+                className="object-contain"
+                priority
+              />
             </Link>
             <p className="mt-3 text-sm text-body leading-relaxed">
               A curated collection of Shia Islamic books, meaningful gifts, and everyday essentials.
