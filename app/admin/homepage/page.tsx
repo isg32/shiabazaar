@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Loader2, X, Upload, ImageIcon } from "lucide-react";
 import Image from "next/image";
 
-type Banner   = { id: string; title: string; imageUrl: string | null; cloudinaryId: string | null; ctaUrl: string; active: boolean };
+type Banner   = { id: string; title: string; subtitle: string | null; ctaLabel: string; ctaUrl: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
 type Popup    = { id: string; title: string; code: string | null; trigger: string; delayMs: number; active: boolean };
 type Featured = { id: string; pinned: boolean; product: { id: string; title: string; type: string; price: number } };
 type ProductOption = { id: string; title: string; type: string };
@@ -12,10 +12,10 @@ type ProductOption = { id: string; title: string; type: string };
 const BLANK_POPUP = { title: "", code: "", trigger: "page_load", delayMs: 3000 };
 
 const HERO_SLOTS = [
-  { label: "Main Banner",  position: 0, sub: false },
-  { label: "Sub-banner 1", position: 1, sub: true  },
-  { label: "Sub-banner 2", position: 2, sub: true  },
-  { label: "Sub-banner 3", position: 3, sub: true  },
+  { label: "Main Banner",  position: 0 },
+  { label: "Sub-banner 1", position: 1 },
+  { label: "Sub-banner 2", position: 2 },
+  { label: "Sub-banner 3", position: 3 },
 ] as const;
 
 export default function AdminHomepage() {
@@ -35,7 +35,8 @@ export default function AdminHomepage() {
   const fileRef2 = useRef<HTMLInputElement>(null);
   const fileRef3 = useRef<HTMLInputElement>(null);
   const fileRefs = [fileRef0, fileRef1, fileRef2, fileRef3];
-  const [subUrls, setSubUrls] = useState<Record<number, string>>({});
+  type SubForm = { title: string; subtitle: string; ctaLabel: string; ctaUrl: string };
+  const [subForms, setSubForms] = useState<Record<number, SubForm>>({});
 
   useEffect(() => {
     Promise.all([
@@ -44,10 +45,20 @@ export default function AdminHomepage() {
       fetch("/api/admin/popups").then(r => r.json()),
       fetch("/api/admin/products").then(r => r.json()),
     ]).then(([b, f, p, pr]) => {
-      setBanners(b.banners ?? []);
+      const loadedBanners: Banner[] = b.banners ?? [];
+      setBanners(loadedBanners);
       setFeatured(f.featured ?? []);
       setPopups(p.popups ?? []);
       setProducts((pr.products ?? []).map((p: { id: string; title: string; type: string }) => ({ id: p.id, title: p.title, type: p.type })));
+      // pre-populate text forms from DB for all 4 slots
+      const forms: Record<number, SubForm> = {};
+      const defaultTitles: Record<number, string> = { 0: "Hero Left", 1: "Sub-banner 1", 2: "Sub-banner 2", 3: "Sub-banner 3" };
+      [0, 1, 2, 3].forEach(pos => {
+        const ban = loadedBanners[pos];
+        if (ban) forms[pos] = { title: ban.title === defaultTitles[pos] ? "" : ban.title, subtitle: ban.subtitle ?? "", ctaLabel: ban.ctaLabel, ctaUrl: ban.ctaUrl };
+        else forms[pos] = { title: "", subtitle: "", ctaLabel: pos === 0 ? "Explore Collection" : "Shop Now", ctaUrl: "/products" };
+      });
+      setSubForms(forms);
       setLoading(false);
     });
   }, []);
@@ -112,27 +123,26 @@ export default function AdminHomepage() {
     setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: null, cloudinaryId: null } : b));
   }
 
-  async function saveSubUrl(slotIndex: number) {
-    const url = subUrls[slotIndex]?.trim();
-    if (!url) return;
+  async function saveSlotText(slotIndex: number) {
+    const form = subForms[slotIndex];
+    if (!form) return;
+    const { title, subtitle, ctaLabel, ctaUrl } = form;
+    const defaultTitle = slotIndex === 0 ? "Hero Left" : `Sub-banner ${slotIndex}`;
     const existing = banners[slotIndex];
+    const payload = { title: title || defaultTitle, subtitle: subtitle || null, ctaLabel: ctaLabel || "Shop Now", ctaUrl: ctaUrl || "/products" };
     if (existing) {
       await fetch(`/api/admin/banners/${existing.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ctaUrl: url }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
-      setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, ctaUrl: url } : b));
+      setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, ...payload } : b));
     } else {
       const res = await fetch("/api/admin/banners", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Sub-banner ${slotIndex}`, ctaUrl: url, position: slotIndex }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, imageUrl: null, position: slotIndex }),
       });
       const d = await res.json();
       setBanners(prev => { const next = [...prev]; next[slotIndex] = d.banner; return next; });
     }
-    setSubUrls(u => ({ ...u, [slotIndex]: "" }));
   }
 
   async function togglePinned(id: string, pinned: boolean) {
@@ -195,13 +205,15 @@ export default function AdminHomepage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {HERO_SLOTS.map(({ label, position, sub }) => {
+          {HERO_SLOTS.map(({ label, position }) => {
             const banner = banners[position];
             const isUploading = uploading[position];
+            const form = subForms[position] ?? { title: "", subtitle: "", ctaLabel: "", ctaUrl: "" };
+            const setForm = (patch: Partial<SubForm>) => setSubForms(u => ({ ...u, [position]: { ...form, ...patch } }));
             return (
               <div key={position} className="bg-surface-dark-elevated border border-white/8 rounded-xl overflow-hidden">
-                {/* Preview */}
-                <div className="relative bg-surface-dark w-full h-36 flex items-center justify-center">
+                {/* Image preview */}
+                <div className="relative bg-surface-dark w-full h-32 flex items-center justify-center">
                   {banner?.imageUrl ? (
                     <Image src={banner.imageUrl} alt={label} fill className="object-cover" sizes="400px" />
                   ) : (
@@ -214,53 +226,43 @@ export default function AdminHomepage() {
                   )}
                 </div>
                 {/* Controls */}
-                <div className="px-4 py-3 flex flex-col gap-2">
+                <div className="px-4 py-3 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium text-on-dark">{label}</p>
                     <div className="flex items-center gap-2">
-                      <input
-                        ref={fileRefs[position]}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadHeroImage(position, f); e.target.value = ""; }}
-                      />
-                      <button
-                        onClick={() => fileRefs[position].current?.click()}
-                        disabled={isUploading}
-                        className="h-7 px-3 text-xs bg-primary text-white rounded flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60"
-                      >
+                      <input ref={fileRefs[position]} type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadHeroImage(position, f); e.target.value = ""; }} />
+                      <button onClick={() => fileRefs[position].current?.click()} disabled={isUploading}
+                        className="h-7 px-3 text-xs bg-primary text-white rounded flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60">
                         <Upload size={11} /> {banner?.imageUrl ? "Replace" : "Upload"}
                       </button>
                       {banner?.imageUrl && (
-                        <button
-                          onClick={() => removeHeroImage(position)}
-                          disabled={isUploading}
-                          className="h-7 w-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors disabled:opacity-60"
-                        >
+                        <button onClick={() => removeHeroImage(position)} disabled={isUploading}
+                          className="h-7 w-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors disabled:opacity-60">
                           <Trash2 size={13} />
                         </button>
                       )}
                     </div>
                   </div>
-                  {sub && (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder={banner?.ctaUrl ? `Current: ${banner.ctaUrl}` : "Link URL (e.g. /category/books)"}
-                        value={subUrls[position] ?? ""}
-                        onChange={e => setSubUrls(u => ({ ...u, [position]: e.target.value }))}
-                        className="flex-1 h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary"
-                      />
-                      <button
-                        onClick={() => saveSubUrl(position)}
-                        disabled={!subUrls[position]?.trim()}
-                        className="h-7 px-3 text-xs border border-white/10 text-on-dark-soft rounded hover:text-on-dark hover:border-white/20 transition-colors disabled:opacity-40"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  )}
+                  {/* Text fields */}
+                  <input type="text" placeholder="Title" value={form.title}
+                    onChange={e => setForm({ title: e.target.value })}
+                    className="h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary" />
+                  <input type="text" placeholder="Subtitle" value={form.subtitle}
+                    onChange={e => setForm({ subtitle: e.target.value })}
+                    className="h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary" />
+                  <div className="flex gap-2">
+                    <input type="text" placeholder='Button (e.g. "SHOP NOW")' value={form.ctaLabel}
+                      onChange={e => setForm({ ctaLabel: e.target.value })}
+                      className="flex-1 h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary" />
+                    <input type="text" placeholder="Link URL" value={form.ctaUrl}
+                      onChange={e => setForm({ ctaUrl: e.target.value })}
+                      className="flex-1 h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary" />
+                  </div>
+                  <button onClick={() => saveSlotText(position)}
+                    className="h-7 px-3 text-xs border border-white/10 text-on-dark-soft rounded hover:text-on-dark hover:border-white/20 transition-colors self-start">
+                    Save Text
+                  </button>
                 </div>
               </div>
             );

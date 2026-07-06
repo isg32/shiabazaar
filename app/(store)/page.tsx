@@ -89,7 +89,7 @@ export default async function HomePage() {
       {/* ── Hero — main banner ───────────────────── */}
       <section className="bg-surface-soft">
         <div className="max-w-[1200px] mx-auto px-6 pt-8 pb-4">
-          <div className="relative overflow-hidden rounded-xl w-full" style={{ height: "clamp(260px, 45vw, 540px)" }}>
+          <div className="relative overflow-hidden rounded-xl w-full" style={{ height: "clamp(280px, 46vw, 560px)" }}>
             <Image
               src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
               alt="Shia Bazaar"
@@ -98,6 +98,28 @@ export default async function HomePage() {
               priority
               sizes="100vw"
             />
+            {/* Right-side text overlay */}
+            {(mainBanner?.title || mainBanner?.subtitle) && (
+              <div className="absolute inset-0 flex items-center justify-end">
+                <div className="w-full sm:w-1/2 h-full flex flex-col justify-center px-8 lg:px-14 py-10 bg-gradient-to-l from-black/55 via-black/30 to-transparent">
+                  {mainBanner?.title && (
+                    <h2 className="text-white font-normal leading-tight mb-3 drop-shadow-lg"
+                      style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 4vw, 52px)" }}>
+                      {mainBanner.title}
+                    </h2>
+                  )}
+                  {mainBanner?.subtitle && (
+                    <p className="text-white/80 text-sm leading-relaxed mb-6 max-w-xs drop-shadow">{mainBanner.subtitle}</p>
+                  )}
+                  <Link
+                    href={mainBanner?.ctaUrl || "/products"}
+                    className="self-start inline-flex items-center h-11 px-6 bg-ink text-canvas text-xs font-medium tracking-widest uppercase rounded-md hover:bg-ink/80 transition-colors"
+                  >
+                    {mainBanner?.ctaLabel || "Explore Collection"}
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -109,15 +131,32 @@ export default async function HomePage() {
               const href = b?.ctaUrl || "/products";
               const img  = b?.imageUrl ?? null;
               return (
-                <Link key={i} href={href} className="group relative overflow-hidden rounded-xl bg-surface-card border border-hairline" style={{ aspectRatio: "4/3" }}>
-                  {img ? (
-                    <Image src={img} alt={b?.title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 33vw, 25vw" />
-                  ) : (
-                    <div className="w-full h-full bg-surface-card flex items-center justify-center">
-                      <span className="text-xs text-muted">No image</span>
-                    </div>
+                <Link key={i} href={href} className="group relative overflow-hidden rounded-xl bg-surface-dark" style={{ aspectRatio: "4/3" }}>
+                  {img && (
+                    <Image src={img} alt={b?.title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" sizes="(max-width: 640px) 100vw, 33vw" />
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                  {/* Left-to-right gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+                  {/* Text */}
+                  <div className="absolute inset-0 flex flex-col justify-center px-6 py-6">
+                    {b?.title && (
+                      <p className="text-white text-base font-semibold uppercase tracking-widest leading-tight drop-shadow">
+                        {b.title}
+                      </p>
+                    )}
+                    {/* Ornament */}
+                    <div className="flex items-center gap-1.5 my-2.5">
+                      <div className="h-px w-8 bg-white/40" />
+                      <div className="w-1 h-1 rounded-full bg-white/60" />
+                      <div className="h-px w-8 bg-white/40" />
+                    </div>
+                    {b?.subtitle && (
+                      <p className="text-white/75 text-xs leading-snug max-w-[160px] drop-shadow">{b.subtitle}</p>
+                    )}
+                    <span className="inline-flex items-center mt-4 h-8 px-4 text-[10px] font-medium tracking-[0.15em] uppercase border border-white text-white rounded-sm">
+                      {b?.ctaLabel || "SHOP NOW"}
+                    </span>
+                  </div>
                 </Link>
               );
             })}
