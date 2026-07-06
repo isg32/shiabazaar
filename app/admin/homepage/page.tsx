@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Loader2, X, Upload, ImageIcon } from "lucide-react";
 import Image from "next/image";
 
-type Banner   = { id: string; title: string; subtitle: string | null; ctaLabel: string; ctaUrl: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
+type Banner   = { id: string; position: number; title: string; subtitle: string | null; ctaLabel: string; ctaUrl: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
 type Popup    = { id: string; title: string; code: string | null; trigger: string; delayMs: number; active: boolean };
 type Featured = { id: string; pinned: boolean; product: { id: string; title: string; type: string; price: number } };
 type ProductOption = { id: string; title: string; type: string };
