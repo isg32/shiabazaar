@@ -8,6 +8,7 @@ import { getFeaturedProducts } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { db } from "@/lib/db";
 import { HomepagePopup } from "@/components/shared/HomepagePopup";
+import { HomepageNavbar } from "@/components/layout/Navbar";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ const marqueeItems = [
 ];
 
 const W = "https://shiabazaar.com/wp-content/uploads";
+const FALLBACK_MAIN = `${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`;
 
 export default async function HomePage() {
   const [featured, banners, categoryCounts, activePopup] = await Promise.all([
@@ -45,48 +47,80 @@ export default async function HomePage() {
 
   const countMap = Object.fromEntries(categoryCounts.map(r => [r.type, r._count.id]));
 
-  const heroLeft  = banners[0]?.imageUrl ?? `${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`;
-  const heroRight = banners[1]?.imageUrl ?? `${W}/2026/06/Gemini_Generated_Image_-3.png`;
+  // banners[0] = main hero, banners[1..3] = sub-banners
+  const mainBanner   = banners[0] ?? null;
+  const subBanners   = banners.slice(1, 4);
 
   return (
     <>
-      {/* ── Brand header ─────────────────────────── */}
-      <section id="brand-header" className="bg-canvas flex flex-col items-center justify-center text-center px-6 py-20 lg:py-28">
-        <svg viewBox="0 0 100 100" className="w-12 h-12 mb-8 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
+      {/* ── Brand header (30vh) ──────────────────── */}
+      <section
+        id="brand-header"
+        className="bg-canvas flex flex-col items-center justify-center text-center px-6"
+        style={{ minHeight: "30vh" }}
+      >
+        <svg viewBox="0 0 100 100" className="w-10 h-10 mb-5 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
           <rect x="25" y="25" width="50" height="50" />
           <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
           <circle cx="50" cy="50" r="8" />
         </svg>
         <h1
-          className="text-ink font-normal mb-3"
-          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(40px, 8vw, 72px)", letterSpacing: "0.28em", lineHeight: 1.1 }}
+          className="text-ink font-normal mb-2"
+          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 7vw, 64px)", letterSpacing: "0.28em", lineHeight: 1.1 }}
         >
           SHIA BAZAAR
         </h1>
-        <p className="text-accent-amber font-medium mb-6" style={{ fontSize: "11px", letterSpacing: "0.32em" }}>
+        <p className="text-accent-amber font-medium mb-4" style={{ fontSize: "10px", letterSpacing: "0.32em" }}>
           TANZEEMUL MAKATIB
         </p>
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-px w-16 bg-accent-amber/60" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px w-12 bg-accent-amber/60" />
           <div className="w-1.5 h-1.5 rounded-full bg-accent-amber" />
-          <div className="h-px w-16 bg-accent-amber/60" />
+          <div className="h-px w-12 bg-accent-amber/60" />
         </div>
-        <p className="text-muted lg:w-80 leading-relaxed" style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "clamp(15px, 2vw, 17px)" }}>
-          A curated collection of Shia Islamic literature, meaningful gifts,
-          and essentials — crafted for the faithful.
+        <p className="text-muted lg:w-72 leading-relaxed" style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "clamp(13px, 1.8vw, 16px)" }}>
+          Shia Islamic literature, meaningful gifts, and essentials.
         </p>
       </section>
 
-      {/* ── Hero ─────────────────────────────────── */}
+      {/* ── Sticky navbar (homepage only) ───────── */}
+      <HomepageNavbar />
+
+      {/* ── Hero — main banner ───────────────────── */}
       <section className="bg-surface-soft">
-        <div className="max-w-[1200px] mx-auto px-6 py-10 lg:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 lg:gap-5 lg:h-[560px]">
-            <div className="relative overflow-hidden rounded-xl aspect-video lg:aspect-auto">
-              <Image src={heroLeft} alt="Shia Bazaar — Islamic books and gifts" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 60vw" />
-            </div>
-            <div className="relative overflow-hidden rounded-xl aspect-[3/4] lg:aspect-auto">
-              <Image src={heroRight} alt="Shia Bazaar — curated collection" fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 40vw" />
-            </div>
+        <div className="max-w-[1200px] mx-auto px-6 pt-8 pb-4">
+          <div className="relative overflow-hidden rounded-xl w-full" style={{ height: "clamp(260px, 45vw, 540px)" }}>
+            <Image
+              src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
+              alt="Shia Bazaar"
+              fill
+              className="object-cover"
+              priority
+              sizes="100vw"
+            />
+          </div>
+        </div>
+
+        {/* Sub-banners */}
+        <div className="max-w-[1200px] mx-auto px-6 pb-8">
+          <div className="grid grid-cols-3 gap-3 lg:gap-4">
+            {[0, 1, 2].map(i => {
+              const b = subBanners[i];
+              const href = b?.ctaUrl || "/products";
+              const img  = b?.imageUrl ?? null;
+              return (
+                <Link key={i} href={href} className="group relative overflow-hidden rounded-xl bg-surface-card border border-hairline" style={{ aspectRatio: "4/3" }}>
+                  {img ? (
+                    <Image src={img} alt={b?.title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 33vw, 25vw" />
+                  ) : (
+                    <div className="w-full h-full bg-surface-card flex items-center justify-center">
+                      <span className="text-xs text-muted">No image</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

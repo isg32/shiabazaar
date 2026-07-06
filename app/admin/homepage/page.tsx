@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Loader2, X, Upload, ImageIcon } from "lucide-react";
 import Image from "next/image";
 
-type Banner   = { id: string; title: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
+type Banner   = { id: string; title: string; imageUrl: string | null; cloudinaryId: string | null; ctaUrl: string; active: boolean };
 type Popup    = { id: string; title: string; code: string | null; trigger: string; delayMs: number; active: boolean };
 type Featured = { id: string; pinned: boolean; product: { id: string; title: string; type: string; price: number } };
 type ProductOption = { id: string; title: string; type: string };
@@ -12,8 +12,10 @@ type ProductOption = { id: string; title: string; type: string };
 const BLANK_POPUP = { title: "", code: "", trigger: "page_load", delayMs: 3000 };
 
 const HERO_SLOTS = [
-  { label: "Left Image", position: 0, aspect: "aspect-video" },
-  { label: "Right Image", position: 1, aspect: "aspect-[3/4]" },
+  { label: "Main Banner",  position: 0, sub: false },
+  { label: "Sub-banner 1", position: 1, sub: true  },
+  { label: "Sub-banner 2", position: 2, sub: true  },
+  { label: "Sub-banner 3", position: 3, sub: true  },
 ] as const;
 
 export default function AdminHomepage() {
@@ -30,7 +32,10 @@ export default function AdminHomepage() {
   const [saving,         setSaving]         = useState(false);
   const fileRef0 = useRef<HTMLInputElement>(null);
   const fileRef1 = useRef<HTMLInputElement>(null);
-  const fileRefs = [fileRef0, fileRef1];
+  const fileRef2 = useRef<HTMLInputElement>(null);
+  const fileRef3 = useRef<HTMLInputElement>(null);
+  const fileRefs = [fileRef0, fileRef1, fileRef2, fileRef3];
+  const [subUrls, setSubUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
     Promise.all([
@@ -107,6 +112,29 @@ export default function AdminHomepage() {
     setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: null, cloudinaryId: null } : b));
   }
 
+  async function saveSubUrl(slotIndex: number) {
+    const url = subUrls[slotIndex]?.trim();
+    if (!url) return;
+    const existing = banners[slotIndex];
+    if (existing) {
+      await fetch(`/api/admin/banners/${existing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ctaUrl: url }),
+      });
+      setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, ctaUrl: url } : b));
+    } else {
+      const res = await fetch("/api/admin/banners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: `Sub-banner ${slotIndex}`, ctaUrl: url, position: slotIndex }),
+      });
+      const d = await res.json();
+      setBanners(prev => { const next = [...prev]; next[slotIndex] = d.banner; return next; });
+    }
+    setSubUrls(u => ({ ...u, [slotIndex]: "" }));
+  }
+
   async function togglePinned(id: string, pinned: boolean) {
     await fetch(`/api/admin/featured/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pinned: !pinned }) });
     setFeatured(prev => prev.map(f => f.id === id ? { ...f, pinned: !pinned } : f));
@@ -163,21 +191,21 @@ export default function AdminHomepage() {
       <section className="mb-8">
         <div className="mb-4">
           <h2 className="text-base font-medium text-on-dark">Hero Images</h2>
-          <p className="text-xs text-on-dark-soft mt-0.5">Two images shown side-by-side on the homepage.</p>
+          <p className="text-xs text-on-dark-soft mt-0.5">1 main banner + 3 clickable sub-banners below it.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {HERO_SLOTS.map(({ label, position }) => {
+          {HERO_SLOTS.map(({ label, position, sub }) => {
             const banner = banners[position];
             const isUploading = uploading[position];
             return (
               <div key={position} className="bg-surface-dark-elevated border border-white/8 rounded-xl overflow-hidden">
                 {/* Preview */}
-                <div className="relative bg-surface-dark w-full h-40 flex items-center justify-center">
+                <div className="relative bg-surface-dark w-full h-36 flex items-center justify-center">
                   {banner?.imageUrl ? (
                     <Image src={banner.imageUrl} alt={label} fill className="object-cover" sizes="400px" />
                   ) : (
-                    <ImageIcon size={32} className="text-white/20" />
+                    <ImageIcon size={28} className="text-white/20" />
                   )}
                   {isUploading && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-on-dark text-sm">
@@ -186,33 +214,53 @@ export default function AdminHomepage() {
                   )}
                 </div>
                 {/* Controls */}
-                <div className="px-4 py-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium text-on-dark">{label}</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={fileRefs[position]}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadHeroImage(position, f); e.target.value = ""; }}
-                    />
-                    <button
-                      onClick={() => fileRefs[position].current?.click()}
-                      disabled={isUploading}
-                      className="h-7 px-3 text-xs bg-primary text-white rounded flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60"
-                    >
-                      <Upload size={11} /> {banner?.imageUrl ? "Replace" : "Upload"}
-                    </button>
-                    {banner?.imageUrl && (
+                <div className="px-4 py-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium text-on-dark">{label}</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileRefs[position]}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadHeroImage(position, f); e.target.value = ""; }}
+                      />
                       <button
-                        onClick={() => removeHeroImage(position)}
+                        onClick={() => fileRefs[position].current?.click()}
                         disabled={isUploading}
-                        className="h-7 w-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors disabled:opacity-60"
+                        className="h-7 px-3 text-xs bg-primary text-white rounded flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60"
                       >
-                        <Trash2 size={13} />
+                        <Upload size={11} /> {banner?.imageUrl ? "Replace" : "Upload"}
                       </button>
-                    )}
+                      {banner?.imageUrl && (
+                        <button
+                          onClick={() => removeHeroImage(position)}
+                          disabled={isUploading}
+                          className="h-7 w-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors disabled:opacity-60"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {sub && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder={banner?.ctaUrl ? `Current: ${banner.ctaUrl}` : "Link URL (e.g. /category/books)"}
+                        value={subUrls[position] ?? ""}
+                        onChange={e => setSubUrls(u => ({ ...u, [position]: e.target.value }))}
+                        className="flex-1 h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary"
+                      />
+                      <button
+                        onClick={() => saveSubUrl(position)}
+                        disabled={!subUrls[position]?.trim()}
+                        className="h-7 px-3 text-xs border border-white/10 text-on-dark-soft rounded hover:text-on-dark hover:border-white/20 transition-colors disabled:opacity-40"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
