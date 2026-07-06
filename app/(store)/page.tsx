@@ -106,7 +106,7 @@ export default async function HomePage() {
               />
               {(displayTitle(mainBanner) || mainBanner?.subtitle || mainBanner?.ctaLabel) && (
                 <div className="absolute inset-0 flex items-stretch">
-                  <div className="w-full sm:w-[44%] flex flex-col justify-center px-8 lg:px-12 py-10"
+                  <div className="hidden sm:flex w-[44%] flex-col justify-center px-8 lg:px-12 py-10"
                     style={{ background: "rgba(250,249,245,0.88)", backdropFilter: "blur(2px)" }}>
                     {displayTitle(mainBanner) && (
                       <h2 className="text-ink font-normal leading-[1.1] mb-3"
@@ -129,8 +129,8 @@ export default async function HomePage() {
               )}
             </div>
 
-            {/* Sub-banners: 3-col row on mobile, flex column on desktop */}
-            <div className="grid grid-cols-3 gap-3 lg:flex lg:flex-col lg:gap-4">
+            {/* Sub-banners: column on mobile (card height), column on desktop (flex-1) */}
+            <div className="flex flex-col gap-2 lg:gap-4">
               {[0, 1, 2].map(i => {
                 const b = subBanners[i];
                 const href = b?.ctaUrl || "/products";
@@ -139,7 +139,7 @@ export default async function HomePage() {
                 const hasText = !!(title || b?.subtitle);
                 return (
                   <Link key={i} href={href}
-                    className="group relative overflow-hidden rounded-xl bg-surface-dark [aspect-ratio:4/3] lg:[aspect-ratio:auto] lg:flex-1"
+                    className="group relative overflow-hidden rounded-xl bg-surface-dark h-24 lg:h-auto lg:flex-1"
                   >
                     {img && (
                       <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 320px" />
