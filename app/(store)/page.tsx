@@ -62,10 +62,10 @@ export default async function HomePage() {
       {/* ── Brand header ─────────────────────────── */}
       <section
         id="brand-header"
-        className="bg-canvas flex flex-col items-center justify-center text-center px-6"
+        className="bg-canvas flex flex-col items-center justify-center text-center px-8"
         style={{ minHeight: "10vh" }}
       >
-        <svg viewBox="0 0 100 100" className="w-6 h-6 mb-2 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
+        <svg viewBox="0 0 100 100" className="w-10 h-10 mb-2 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
           <rect x="25" y="25" width="50" height="50" />
           <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
           <circle cx="50" cy="50" r="8" />
@@ -79,11 +79,7 @@ export default async function HomePage() {
         <p className="text-accent-amber font-medium mb-2" style={{ fontSize: "9px", letterSpacing: "0.32em" }}>
           TANZEEMUL MAKATIB
         </p>
-        <div className="flex items-center gap-2.5">
-          <div className="h-px w-8 bg-accent-amber/60" />
-          <div className="w-1 h-1 rounded-full bg-accent-amber" />
-          <div className="h-px w-8 bg-accent-amber/60" />
-        </div>
+       
       </section>
 
       {/* ── Sticky navbar (homepage only) ───────── */}
@@ -95,7 +91,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 lg:gap-4">
 
             {/* Main banner */}
-            <div className="relative overflow-hidden rounded-xl" style={{ height: "clamp(360px, 52vw, 640px)" }}>
+            <div className="relative overflow-hidden rounded-xl" style={{ height: "clamp(300px, 46vw, 580px)" }}>
               <Image
                 src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
                 alt="Shia Bazaar"
@@ -106,16 +102,15 @@ export default async function HomePage() {
               />
               {(displayTitle(mainBanner) || mainBanner?.subtitle || mainBanner?.ctaLabel) && (
                 <div className="absolute inset-0 flex items-stretch">
-                  <div className="hidden sm:flex w-[44%] flex-col justify-center px-8 lg:px-12 py-10"
-                    style={{ background: "rgba(250,249,245,0.88)", backdropFilter: "blur(2px)" }}>
+                  <div className="hidden sm:flex w-[44%] flex-col justify-center px-8 lg:px-12 py-10">
                     {displayTitle(mainBanner) && (
-                      <h2 className="text-ink font-normal leading-[1.1] mb-3"
-                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px" }}>
+                      <h2 className=" text-black font-normal leading-[1.1] mb-3"
+                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px", textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>
                         {displayTitle(mainBanner)}
                       </h2>
                     )}
                     {mainBanner?.subtitle && (
-                      <p className="text-body text-sm leading-relaxed mb-7 max-w-[260px]">{mainBanner.subtitle}</p>
+                      <p className="text-black/90 text-sm leading-relaxed mb-7 max-w-[260px]" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{mainBanner.subtitle}</p>
                     )}
                     <Link
                       href={mainBanner?.ctaUrl || "/products"}

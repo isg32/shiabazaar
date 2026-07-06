@@ -217,7 +217,7 @@ export function Navbar() {
 // Homepage version — sticky, rendered inline after brand-header in page.tsx
 export function HomepageNavbar() {
   return (
-    <header className="sticky top-0 z-50 h-16 bg-canvas border-b border-hairline">
+    <header className="sticky top-0 z-50 h-16 bg-canvas border-t border-b border-hairline">
       <NavInner />
     </header>
   );
