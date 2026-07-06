@@ -103,7 +103,7 @@ export default function CartPage() {
         </div>
 
         {/* Order summary */}
-        <div className="lg:w-80 shrink-0">
+        <div className="lg:w-100 shrink-0">
           <div className="bg-surface-card rounded-xl p-6 flex flex-col gap-4 sticky top-20">
             <h2 className="text-base font-medium text-ink">Order Summary</h2>
 
