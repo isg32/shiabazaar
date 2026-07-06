@@ -155,18 +155,18 @@ export default async function HomePage() {
                         )}
                         {title && b?.subtitle && (
                           <div className="flex items-center gap-2 my-2">
-                            <div className="h-px w-6 bg-accent-amber/65" />
-                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber shrink-0">
+                            <div className="h-px w-6 bg-accent-amber/95" />
+                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber/95 shrink-0">
                               <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
                             </svg>
-                            <div className="h-px w-6 bg-accent-amber/65" />
+                            <div className="h-px w-6 bg-accent-amber/95" />
                           </div>
                         )}
                         {b?.subtitle && (
                           <p className="text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
                         )}
                         {b?.ctaLabel && (
-                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber/70">
+                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
                             {b.ctaLabel}
                           </span>
                         )}
