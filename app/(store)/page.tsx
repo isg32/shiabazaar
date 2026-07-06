@@ -166,8 +166,8 @@ export default async function HomePage() {
                           <p className="text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
                         )}
                         {b?.ctaLabel && (
-                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit"
-                            style={{ border: "1px solid rgba(232,165,90,0.7)", color: "#e8a55a" }}>
+                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white"
+                            style={{ border: "1px solid rgba(232,165,90,0.7)" }}>
                             {b.ctaLabel}
                           </span>
                         )}
