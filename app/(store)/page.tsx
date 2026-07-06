@@ -57,7 +57,7 @@ export default async function HomePage() {
       <section
         id="brand-header"
         className="bg-canvas flex flex-col items-center justify-center text-center px-6"
-        style={{ minHeight: "30vh" }}
+        style={{ minHeight: "20vh" }}
       >
         <svg viewBox="0 0 100 100" className="w-10 h-10 mb-5 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
           <rect x="25" y="25" width="50" height="50" />
@@ -103,7 +103,7 @@ export default async function HomePage() {
 
         {/* Sub-banners */}
         <div className="max-w-[1200px] mx-auto px-6 pb-8">
-          <div className="grid grid-cols-3 gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
             {[0, 1, 2].map(i => {
               const b = subBanners[i];
               const href = b?.ctaUrl || "/products";
