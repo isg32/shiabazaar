@@ -144,38 +144,36 @@ export default async function HomePage() {
                     {img && (
                       <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 320px" />
                     )}
-                    {hasText && <div className="absolute inset-0 hidden lg:block bg-black/45" />}
-                    {/* Mobile: light scrim + chevron on right */}
-                    <div className="lg:hidden absolute inset-0 bg-black/35 flex items-center justify-end px-4">
-                      <span className="text-white/70 text-lg leading-none">›</span>
+                    <div className="absolute inset-0 bg-black/40" />
+                    {/* Unified overlay: row on mobile (title + ›), column on desktop (full content) */}
+                    <div className="absolute inset-0 flex items-center lg:flex-col lg:items-start lg:justify-center px-4 lg:px-5 py-4 lg:py-5">
+                      {title && (
+                        <p className="flex-1 lg:flex-none text-white font-normal uppercase leading-tight"
+                          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(12px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
+                          {title}
+                        </p>
+                      )}
+                      {/* Desktop only: separator + subtitle + button */}
+                      {title && b?.subtitle && (
+                        <div className="hidden lg:flex items-center gap-2 my-2">
+                          <div className="h-px w-6 bg-accent-amber/95" />
+                          <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber/95 shrink-0">
+                            <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
+                          </svg>
+                          <div className="h-px w-6 bg-accent-amber/95" />
+                        </div>
+                      )}
+                      {b?.subtitle && (
+                        <p className="hidden lg:block text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
+                      )}
+                      {b?.ctaLabel && (
+                        <span className="hidden lg:inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
+                          {b.ctaLabel}
+                        </span>
+                      )}
+                      {/* Mobile only: chevron */}
+                      <span className="lg:hidden text-white/60 text-xl shrink-0 ml-auto">›</span>
                     </div>
-                    {hasText && (
-                      <div className="absolute inset-0 hidden lg:flex flex-col justify-center px-5 py-5">
-                        {title && (
-                          <p className="text-white font-normal uppercase leading-tight"
-                            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(14px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
-                            {title}
-                          </p>
-                        )}
-                        {title && b?.subtitle && (
-                          <div className="flex items-center gap-2 my-2">
-                            <div className="h-px w-6 bg-accent-amber/95" />
-                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber/95 shrink-0">
-                              <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
-                            </svg>
-                            <div className="h-px w-6 bg-accent-amber/95" />
-                          </div>
-                        )}
-                        {b?.subtitle && (
-                          <p className="text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
-                        )}
-                        {b?.ctaLabel && (
-                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
-                            {b.ctaLabel}
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </Link>
                 );
               })}
