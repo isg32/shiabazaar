@@ -59,34 +59,31 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ── Brand header (30vh) ──────────────────── */}
+      {/* ── Brand header ─────────────────────────── */}
       <section
         id="brand-header"
         className="bg-canvas flex flex-col items-center justify-center text-center px-6"
-        style={{ minHeight: "20vh" }}
+        style={{ minHeight: "10vh" }}
       >
-        <svg viewBox="0 0 100 100" className="w-10 h-10 mb-5 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
+        <svg viewBox="0 0 100 100" className="w-6 h-6 mb-2 text-accent-amber" fill="none" stroke="currentColor" strokeWidth="1.2">
           <rect x="25" y="25" width="50" height="50" />
           <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
           <circle cx="50" cy="50" r="8" />
         </svg>
         <h1
-          className="text-ink font-normal mb-2"
-          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px, 7vw, 64px)", letterSpacing: "0.28em", lineHeight: 1.1 }}
+          className="text-ink font-normal mb-1"
+          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(22px, 4.5vw, 44px)", letterSpacing: "0.28em", lineHeight: 1.1 }}
         >
           SHIA BAZAAR
         </h1>
-        <p className="text-accent-amber font-medium mb-4" style={{ fontSize: "10px", letterSpacing: "0.32em" }}>
+        <p className="text-accent-amber font-medium mb-2" style={{ fontSize: "9px", letterSpacing: "0.32em" }}>
           TANZEEMUL MAKATIB
         </p>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-px w-12 bg-accent-amber/60" />
-          <div className="w-1.5 h-1.5 rounded-full bg-accent-amber" />
-          <div className="h-px w-12 bg-accent-amber/60" />
+        <div className="flex items-center gap-2.5">
+          <div className="h-px w-8 bg-accent-amber/60" />
+          <div className="w-1 h-1 rounded-full bg-accent-amber" />
+          <div className="h-px w-8 bg-accent-amber/60" />
         </div>
-        <p className="text-muted lg:w-72 leading-relaxed" style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "clamp(13px, 1.8vw, 16px)" }}>
-          Shia Islamic literature, meaningful gifts, and essentials.
-        </p>
       </section>
 
       {/* ── Sticky navbar (homepage only) ───────── */}
@@ -95,23 +92,22 @@ export default async function HomePage() {
       {/* ── Hero — main banner + sub-banners ────── */}
       <section className="bg-surface-soft">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 lg:gap-4">
 
             {/* Main banner */}
-            <div className="relative overflow-hidden rounded-xl" style={{ height: "clamp(280px, 42vw, 520px)" }}>
+            <div className="relative overflow-hidden rounded-xl" style={{ height: "clamp(360px, 52vw, 640px)" }}>
               <Image
                 src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
                 alt="Shia Bazaar"
                 fill
                 className="object-cover"
                 priority
-                sizes="(max-width: 1024px) 100vw, calc(100vw - 280px)"
+                sizes="(max-width: 1024px) 100vw, calc(100vw - 340px)"
               />
-              {(displayTitle(mainBanner) || mainBanner?.subtitle) && (
+              {(displayTitle(mainBanner) || mainBanner?.subtitle || mainBanner?.ctaLabel) && (
                 <div className="absolute inset-0 flex items-stretch">
-                  <div className="flex-1" />
                   <div className="w-full sm:w-[44%] flex flex-col justify-center px-8 lg:px-12 py-10"
-                    style={{ background: "rgba(250,249,245,0.82)", backdropFilter: "blur(2px)" }}>
+                    style={{ background: "rgba(250,249,245,0.88)", backdropFilter: "blur(2px)" }}>
                     {displayTitle(mainBanner) && (
                       <h2 className="text-ink font-normal leading-[1.1] mb-3"
                         style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px" }}>
@@ -128,6 +124,7 @@ export default async function HomePage() {
                       {mainBanner?.ctaLabel || "Explore Collection"}
                     </Link>
                   </div>
+                  <div className="flex-1" />
                 </div>
               )}
             </div>
@@ -145,31 +142,32 @@ export default async function HomePage() {
                     className="group relative overflow-hidden rounded-xl bg-surface-dark [aspect-ratio:4/3] lg:[aspect-ratio:auto] lg:flex-1"
                   >
                     {img && (
-                      <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 260px" />
+                      <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 320px" />
                     )}
-                    {hasText && <div className="absolute inset-0 bg-black/40" />}
+                    {hasText && <div className="absolute inset-0 bg-black/45" />}
                     {hasText && (
                       <div className="absolute inset-0 flex flex-col justify-center px-4 py-4 lg:px-5 lg:py-5">
                         {title && (
                           <p className="text-white font-normal uppercase leading-tight"
-                            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(14px, 1.6vw, 22px)", letterSpacing: "0.06em" }}>
+                            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(14px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
                             {title}
                           </p>
                         )}
                         {title && b?.subtitle && (
                           <div className="flex items-center gap-2 my-2">
-                            <div className="h-px w-6 bg-white/40" />
-                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-white/60 shrink-0">
+                            <div className="h-px w-6" style={{ backgroundColor: "rgba(232,165,90,0.65)" }} />
+                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="shrink-0" style={{ color: "#e8a55a" }}>
                               <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
                             </svg>
-                            <div className="h-px w-6 bg-white/40" />
+                            <div className="h-px w-6" style={{ backgroundColor: "rgba(232,165,90,0.65)" }} />
                           </div>
                         )}
                         {b?.subtitle && (
-                          <p className="text-white/80 text-[10px] leading-relaxed max-w-[160px]">{b.subtitle}</p>
+                          <p className="text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
                         )}
                         {b?.ctaLabel && (
-                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase border border-white/70 text-white rounded-sm w-fit">
+                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit"
+                            style={{ border: "1px solid rgba(232,165,90,0.7)", color: "#e8a55a" }}>
                             {b.ctaLabel}
                           </span>
                         )}
