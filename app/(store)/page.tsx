@@ -105,12 +105,12 @@ export default async function HomePage() {
                   <div className="hidden sm:flex w-[44%] flex-col justify-center px-8 lg:px-12 py-10">
                     {displayTitle(mainBanner) && (
                       <h2 className=" text-black font-normal leading-[1.1] mb-3"
-                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px", textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>
+                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px"}}>
                         {displayTitle(mainBanner)}
                       </h2>
                     )}
                     {mainBanner?.subtitle && (
-                      <p className="text-black/90 text-sm leading-relaxed mb-7 max-w-[260px]" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{mainBanner.subtitle}</p>
+                      <p className="text-black/90 text-sm leading-relaxed mb-7 max-w-[260px]">{mainBanner.subtitle}</p>
                     )}
                     <Link
                       href={mainBanner?.ctaUrl || "/products"}
