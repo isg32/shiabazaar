@@ -48,6 +48,12 @@ export default async function HomePage() {
   const countMap = Object.fromEntries(categoryCounts.map(r => [r.type, r._count.id]));
 
   // banners[0] = main hero, banners[1..3] = sub-banners
+  // Strip internal placeholder titles so they don't render as content
+  const PLACEHOLDER = /^(Hero (Left|Right)|Sub-banner [1-3])$/i;
+  function displayTitle(b: typeof banners[0] | undefined) {
+    return b?.title && !PLACEHOLDER.test(b.title) ? b.title : null;
+  }
+
   const mainBanner   = banners[0] ?? null;
   const subBanners   = banners.slice(1, 4);
 
@@ -86,80 +92,94 @@ export default async function HomePage() {
       {/* ── Sticky navbar (homepage only) ───────── */}
       <HomepageNavbar />
 
-      {/* ── Hero — main banner ───────────────────── */}
+      {/* ── Hero — main banner + sub-banners ────── */}
       <section className="bg-surface-soft">
-        <div className="max-w-[1200px] mx-auto px-6 pt-8 pb-4">
-          <div className="relative overflow-hidden rounded-xl w-full" style={{ height: "clamp(280px, 46vw, 560px)" }}>
-            <Image
-              src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
-              alt="Shia Bazaar"
-              fill
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
-            {/* Right-side text overlay */}
-            {(mainBanner?.title || mainBanner?.subtitle) && (
-              <div className="absolute inset-0 flex items-center justify-end">
-                <div className="w-full sm:w-1/2 h-full flex flex-col justify-center px-8 lg:px-14 py-10 bg-gradient-to-l from-black/55 via-black/30 to-transparent">
-                  {mainBanner?.title && (
-                    <h2 className="text-white font-normal leading-tight mb-3 drop-shadow-lg"
-                      style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px, 4vw, 52px)" }}>
-                      {mainBanner.title}
-                    </h2>
-                  )}
-                  {mainBanner?.subtitle && (
-                    <p className="text-white/80 text-sm leading-relaxed mb-6 max-w-xs drop-shadow">{mainBanner.subtitle}</p>
-                  )}
-                  <Link
-                    href={mainBanner?.ctaUrl || "/products"}
-                    className="self-start inline-flex items-center h-11 px-6 bg-ink text-canvas text-xs font-medium tracking-widest uppercase rounded-md hover:bg-ink/80 transition-colors"
-                  >
-                    {mainBanner?.ctaLabel || "Explore Collection"}
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 lg:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3 lg:gap-4">
 
-        {/* Sub-banners */}
-        <div className="max-w-[1200px] mx-auto px-6 pb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-            {[0, 1, 2].map(i => {
-              const b = subBanners[i];
-              const href = b?.ctaUrl || "/products";
-              const img  = b?.imageUrl ?? null;
-              return (
-                <Link key={i} href={href} className="group relative overflow-hidden rounded-xl bg-surface-dark" style={{ aspectRatio: "4/3" }}>
-                  {img && (
-                    <Image src={img} alt={b?.title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" sizes="(max-width: 640px) 100vw, 33vw" />
-                  )}
-                  {/* Left-to-right gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-                  {/* Text */}
-                  <div className="absolute inset-0 flex flex-col justify-center px-6 py-6">
-                    {b?.title && (
-                      <p className="text-white text-base font-semibold uppercase tracking-widest leading-tight drop-shadow">
-                        {b.title}
-                      </p>
+            {/* Main banner */}
+            <div className="relative overflow-hidden rounded-xl" style={{ height: "clamp(280px, 42vw, 520px)" }}>
+              <Image
+                src={mainBanner?.imageUrl ?? FALLBACK_MAIN}
+                alt="Shia Bazaar"
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 1024px) 100vw, calc(100vw - 280px)"
+              />
+              {(displayTitle(mainBanner) || mainBanner?.subtitle) && (
+                <div className="absolute inset-0 flex items-stretch">
+                  <div className="flex-1" />
+                  <div className="w-full sm:w-[44%] flex flex-col justify-center px-8 lg:px-12 py-10"
+                    style={{ background: "rgba(250,249,245,0.82)", backdropFilter: "blur(2px)" }}>
+                    {displayTitle(mainBanner) && (
+                      <h2 className="text-ink font-normal leading-[1.1] mb-3"
+                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px" }}>
+                        {displayTitle(mainBanner)}
+                      </h2>
                     )}
-                    {/* Ornament */}
-                    <div className="flex items-center gap-1.5 my-2.5">
-                      <div className="h-px w-8 bg-white/40" />
-                      <div className="w-1 h-1 rounded-full bg-white/60" />
-                      <div className="h-px w-8 bg-white/40" />
-                    </div>
-                    {b?.subtitle && (
-                      <p className="text-white/75 text-xs leading-snug max-w-[160px] drop-shadow">{b.subtitle}</p>
+                    {mainBanner?.subtitle && (
+                      <p className="text-body text-sm leading-relaxed mb-7 max-w-[260px]">{mainBanner.subtitle}</p>
                     )}
-                    <span className="inline-flex items-center mt-4 h-8 px-4 text-[10px] font-medium tracking-[0.15em] uppercase border border-white text-white rounded-sm">
-                      {b?.ctaLabel || "SHOP NOW"}
-                    </span>
+                    <Link
+                      href={mainBanner?.ctaUrl || "/products"}
+                      className="self-start inline-flex items-center h-11 px-7 bg-ink text-canvas text-[11px] font-medium tracking-[0.18em] uppercase rounded-sm hover:bg-ink/80 transition-colors"
+                    >
+                      {mainBanner?.ctaLabel || "Explore Collection"}
+                    </Link>
                   </div>
-                </Link>
-              );
-            })}
+                </div>
+              )}
+            </div>
+
+            {/* Sub-banners: 3-col row on mobile, flex column on desktop */}
+            <div className="grid grid-cols-3 gap-3 lg:flex lg:flex-col lg:gap-4">
+              {[0, 1, 2].map(i => {
+                const b = subBanners[i];
+                const href = b?.ctaUrl || "/products";
+                const img  = b?.imageUrl ?? null;
+                const title = displayTitle(b);
+                const hasText = !!(title || b?.subtitle);
+                return (
+                  <Link key={i} href={href}
+                    className="group relative overflow-hidden rounded-xl bg-surface-dark [aspect-ratio:4/3] lg:[aspect-ratio:auto] lg:flex-1"
+                  >
+                    {img && (
+                      <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 260px" />
+                    )}
+                    {hasText && <div className="absolute inset-0 bg-black/40" />}
+                    {hasText && (
+                      <div className="absolute inset-0 flex flex-col justify-center px-4 py-4 lg:px-5 lg:py-5">
+                        {title && (
+                          <p className="text-white font-normal uppercase leading-tight"
+                            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(14px, 1.6vw, 22px)", letterSpacing: "0.06em" }}>
+                            {title}
+                          </p>
+                        )}
+                        {title && b?.subtitle && (
+                          <div className="flex items-center gap-2 my-2">
+                            <div className="h-px w-6 bg-white/40" />
+                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-white/60 shrink-0">
+                              <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
+                            </svg>
+                            <div className="h-px w-6 bg-white/40" />
+                          </div>
+                        )}
+                        {b?.subtitle && (
+                          <p className="text-white/80 text-[10px] leading-relaxed max-w-[160px]">{b.subtitle}</p>
+                        )}
+                        {b?.ctaLabel && (
+                          <span className="inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase border border-white/70 text-white rounded-sm w-fit">
+                            {b.ctaLabel}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
           </div>
         </div>
       </section>

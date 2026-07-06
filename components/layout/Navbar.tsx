@@ -120,7 +120,7 @@ function NavInner({ onClose }: { onClose?: () => void }) {
 
   return (
     <>
-      <div className="max-w-[1200px] mx-auto px-6 h-full flex items-center justify-between gap-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 text-ink shrink-0">
           <svg viewBox="0 0 100 100" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.5">
