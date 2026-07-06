@@ -26,6 +26,8 @@ export default function AdminHomepage() {
   const [loading,   setLoading]   = useState(true);
 
   const [uploading,      setUploading]      = useState<Record<number, boolean>>({});
+  const [savingSlot,     setSavingSlot]     = useState<number | null>(null);
+  const [savedSlot,      setSavedSlot]      = useState<number | null>(null);
   const [showPopupForm,  setShowPopupForm]  = useState(false);
   const [popupForm,      setPopupForm]      = useState(BLANK_POPUP);
   const [addFeaturedId,  setAddFeaturedId]  = useState("");
@@ -63,6 +65,8 @@ export default function AdminHomepage() {
     });
   }, []);
 
+  const bannerAtSlot = (slotIndex: number) => banners.find(b => b.position === slotIndex) ?? null;
+
   async function uploadHeroImage(slotIndex: number, file: File) {
     setUploading(u => ({ ...u, [slotIndex]: true }));
     try {
@@ -81,31 +85,27 @@ export default function AdminHomepage() {
       const up = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, { method: "POST", body: fd });
       const img = await up.json();
 
-      const existing = banners[slotIndex];
+      const existing = bannerAtSlot(slotIndex);
       if (existing) {
         await fetch(`/api/admin/banners/${existing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageUrl: img.secure_url, cloudinaryId: img.public_id }),
         });
-        setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: img.secure_url, cloudinaryId: img.public_id } : b));
+        setBanners(prev => prev.map(b => b.position === slotIndex ? { ...b, imageUrl: img.secure_url, cloudinaryId: img.public_id } : b));
       } else {
         const res = await fetch("/api/admin/banners", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: slotIndex === 0 ? "Hero Left" : "Hero Right",
+            title: slotIndex === 0 ? "Hero Left" : `Sub-banner ${slotIndex}`,
             imageUrl: img.secure_url,
             cloudinaryId: img.public_id,
             position: slotIndex,
           }),
         });
         const d = await res.json();
-        setBanners(prev => {
-          const next = [...prev];
-          next[slotIndex] = d.banner;
-          return next;
-        });
+        setBanners(prev => [...prev, d.banner].sort((a, b) => a.position - b.position));
       }
     } finally {
       setUploading(u => ({ ...u, [slotIndex]: false }));
@@ -113,35 +113,46 @@ export default function AdminHomepage() {
   }
 
   async function removeHeroImage(slotIndex: number) {
-    const existing = banners[slotIndex];
+    const existing = bannerAtSlot(slotIndex);
     if (!existing) return;
     await fetch(`/api/admin/banners/${existing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageUrl: null, cloudinaryId: null }),
     });
-    setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, imageUrl: null, cloudinaryId: null } : b));
+    setBanners(prev => prev.map(b => b.position === slotIndex ? { ...b, imageUrl: null, cloudinaryId: null } : b));
   }
 
   async function saveSlotText(slotIndex: number) {
     const form = subForms[slotIndex];
     if (!form) return;
-    const { title, subtitle, ctaLabel, ctaUrl } = form;
-    const defaultTitle = slotIndex === 0 ? "Hero Left" : `Sub-banner ${slotIndex}`;
-    const existing = banners[slotIndex];
-    const payload = { title: title || defaultTitle, subtitle: subtitle || null, ctaLabel: ctaLabel || "Shop Now", ctaUrl: ctaUrl || "/products" };
-    if (existing) {
-      await fetch(`/api/admin/banners/${existing.id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-      });
-      setBanners(prev => prev.map((b, i) => i === slotIndex ? { ...b, ...payload } : b));
-    } else {
-      const res = await fetch("/api/admin/banners", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, imageUrl: null, position: slotIndex }),
-      });
-      const d = await res.json();
-      setBanners(prev => { const next = [...prev]; next[slotIndex] = d.banner; return next; });
+    setSavingSlot(slotIndex);
+    try {
+      const { title, subtitle, ctaLabel, ctaUrl } = form;
+      const defaultTitle = slotIndex === 0 ? "Hero Left" : `Sub-banner ${slotIndex}`;
+      const existing = bannerAtSlot(slotIndex);
+      const payload = { title: title || defaultTitle, subtitle: subtitle || null, ctaLabel: ctaLabel || "Shop Now", ctaUrl: ctaUrl || "/products" };
+      if (existing) {
+        const res = await fetch(`/api/admin/banners/${existing.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        setBanners(prev => prev.map(b => b.position === slotIndex ? { ...b, ...payload } : b));
+      } else {
+        const res = await fetch("/api/admin/banners", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, imageUrl: null, position: slotIndex }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const d = await res.json();
+        setBanners(prev => [...prev, d.banner].sort((a, b) => a.position - b.position));
+      }
+      setSavedSlot(slotIndex);
+      setTimeout(() => setSavedSlot(null), 2000);
+    } catch (err) {
+      alert(`Save failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setSavingSlot(null);
     }
   }
 
@@ -206,7 +217,7 @@ export default function AdminHomepage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {HERO_SLOTS.map(({ label, position }) => {
-            const banner = banners[position];
+            const banner = bannerAtSlot(position);
             const isUploading = uploading[position];
             const form = subForms[position] ?? { title: "", subtitle: "", ctaLabel: "", ctaUrl: "" };
             const setForm = (patch: Partial<SubForm>) => setSubForms(u => ({ ...u, [position]: { ...form, ...patch } }));
@@ -259,9 +270,9 @@ export default function AdminHomepage() {
                       onChange={e => setForm({ ctaUrl: e.target.value })}
                       className="flex-1 h-7 px-2.5 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft/50 focus:outline-none focus:border-primary" />
                   </div>
-                  <button onClick={() => saveSlotText(position)}
-                    className="h-7 px-3 text-xs border border-white/10 text-on-dark-soft rounded hover:text-on-dark hover:border-white/20 transition-colors self-start">
-                    Save Text
+                  <button onClick={() => saveSlotText(position)} disabled={savingSlot === position}
+                    className="h-7 px-3 text-xs border border-white/10 text-on-dark-soft rounded hover:text-on-dark hover:border-white/20 transition-colors self-start disabled:opacity-60 flex items-center gap-1.5">
+                    {savingSlot === position ? <><Loader2 size={11} className="animate-spin" /> Saving…</> : savedSlot === position ? "Saved ✓" : "Save Text"}
                   </button>
                 </div>
               </div>
