@@ -155,6 +155,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <ProductActions
               disabled={!product.inStock}
               product={{ id: product.id, title: product.title, price: product.price, coverImage: product.coverImage, author: product.author, type: product.type }}
+              variants={product.variants}
             />
 
             <WishlistButton productId={product.id} />
