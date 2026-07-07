@@ -154,3 +154,5 @@ export function ScrollBook() {
 
   return <div ref={mountRef} className="w-full h-full min-h-[280px]" />;
 }
+
+export default ScrollBook;
