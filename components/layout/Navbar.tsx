@@ -28,18 +28,10 @@ function NavDropdown({ label, href, group, categories }: {
 
   function onEnter() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setOpen(true);
+    if (items.length) setOpen(true);
   }
   function onLeave() {
     timeoutRef.current = setTimeout(() => setOpen(false), 120);
-  }
-
-  if (!items.length) {
-    return (
-      <Link href={href} className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
-        {label}
-      </Link>
-    );
   }
 
   return (
@@ -47,11 +39,13 @@ function NavDropdown({ label, href, group, categories }: {
       <Link href={href}
         className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft flex items-center gap-1">
         {label}
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mt-px opacity-50">
-          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        {items.length > 0 && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mt-px opacity-50">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
       </Link>
-      {open && (
+      {open && items.length > 0 && (
         <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5 overflow-hidden">
           {items.map(cat => (
             <Link key={cat.id} href={`/category/${cat.slug}`}
