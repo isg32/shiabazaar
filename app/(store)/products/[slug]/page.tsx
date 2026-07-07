@@ -134,27 +134,10 @@ export default async function ProductDetailPage({ params }: Props) {
               </span>
             </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-ink">₹{product.price}</span>
-              {product.originalPrice && (
-                <>
-                  <span className="text-body line-through text-base">₹{product.originalPrice}</span>
-                  <Badge label="SALE" />
-                </>
-              )}
-            </div>
-
-            {/* Stock */}
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${product.inStock ? "bg-success" : "bg-error"}`} />
-              <span className="text-sm text-body">{product.inStock ? "In Stock" : "Out of Stock"}</span>
-            </div>
-
-            {/* Quantity + Add to Cart + Buy Now */}
+            {/* Price, stock, variant selector, quantity, add to cart */}
             <ProductActions
-              disabled={!product.inStock}
-              product={{ id: product.id, title: product.title, price: product.price, coverImage: product.coverImage, author: product.author, type: product.type }}
+              baseInStock={product.inStock}
+              product={{ id: product.id, title: product.title, price: product.price, originalPrice: product.originalPrice, coverImage: product.coverImage, author: product.author, type: product.type }}
               variants={product.variants}
             />
 
