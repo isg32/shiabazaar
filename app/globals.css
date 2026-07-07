@@ -231,6 +231,10 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes sb-dot-chase {
+  to { transform: rotate(360deg); }
+}
+
 /* ponytail: single reusable pattern, applied sparingly as section dividers */
 .geometric-divider {
   height: 1px;

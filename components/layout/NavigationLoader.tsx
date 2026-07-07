@@ -74,16 +74,32 @@ export function NavigationLoader() {
         priority
         style={{ opacity: 0.92 }}
       />
-      <div
-        style={{
-          width: "28px",
-          height: "28px",
-          border: "2px solid #e6dfd8",
-          borderTopColor: "#cc785c",
-          borderRadius: "50%",
-          animation: "sb-spin 0.7s linear infinite",
-        }}
-      />
+      {/* Win11 bootup style — rotating ring, comet-tail opacities */}
+      <div style={{
+        position: "relative",
+        width: "44px",
+        height: "44px",
+        animation: "sb-dot-chase 1.4s linear infinite",
+      }}>
+        {[1, 0.72, 0.48, 0.26, 0.1].map((opacity, i) => (
+          <span
+            key={i}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: "5px",
+              height: "5px",
+              marginTop: "-2.5px",
+              marginLeft: "-2.5px",
+              borderRadius: "50%",
+              backgroundColor: "#cc785c",
+              opacity,
+              transform: `rotate(${i * 72}deg) translateY(-18px)`,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
