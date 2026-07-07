@@ -60,7 +60,7 @@ export default async function HomePage() {
       {/* ── Brand header ─────────────────────────── */}
       <section
         id="brand-header"
-        className="bg-canvas flex flex-col items-center justify-center text-center px-8"
+        className="hidden lg:flex bg-canvas flex-col items-center justify-center text-center px-8"
         style={{ minHeight: "10vh" }}
       >
         <Image
@@ -92,12 +92,39 @@ export default async function HomePage() {
                 priority
                 sizes="(max-width: 1024px) 100vw, calc(100vw - 340px)"
               />
+              {/* Mobile: bottom gradient so text is readable over the image */}
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 via-black/30 to-transparent sm:hidden" />
+
               {(displayTitle(mainBanner) || mainBanner?.subtitle || mainBanner?.ctaLabel) && (
                 <div className="absolute inset-0 flex items-stretch">
+
+                  {/* Mobile layout: bottom-aligned */}
+                  <div className="flex sm:hidden flex-col justify-end px-5 pb-6 w-full">
+                    {displayTitle(mainBanner) && (
+                      <h2 className="text-white font-normal leading-[1.1] mb-1.5"
+                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(22px, 6vw, 30px)", letterSpacing: "-0.3px" }}>
+                        {displayTitle(mainBanner)}
+                      </h2>
+                    )}
+                    <div className="flex items-center gap-1.5 mb-4">
+                      <div className="h-px w-8 bg-accent-amber" />
+                      <svg width="5" height="5" viewBox="0 0 8 8" fill="none" className="text-accent-amber shrink-0">
+                        <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="1" />
+                      </svg>
+                    </div>
+                    <Link
+                      href={mainBanner?.ctaUrl || "/products"}
+                      className="self-start inline-flex items-center h-9 px-5 bg-white/90 text-ink text-[10px] font-medium tracking-[0.18em] uppercase rounded-sm hover:bg-white transition-colors"
+                    >
+                      {mainBanner?.ctaLabel || "Explore Collection"}
+                    </Link>
+                  </div>
+
+                  {/* Desktop layout: left-side panel */}
                   <div className="hidden sm:flex w-[44%] flex-col justify-center px-8 lg:px-12 py-10">
                     {displayTitle(mainBanner) && (
-                      <h2 className=" text-black font-normal leading-[1.1] mb-3"
-                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px"}}>
+                      <h2 className="text-black font-normal leading-[1.1] mb-3"
+                        style={{ fontFamily: "var(--font-display)", fontSize: "clamp(24px, 3.5vw, 48px)", letterSpacing: "-0.5px" }}>
                         {displayTitle(mainBanner)}
                       </h2>
                     )}
@@ -111,55 +138,50 @@ export default async function HomePage() {
                       {mainBanner?.ctaLabel || "Explore Collection"}
                     </Link>
                   </div>
-                  <div className="flex-1" />
+                  <div className="hidden sm:flex flex-1" />
                 </div>
               )}
             </div>
 
-            {/* Sub-banners: column on mobile (card height), column on desktop (flex-1) */}
+            {/* Sub-banners */}
             <div className="flex flex-col gap-2 lg:gap-4">
               {[0, 1, 2].map(i => {
                 const b = subBanners[i];
                 const href = b?.ctaUrl || "/products";
                 const img  = b?.imageUrl ?? null;
                 const title = displayTitle(b);
-                const hasText = !!(title || b?.subtitle);
                 return (
                   <Link key={i} href={href}
-                    className="group relative overflow-hidden rounded-xl bg-surface-dark h-24 lg:h-auto lg:flex-1"
+                    className="group relative overflow-hidden rounded-xl bg-surface-dark h-28 lg:h-auto lg:flex-1"
                   >
                     {img && (
                       <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 320px" />
                     )}
-                    <div className="absolute inset-0 bg-black/40" />
-                    {/* Unified overlay: row on mobile (title + ›), column on desktop (full content) */}
-                    <div className="absolute inset-0 flex items-center lg:flex-col lg:items-start lg:justify-center px-4 lg:px-5 py-4 lg:py-5">
+                    <div className="absolute inset-0 bg-black/45" />
+                    <div className="absolute inset-0 flex flex-col justify-center px-4 lg:px-5 py-4 lg:py-5">
                       {title && (
-                        <p className="flex-1 lg:flex-none text-white font-normal uppercase leading-tight"
-                          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(12px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
+                        <p className="text-white font-normal uppercase leading-tight"
+                          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(13px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
                           {title}
                         </p>
                       )}
-                      {/* Desktop only: separator + subtitle + button */}
-                      {title && b?.subtitle && (
-                        <div className="hidden lg:flex items-center gap-2 my-2">
-                          <div className="h-px w-6 bg-accent-amber/95" />
-                          <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber/95 shrink-0">
-                            <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
+                      {/* Amber decorative line — always visible */}
+                      {title && (
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <div className="h-px w-1/2 bg-accent-amber/90" />
+                          <svg width="5" height="5" viewBox="0 0 8 8" fill="none" className="text-accent-amber/90 shrink-0">
+                            <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="1" />
                           </svg>
-                          <div className="h-px w-6 bg-accent-amber/95" />
                         </div>
                       )}
                       {b?.subtitle && (
-                        <p className="hidden lg:block text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
+                        <p className="hidden lg:block text-white/80 text-[10px] leading-relaxed max-w-[180px] mt-2">{b.subtitle}</p>
                       )}
                       {b?.ctaLabel && (
                         <span className="hidden lg:inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
                           {b.ctaLabel}
                         </span>
                       )}
-                      {/* Mobile only: chevron */}
-                      <span className="lg:hidden text-white/60 text-xl shrink-0 ml-auto">›</span>
                     </div>
                   </Link>
                 );
@@ -269,7 +291,7 @@ export default async function HomePage() {
                   Shop New Arrivals <ArrowRight size={15} />
                 </Link>
               </div>
-              <div className="min-h-[280px] lg:min-h-0" style={{ background: "rgba(169,88,62,0.2)" }}>
+              <div className="min-h-[280px] lg:min-h-0 overflow-hidden" style={{ background: "rgba(169,88,62,0.2)" }}>
                 <ScrollBookLazy />
               </div>
             </div>
