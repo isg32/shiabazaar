@@ -81,6 +81,20 @@ export function ProductCard({ product, className }: ProductCardProps) {
         <h3 className="text-[14.5px] font-medium text-ink leading-[1.4] line-clamp-2">
           {product.title}
         </h3>
+        {product.variants && product.variants.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.variants.slice(0, 4).map(v => (
+              <span key={v.id} className="text-[10px] px-2 py-0.5 rounded-full bg-surface-soft border border-hairline text-muted">
+                {v.label}
+              </span>
+            ))}
+            {product.variants.length > 4 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-soft border border-hairline text-muted">
+                +{product.variants.length - 4}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-baseline gap-2">
             <span className="text-[15px] font-semibold text-ink">₹{product.price}</span>

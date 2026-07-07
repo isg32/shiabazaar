@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       edition:       body.edition ?? null,
       description:   body.description ?? null,
       tableOfContents: body.tableOfContents ?? null,
+      categoryId:    body.categoryId ?? null,
     },
     include: { images: true, variants: true },
   });

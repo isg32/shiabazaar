@@ -1,9 +1,10 @@
 import { db } from "./db";
-import type { Product as DBProduct, ProductImage, ProductVariant } from "@prisma/client";
+import type { Product as DBProduct, ProductImage, ProductVariant, Category } from "@prisma/client";
 
 type DBProductFull = DBProduct & {
   images: ProductImage[];
   variants: ProductVariant[];
+  category?: Category | null;
 };
 
 // Shape that all existing components expect (mirrors data/mock.ts Product)
@@ -30,6 +31,8 @@ export interface ProductUI {
   description?: string;
   tableOfContents?: string;
   variants?: { id: string; label: string; stock: number; price?: number }[];
+  categoryId?: string;
+  categoryName?: string;
 }
 
 function toUI(p: DBProductFull): ProductUI {
@@ -63,10 +66,12 @@ function toUI(p: DBProductFull): ProductUI {
       stock: v.stock,
       price: v.price ? v.price / 100 : undefined,
     })),
+    categoryId: p.categoryId ?? undefined,
+    categoryName: p.category?.name ?? undefined,
   };
 }
 
-const include = { images: true, variants: true } as const;
+const include = { images: true, variants: true, category: true } as const;
 
 export async function getFeaturedProducts(limit = 8): Promise<ProductUI[]> {
   const featured = await db.homepageFeatured.findMany({
@@ -94,10 +99,18 @@ export async function getProducts(opts: {
   type?: string;
   limit?: number;
   orderBy?: "newest" | "price-asc" | "price-desc";
+  categoryId?: string;
+  publisherContains?: string;
+  publisherNotContains?: string;
 } = {}): Promise<ProductUI[]> {
-  const { type, limit, orderBy = "newest" } = opts;
+  const { type, limit, orderBy = "newest", categoryId, publisherContains, publisherNotContains } = opts;
   const products = await db.product.findMany({
-    where: type ? { type: type as DBProduct["type"] } : undefined,
+    where: {
+      ...(type ? { type: type as DBProduct["type"] } : {}),
+      ...(categoryId ? { categoryId } : {}),
+      ...(publisherContains ? { publisher: { contains: publisherContains, mode: "insensitive" } } : {}),
+      ...(publisherNotContains ? { NOT: { publisher: { contains: publisherNotContains, mode: "insensitive" } } } : {}),
+    },
     orderBy:
       orderBy === "newest"     ? { createdAt: "desc" } :
       orderBy === "price-asc"  ? { price: "asc" }      :
@@ -121,6 +134,17 @@ export async function searchProducts(query: string): Promise<ProductUI[]> {
       ],
     },
     take: 100,
+    include,
+  });
+  return products.map((p) => toUI(p as DBProductFull));
+}
+
+export async function getProductsByCategorySlug(slug: string): Promise<ProductUI[] | null> {
+  const cat = await db.category.findUnique({ where: { slug } });
+  if (!cat) return null;
+  const products = await db.product.findMany({
+    where: { categoryId: cat.id },
+    orderBy: { createdAt: "desc" },
     include,
   });
   return products.map((p) => toUI(p as DBProductFull));

@@ -8,13 +8,62 @@ import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as H
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
 
+type NavCategory = { id: string; name: string; slug: string; group: string };
+
+// group = null → flat link, no dropdown
 const navLinks = [
-  { label: "Tazeem Publication", href: "/category/tazeem-publication" },
-  { label: "Other Publications", href: "/category/other-publications" },
-  { label: "Books", href: "/category/books" },
-  { label: "Gifts", href: "/category/gifts" },
-  { label: "Other Products", href: "/category/other-products" },
+  { label: "Tazeem Publication", href: "/category/tazeem-publication", group: null },
+  { label: "Other Publications", href: "/category/other-publications", group: null },
+  { label: "Books",         href: "/category/books",         group: "book" },
+  { label: "Gifts",         href: "/category/gifts",         group: "gift" },
+  { label: "Other Products",href: "/category/other-products",group: "other" },
 ];
+
+function NavDropdown({ label, href, group, categories }: {
+  label: string; href: string; group: string; categories: NavCategory[];
+}) {
+  const [open, setOpen] = useState(false);
+  const items = categories.filter(c => c.group === group);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function onEnter() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  }
+  function onLeave() {
+    timeoutRef.current = setTimeout(() => setOpen(false), 120);
+  }
+
+  if (!items.length) {
+    return (
+      <Link href={href} className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
+      <Link href={href}
+        className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft flex items-center gap-1">
+        {label}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mt-px opacity-50">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </Link>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5 overflow-hidden">
+          {items.map(cat => (
+            <Link key={cat.id} href={`/category/${cat.slug}`}
+              className="block px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function initials(name: string | null | undefined, email: string) {
   if (name?.trim()) {
@@ -115,7 +164,12 @@ function NavInner({ onClose }: { onClose?: () => void }) {
   const session = authClient.useSession();
   const { count: cartCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navCategories, setNavCategories] = useState<NavCategory[]>([]);
   const user = session.data?.user;
+
+  useEffect(() => {
+    fetch("/api/categories").then(r => r.json()).then(d => setNavCategories(d.categories ?? [])).catch(() => {});
+  }, []);
 
   const close = () => { setMenuOpen(false); onClose?.(); };
 
@@ -136,12 +190,16 @@ function NavInner({ onClose }: { onClose?: () => void }) {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-0.5">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href}
-              className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            link.group ? (
+              <NavDropdown key={link.href} label={link.label} href={link.href} group={link.group} categories={navCategories} />
+            ) : (
+              <Link key={link.href} href={link.href}
+                className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
+                {link.label}
+              </Link>
+            )
+          )}
         </nav>
 
         {/* Right cluster */}

@@ -11,14 +11,21 @@ const inputCls = "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10
 const labelCls = "text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5";
 const sectionCls = "bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-5";
 
-function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
 type ExistingImage = { id: string; url: string; isCover: boolean; cloudinaryId: string };
 type NewImage      = { file: File; url: string; isCover: boolean };
 type ExistingVariant = { id: string; label: string; stock: number; price: number | null };
 type NewVariant      = { label: string; stock: string; price: string };
+type NavCategory = { id: string; name: string; slug: string; group: string };
+
+function groupForType(type: ProductType) {
+  if (type === "book") return "book";
+  if (type === "gift") return "gift";
+  return "other";
+}
+
+function slugify(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -33,7 +40,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     price: "", originalPrice: "", inStock: true, badge: "",
     author: "", isbn: "", publisher: "", language: "",
     genre: "", pageCount: "", edition: "", description: "", tableOfContents: "",
+    categoryId: "",
   });
+  const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
+  const [newCatName, setNewCatName] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
 
   const [existingImages,  setExistingImages]  = useState<ExistingImage[]>([]);
   const [newImages,       setNewImages]       = useState<NewImage[]>([]);
@@ -43,6 +54,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [deletedVariants, setDeletedVariants] = useState<string[]>([]);
 
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/categories").then(r => r.json()).then(d => setAllCategories(d.categories ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/admin/products/${id}`)
@@ -66,6 +81,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           edition:         product.edition ?? "",
           description:     product.description ?? "",
           tableOfContents: product.tableOfContents ?? "",
+          categoryId:      product.categoryId ?? "",
         });
         setExistingImages(product.images ?? []);
         setExistingVariants(product.variants?.map((v: ExistingVariant) => ({
@@ -199,6 +215,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           edition:         form.edition || null,
           description:     form.description || null,
           tableOfContents: form.tableOfContents || null,
+          categoryId:      form.categoryId || null,
         }),
       });
 
@@ -271,6 +288,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   }
 
   const isBook = form.type === "book";
+  const filteredCategories = allCategories.filter(c => c.group === groupForType(form.type));
+
+  async function createCategory() {
+    if (!newCatName.trim()) return;
+    setCreatingCat(true);
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCatName.trim(), slug: slugify(newCatName), group: groupForType(form.type) }),
+      });
+      const { category } = await res.json();
+      if (category) {
+        setAllCategories(prev => [...prev, category]);
+        set("categoryId", category.id);
+        setNewCatName("");
+      }
+    } finally {
+      setCreatingCat(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -338,7 +376,31 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </button>
               <label className="text-sm text-on-dark">In Stock</label>
             </div>
-          </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Category</label>
+              <div className="flex gap-2">
+                <select className={inputCls} value={form.categoryId} onChange={e => set("categoryId", e.target.value)}>
+                  <option value="">— No category —</option>
+                  {filteredCategories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <input
+                  className={`${inputCls} flex-1`}
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  placeholder="Or type to create new category…"
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); createCategory(); } }}
+                />
+                <button type="button" onClick={createCategory} disabled={creatingCat || !newCatName.trim()}
+                  className="h-9 px-3 text-xs font-medium bg-white/8 hover:bg-white/12 text-on-dark rounded-md disabled:opacity-40 transition-colors whitespace-nowrap">
+                  {creatingCat ? "Adding…" : "Add"}
+                </button>
+              </div>
+            </div>
+        </div>
         </div>
 
         {/* Book metadata */}

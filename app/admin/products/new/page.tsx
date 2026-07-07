@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 
@@ -16,6 +16,13 @@ function slugify(s: string) {
 
 type Variant  = { label: string; stock: string; price: string };
 type ImgPreview = { file: File; url: string; isCover: boolean };
+type NavCategory = { id: string; name: string; slug: string; group: string };
+
+function groupForType(type: ProductType) {
+  if (type === "book") return "book";
+  if (type === "gift") return "gift";
+  return "other";
+}
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -25,12 +32,20 @@ export default function NewProductPage() {
     price: "", originalPrice: "", inStock: true, badge: "",
     author: "", isbn: "", publisher: "", language: "",
     genre: "", pageCount: "", edition: "", description: "", tableOfContents: "",
+    categoryId: "",
   });
   const [variants,  setVariants]  = useState<Variant[]>([]);
   const [previews,  setPreviews]  = useState<ImgPreview[]>([]);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState("");
+  const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
+  const [newCatName, setNewCatName] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/categories").then(r => r.json()).then(d => setAllCategories(d.categories ?? [])).catch(() => {});
+  }, []);
 
   function set(k: string, v: string | boolean) {
     setForm(f => {
@@ -118,6 +133,7 @@ export default function NewProductPage() {
           edition:        form.edition || null,
           description:    form.description || null,
           tableOfContents: form.tableOfContents || null,
+          categoryId:     form.categoryId || null,
         }),
       });
 
@@ -158,6 +174,27 @@ export default function NewProductPage() {
   }
 
   const isBook = form.type === "book";
+  const filteredCategories = allCategories.filter(c => c.group === groupForType(form.type));
+
+  async function createCategory() {
+    if (!newCatName.trim()) return;
+    setCreatingCat(true);
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCatName.trim(), slug: slugify(newCatName), group: groupForType(form.type) }),
+      });
+      const { category } = await res.json();
+      if (category) {
+        setAllCategories(prev => [...prev, category]);
+        set("categoryId", category.id);
+        setNewCatName("");
+      }
+    } finally {
+      setCreatingCat(false);
+    }
+  }
 
   return (
     <div className="px-8 py-8 text-on-dark max-w-3xl">
@@ -216,6 +253,30 @@ export default function NewProductPage() {
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-4" : "translate-x-0.5"}`} />
               </button>
               <label className="text-sm text-on-dark">In Stock</label>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Category</label>
+              <div className="flex gap-2">
+                <select className={inputCls} value={form.categoryId} onChange={e => set("categoryId", e.target.value)}>
+                  <option value="">— No category —</option>
+                  {filteredCategories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <input
+                  className={`${inputCls} flex-1`}
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  placeholder="Or type to create new category…"
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); createCategory(); } }}
+                />
+                <button type="button" onClick={createCategory} disabled={creatingCat || !newCatName.trim()}
+                  className="h-9 px-3 text-xs font-medium bg-white/8 hover:bg-white/12 text-on-dark rounded-md disabled:opacity-40 transition-colors whitespace-nowrap">
+                  {creatingCat ? "Adding…" : "Add"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

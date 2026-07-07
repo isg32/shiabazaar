@@ -111,6 +111,8 @@ model Product {
   wishlistItems Wishlist[]
   reviews   Review[]
   featured  HomepageFeatured[]
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@map("products")
 }
@@ -289,6 +291,21 @@ model ShippingZone {
   freeAbove    Int?   // free shipping threshold in paise
 
   @@map("shipping_zones")
+}
+
+// ── Categories ───────────────────────────────────────
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  slug     String    @unique
+  group    String    // "book" | "gift" | "other"
+  active   Boolean   @default(true)
+  position Int       @default(0)
+
+  products Product[]
+
+  @@map("categories")
 }
 
 // ── Homepage Content ─────────────────────────────────
