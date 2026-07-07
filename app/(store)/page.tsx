@@ -158,30 +158,44 @@ export default async function HomePage() {
                       <Image src={img} alt={title ?? "Banner"} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 1024px) 33vw, 320px" />
                     )}
                     <div className="absolute inset-0 bg-black/45" />
-                    <div className="absolute inset-0 flex flex-col justify-center px-4 lg:px-5 py-4 lg:py-5">
-                      {title && (
-                        <p className="text-white font-normal uppercase leading-tight"
-                          style={{ fontFamily: "var(--font-display)", fontSize: "clamp(13px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
-                          {title}
-                        </p>
-                      )}
-                      {/* Amber decorative line — always visible */}
-                      {title && (
-                        <div className="flex items-center gap-1.5 mt-2">
-                          <div className="h-px w-1/2 bg-accent-amber/90" />
-                          <svg width="5" height="5" viewBox="0 0 8 8" fill="none" className="text-accent-amber/90 shrink-0">
-                            <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="1" />
-                          </svg>
-                        </div>
-                      )}
-                      {b?.subtitle && (
-                        <p className="hidden lg:block text-white/80 text-[10px] leading-relaxed max-w-[180px] mt-2">{b.subtitle}</p>
-                      )}
-                      {b?.ctaLabel && (
-                        <span className="hidden lg:inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
-                          {b.ctaLabel}
-                        </span>
-                      )}
+                    <div className="absolute inset-0 flex items-center lg:flex-col lg:items-start lg:justify-center px-4 lg:px-5 py-4 lg:py-5">
+                      <div className="flex-1 lg:flex-none">
+                        {title && (
+                          <p className="text-white font-normal uppercase leading-tight"
+                            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(13px, 1.4vw, 20px)", letterSpacing: "0.06em" }}>
+                            {title}
+                          </p>
+                        )}
+                        {/* Amber line — mobile only */}
+                        {title && (
+                          <div className="flex items-center gap-1.5 mt-1.5 lg:hidden">
+                            <div className="h-px w-1/2 bg-accent-amber/90" />
+                            <svg width="5" height="5" viewBox="0 0 8 8" fill="none" className="text-accent-amber/90 shrink-0">
+                              <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="1" />
+                            </svg>
+                          </div>
+                        )}
+                        {/* Desktop separator + subtitle + button */}
+                        {title && b?.subtitle && (
+                          <div className="hidden lg:flex items-center gap-2 my-2">
+                            <div className="h-px w-6 bg-accent-amber/95" />
+                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none" className="text-accent-amber/95 shrink-0">
+                              <rect x="4" y="0.5" width="5" height="5" transform="rotate(45 4 0.5)" stroke="currentColor" strokeWidth="0.8" />
+                            </svg>
+                            <div className="h-px w-6 bg-accent-amber/95" />
+                          </div>
+                        )}
+                        {b?.subtitle && (
+                          <p className="hidden lg:block text-white/80 text-[10px] leading-relaxed max-w-[180px]">{b.subtitle}</p>
+                        )}
+                        {b?.ctaLabel && (
+                          <span className="hidden lg:inline-flex items-center mt-3 h-7 px-3 text-[9px] font-medium tracking-[0.16em] uppercase rounded-sm w-fit text-white border border-accent-amber">
+                            {b.ctaLabel}
+                          </span>
+                        )}
+                      </div>
+                      {/* Mobile chevron */}
+                      <span className="lg:hidden text-white/60 text-xl shrink-0 ml-auto">›</span>
                     </div>
                   </Link>
                 );
