@@ -30,7 +30,7 @@ export function HomepagePopup({ popup }: { popup: Popup }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={dismiss}>
       <div
-        className="bg-canvas rounded-2xl p-8 max-w-sm w-full shadow-2xl relative"
+        className="bg-canvas rounded-2xl p-8 max-w-[576px] w-full shadow-2xl relative"
         onClick={e => e.stopPropagation()}
       >
         <button onClick={dismiss} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-soft text-muted hover:text-ink transition-colors">
