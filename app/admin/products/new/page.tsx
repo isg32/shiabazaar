@@ -340,7 +340,7 @@ export default function NewProductPage() {
                 className={`relative w-10 h-6 rounded-full transition-colors ${form.inStock ? "bg-primary" : "bg-white/20"}`}
               >
                 <span
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-4" : "-translate-x-0.5"}`}
+                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-0.4" : "-translate-x-4"}`}
                 />
               </button>
               <label className="text-sm text-on-dark">In Stock</label>

@@ -86,7 +86,7 @@ function CategoryRow({
         aria-label={cat.active ? "Deactivate" : "Activate"}
       >
         <span
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-4" : "-translate-x-0.5"}`}
+          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-0.4" : "-translate-x-4"}`}
         />
       </button>
       <button
