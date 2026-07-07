@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Lock, Loader2 } from "lucide-react";
+import { authClient } from "@/lib/auth/client";
 
 const steps = ["Address", "Shipping", "Payment"];
 
@@ -44,6 +45,8 @@ function loadRazorpayScript(): Promise<boolean> {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const session = authClient.useSession();
+  const isLoggedIn = !!session.data?.user;
   const [step, setStep] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartLoaded, setCartLoaded] = useState(false);
@@ -51,6 +54,7 @@ export default function CheckoutPage() {
   const [couponApplied, setCouponApplied] = useState("");
   const [placing, setPlacing] = useState(false);
   const [placeError, setPlaceError] = useState("");
+  const [saveAddress, setSaveAddress] = useState(false);
 
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
@@ -150,6 +154,13 @@ export default function CheckoutPage() {
         },
         theme: { color: "#cc785c" },
         handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          if (saveAddress && isLoggedIn) {
+            fetch("/api/account/profile", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: form.name, phone: form.phone, line1: form.line1, line2: form.line2 || undefined, city: form.city, state: form.state, pincode: form.pincode }),
+            }).catch(() => {});
+          }
           const vRes = await fetch("/api/orders/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -261,6 +272,17 @@ export default function CheckoutPage() {
                   <input className={inputCls} placeholder="400001" maxLength={6} value={form.pincode} onChange={e => set("pincode", e.target.value)} />
                 </div>
               </div>
+              {isLoggedIn && (
+                <label className="flex items-center gap-2.5 cursor-pointer select-none w-fit">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={e => setSaveAddress(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--color-primary)] cursor-pointer"
+                  />
+                  <span className="text-sm text-body">Save this address to my account</span>
+                </label>
+              )}
               <button
                 onClick={() => { if (!validateAddress()) { setPlaceError("Please fill in all required fields."); } else { setPlaceError(""); setStep(1); } }}
                 className="self-start h-11 px-8 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors"

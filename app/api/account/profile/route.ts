@@ -40,3 +40,29 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ user });
 }
+
+export async function POST(request: Request) {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = await ensureUser(session.user.email, session.user.name);
+  const { label, name, phone, line1, line2, city, state, pincode } = await request.json();
+  if (!name || !phone || !line1 || !city || !state || !pincode) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // If this is the first address, make it default
+  const count = await db.address.count({ where: { userId } });
+  const address = await db.address.create({
+    data: {
+      userId,
+      label: label || "Home",
+      name, phone, line1,
+      line2: line2 || null,
+      city, state, pincode,
+      isDefault: count === 0,
+    },
+  });
+
+  return NextResponse.json({ address }, { status: 201 });
+}
