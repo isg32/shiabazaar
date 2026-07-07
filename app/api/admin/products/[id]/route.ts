@@ -26,9 +26,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.price !== undefined) data.price = Math.round(body.price * 100);
   if (body.originalPrice !== undefined) data.originalPrice = body.originalPrice ? Math.round(body.originalPrice * 100) : null;
 
-  const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });
-  revalidateTag("products", "max");
-  return NextResponse.json({ product });
+  try {
+    const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });
+    revalidateTag("products", "max");
+    return NextResponse.json({ product });
+  } catch (e) {
+    console.error("PATCH /api/admin/products/[id] error:", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 import Image from "next/image";
 
-type ProductType = "book" | "gift" | "ladies" | "gents";
+type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
 const inputCls = "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
 const labelCls = "text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5";
@@ -17,11 +17,7 @@ type ExistingVariant = { id: string; label: string; stock: number; price: number
 type NewVariant      = { label: string; stock: string; price: string };
 type NavCategory = { id: string; name: string; slug: string; group: string };
 
-function groupForType(type: ProductType) {
-  if (type === "book") return "book";
-  if (type === "gift") return "gift";
-  return "other";
-}
+function groupForType(type: ProductType) { return type; }
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -344,8 +340,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <select className={inputCls} value={form.type} onChange={e => set("type", e.target.value)}>
                 <option value="book">Book</option>
                 <option value="gift">Gift</option>
-                <option value="ladies">Ladies</option>
-                <option value="gents">Gents</option>
+                <option value="other">Other Products</option>
               </select>
             </div>
             <div>
@@ -370,9 +365,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <button
                 type="button"
                 onClick={() => set("inStock", !form.inStock)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${form.inStock ? "bg-primary" : "bg-white/20"}`}
+                className={`relative w-9 h-5 rounded-full transition-colors ${form.inStock ? "bg-primary" : "bg-on-dark-soft/30"}`}
               >
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-4" : "translate-x-0.5"}`} />
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${form.inStock ? "translate-x-4" : "translate-x-0.5"}`} />
               </button>
               <label className="text-sm text-on-dark">In Stock</label>
             </div>
@@ -413,8 +408,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 <input className={inputCls} value={form.author} onChange={e => set("author", e.target.value)} placeholder="Imam Ali (AS)" />
               </div>
               <div>
-                <label className={labelCls}>Publisher</label>
-                <input className={inputCls} value={form.publisher} onChange={e => set("publisher", e.target.value)} placeholder="Ansariyan" />
+                <label className={labelCls}>Publication</label>
+                <select className={inputCls} value={form.publisher} onChange={e => set("publisher", e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Tazeem Publication">Tazeem Publication</option>
+                  <option value="Other Publications">Other Publications</option>
+                </select>
               </div>
               <div>
                 <label className={labelCls}>ISBN</label>

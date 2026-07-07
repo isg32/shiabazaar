@@ -68,7 +68,7 @@ function CategoryRow({ cat, onUpdate, onDelete }: {
         className={`shrink-0 w-9 h-5 rounded-full relative transition-colors disabled:opacity-50 ${cat.active ? "bg-primary" : "bg-on-dark-soft/30"}`}
         aria-label={cat.active ? "Deactivate" : "Activate"}
       >
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-0.4" : "-translate-x-4"}`} />
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-4" : "translate-x-0.5"}`} />
       </button>
       <button
         onClick={remove}
@@ -168,7 +168,7 @@ export default function AdminCategories() {
       <div className="mb-8">
         <h1 className="text-2xl font-normal text-on-dark" style={{ fontFamily: "var(--font-display)" }}>Categories</h1>
         <p className="text-sm text-on-dark-soft mt-1">
-          Manage the dropdown categories shown in the navbar under Books, Gifts, and Other Products.
+          Manage the dropdown categories shown in the navbar under Books, Gifts, Ladies, Gents, and Other Products.
         </p>
       </div>
 

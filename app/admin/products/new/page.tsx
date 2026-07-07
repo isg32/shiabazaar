@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 
-type ProductType = "book" | "gift" | "ladies" | "gents";
+type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
 const inputCls = "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
 const labelCls = "text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5";
@@ -18,11 +18,7 @@ type Variant  = { label: string; stock: string; price: string };
 type ImgPreview = { file: File; url: string; isCover: boolean };
 type NavCategory = { id: string; name: string; slug: string; group: string };
 
-function groupForType(type: ProductType) {
-  if (type === "book") return "book";
-  if (type === "gift") return "gift";
-  return "other";
-}
+function groupForType(type: ProductType) { return type; }
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -222,8 +218,7 @@ export default function NewProductPage() {
               <select className={inputCls} value={form.type} onChange={e => set("type", e.target.value)}>
                 <option value="book">Book</option>
                 <option value="gift">Gift</option>
-                <option value="ladies">Ladies</option>
-                <option value="gents">Gents</option>
+                <option value="other">Other Products</option>
               </select>
             </div>
             <div>
@@ -291,8 +286,12 @@ export default function NewProductPage() {
                 <input className={inputCls} value={form.author} onChange={e => set("author", e.target.value)} placeholder="Imam Ali (AS)" />
               </div>
               <div>
-                <label className={labelCls}>Publisher</label>
-                <input className={inputCls} value={form.publisher} onChange={e => set("publisher", e.target.value)} placeholder="Ansariyan" />
+                <label className={labelCls}>Publication</label>
+                <select className={inputCls} value={form.publisher} onChange={e => set("publisher", e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Tazeem Publication">Tazeem Publication</option>
+                  <option value="Other Publications">Other Publications</option>
+                </select>
               </div>
               <div>
                 <label className={labelCls}>ISBN</label>

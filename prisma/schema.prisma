@@ -15,6 +15,7 @@ enum ProductType {
   gift
   ladies
   gents
+  other
 }
 
 enum OrderStatus {
