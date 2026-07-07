@@ -77,9 +77,6 @@ export function ProductActions({ baseInStock = true, product, variants }: Props)
             <Badge label="SALE" />
           </>
         )}
-        {selectedVariant?.price && selectedVariant.price !== product.price && (
-          <span className="text-xs text-muted">(base ₹{product.price})</span>
-        )}
       </div>
 
       {/* Stock indicator — reactive to selected variant */}
