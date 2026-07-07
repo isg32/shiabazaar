@@ -2,15 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BookOpen, Gift, Sparkles, Crown } from "lucide-react";
 import type { ElementType } from "react";
-import { ScrollBook } from "@/components/shared/ScrollBook";
 import { FadeIn } from "@/components/shared/FadeIn";
-import { getFeaturedProducts } from "@/lib/queries";
+import { getFeaturedProducts, getBanners, getCategoryCounts, getActivePopup } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
-import { db } from "@/lib/db";
 import { HomepagePopup } from "@/components/shared/HomepagePopup";
 import { HomepageNavbar } from "@/components/layout/Navbar";
-
-export const dynamic = "force-dynamic";
+import { ScrollBookLazy } from "@/components/shared/ScrollBookLazy";
 
 const catMeta: Record<string, { Icon: ElementType; color: string; description: string; slug: string; label: string }> = {
   book:   { slug: "books",  label: "Islamic Books", Icon: BookOpen,  color: "#cc785c", description: "Quran, tafsir, fiqh, history & duas" },
@@ -40,9 +37,9 @@ const FALLBACK_MAIN = `${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`;
 export default async function HomePage() {
   const [featured, banners, categoryCounts, activePopup] = await Promise.all([
     getFeaturedProducts(8).catch(() => []),
-    db.banner.findMany({ where: { active: true }, orderBy: { position: "asc" } }).catch(() => []),
-    db.product.groupBy({ by: ["type"], _count: { id: true } }).catch(() => []),
-    db.popup.findFirst({ where: { active: true }, orderBy: { createdAt: "desc" } }).catch(() => null),
+    getBanners().catch(() => []),
+    getCategoryCounts().catch(() => []),
+    getActivePopup().catch(() => null),
   ]);
 
   const countMap = Object.fromEntries(categoryCounts.map(r => [r.type, r._count.id]));
@@ -248,7 +245,7 @@ export default async function HomePage() {
                 </Link>
               </div>
               <div className="min-h-[280px] lg:min-h-0" style={{ background: "rgba(169,88,62,0.2)" }}>
-                <ScrollBook />
+                <ScrollBookLazy />
               </div>
             </div>
           </div>

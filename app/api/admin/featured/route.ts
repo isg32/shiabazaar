@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -31,5 +32,7 @@ export async function POST(request: Request) {
     update: {},
     include: { product: { select: { id: true, title: true, type: true, price: true } } },
   });
+    revalidateTag("products", "max");
+  revalidateTag("homepage", "max");
   return NextResponse.json({ item }, { status: 201 });
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProducts, getProductsByCategorySlug } from "@/lib/queries";
+import { getProducts, getProductsByCategoryId } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import { db } from "@/lib/db";
 import type { Metadata } from "next";
@@ -14,8 +14,6 @@ const TYPE_SLUGS: Record<string, { label: string; type: string }> = {
   "gents":        { label: "Gents",           type: "gents" },
   "other-products": { label: "Other Products", type: "ladies" }, // ponytail: shows ladies+gents combined below
 };
-
-export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -85,7 +83,7 @@ export default async function CategoryPage({ params }: Props) {
   const cat = await db.category.findUnique({ where: { slug } });
   if (!cat) notFound();
 
-  const products = await getProductsByCategorySlug(slug) ?? [];
+  const products = await getProductsByCategoryId(cat.id);
   return (
     <CollectionView
       label={cat.name}

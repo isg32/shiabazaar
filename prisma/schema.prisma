@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ── Enums ───────────────────────────────────────────
@@ -114,6 +115,10 @@ model Product {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  @@index([type])
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([inStock])
   @@map("products")
 }
 
@@ -174,6 +179,7 @@ model Order {
   items          OrderItem[]
   returnRequests ReturnRequest[]
 
+  @@index([userId])
   @@map("orders")
 }
 
@@ -244,6 +250,7 @@ model Review {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([userId, productId]) // one review per user per product
+  @@index([productId])
   @@map("reviews")
 }
 

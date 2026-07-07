@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
 
@@ -12,6 +13,7 @@ export async function PATCH(
   const { id } = await params;
   const data = await request.json();
   const category = await db.category.update({ where: { id }, data });
+  revalidateTag("products", "max");
   return NextResponse.json({ category });
 }
 
@@ -23,8 +25,8 @@ export async function DELETE(
   if (guard) return guard.error;
 
   const { id } = await params;
-  // Unlink products before deleting
   await db.product.updateMany({ where: { categoryId: id }, data: { categoryId: null } });
   await db.category.delete({ where: { id } });
+  revalidateTag("products", "max");
   return NextResponse.json({ deleted: true });
 }

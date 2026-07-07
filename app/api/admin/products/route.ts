@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-guard";
 
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     },
     include: { images: true, variants: true },
   });
+  revalidateTag("products", "max");
   return NextResponse.json({ product }, { status: 201 });
 }
 
@@ -49,5 +51,6 @@ export async function DELETE(req: NextRequest) {
 
   const { ids } = await req.json();
   await db.product.deleteMany({ where: { id: { in: ids } } });
+  revalidateTag("products", "max");
   return NextResponse.json({ deleted: ids.length });
 }

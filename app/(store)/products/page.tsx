@@ -3,7 +3,6 @@ import { CollectionView } from "@/components/shared/CollectionView";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "All Products" };
-export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   const products = await getProducts({ limit: 200 });

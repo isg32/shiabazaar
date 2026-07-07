@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-guard";
 import { db } from "@/lib/db";
 
@@ -24,5 +25,6 @@ export async function POST(request: Request) {
   const category = await db.category.create({
     data: { name, slug, group, position: position ?? 0 },
   });
+  revalidateTag("products", "max");
   return NextResponse.json({ category });
 }

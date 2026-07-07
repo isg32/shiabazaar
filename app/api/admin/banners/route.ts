@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -31,5 +32,6 @@ export async function POST(request: Request) {
       position: position ?? count,
     },
   });
+    revalidateTag("homepage", "max");
   return NextResponse.json({ banner }, { status: 201 });
 }
