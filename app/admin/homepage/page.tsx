@@ -7,6 +7,7 @@ import Image from "next/image";
 type Banner   = { id: string; position: number; title: string; subtitle: string | null; ctaLabel: string; ctaUrl: string; imageUrl: string | null; cloudinaryId: string | null; active: boolean };
 type Popup    = { id: string; title: string; code: string | null; trigger: string; delayMs: number; active: boolean };
 type Featured = { id: string; pinned: boolean; product: { id: string; title: string; type: string; price: number } };
+type PopularBook = { id: string; product: { id: string; title: string; author: string | null; publisher: string | null; price: number } };
 type ProductOption = { id: string; title: string; type: string };
 
 const BLANK_POPUP = { title: "", code: "", trigger: "page_load", delayMs: 3000 };
@@ -21,9 +22,11 @@ const HERO_SLOTS = [
 export default function AdminHomepage() {
   const [banners,   setBanners]   = useState<Banner[]>([]);
   const [featured,  setFeatured]  = useState<Featured[]>([]);
+  const [popular,   setPopular]   = useState<PopularBook[]>([]);
   const [popups,    setPopups]    = useState<Popup[]>([]);
   const [products,  setProducts]  = useState<ProductOption[]>([]);
   const [loading,   setLoading]   = useState(true);
+  const [addPopularId, setAddPopularId] = useState("");
 
   const [uploading,      setUploading]      = useState<Record<number, boolean>>({});
   const [savingSlot,     setSavingSlot]     = useState<number | null>(null);
@@ -44,12 +47,14 @@ export default function AdminHomepage() {
     Promise.all([
       fetch("/api/admin/banners").then(r => r.json()),
       fetch("/api/admin/featured").then(r => r.json()),
+      fetch("/api/admin/popular-books").then(r => r.json()),
       fetch("/api/admin/popups").then(r => r.json()),
       fetch("/api/admin/products").then(r => r.json()),
-    ]).then(([b, f, p, pr]) => {
+    ]).then(([b, f, pop, p, pr]) => {
       const loadedBanners: Banner[] = b.banners ?? [];
       setBanners(loadedBanners);
       setFeatured(f.featured ?? []);
+      setPopular(pop.popular ?? []);
       setPopups(p.popups ?? []);
       setProducts((pr.products ?? []).map((p: { id: string; title: string; type: string }) => ({ id: p.id, title: p.title, type: p.type })));
       // pre-populate text forms from DB for all 4 slots
@@ -172,6 +177,20 @@ export default function AdminHomepage() {
     if (d.item) setFeatured(prev => [...prev.filter(f => f.product.id !== addFeaturedId), d.item]);
     setAddFeaturedId("");
     setSaving(false);
+  }
+
+  async function addPopularBook() {
+    if (!addPopularId) return;
+    setSaving(true);
+    const res = await fetch("/api/admin/popular-books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: addPopularId }) });
+    const d = await res.json();
+    if (d.item) setPopular(prev => [...prev.filter(p => p.product.id !== addPopularId), d.item]);
+    setAddPopularId("");
+    setSaving(false);
+  }
+  async function removePopularBook(id: string) {
+    await fetch(`/api/admin/popular-books/${id}`, { method: "DELETE" });
+    setPopular(prev => prev.filter(p => p.id !== id));
   }
 
   async function togglePopup(id: string, active: boolean) {
@@ -325,6 +344,67 @@ export default function AdminHomepage() {
                   </td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => removeFeatured(f.id)}
+                      className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
+                      <X size={13} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── Popular Books ── */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-medium text-on-dark">Popular Books</h2>
+            <p className="text-xs text-on-dark-soft mt-0.5">Shown on the homepage above Featured Products.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={addPopularId}
+              onChange={e => setAddPopularId(e.target.value)}
+              className="h-8 px-2 text-xs bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary"
+            >
+              <option value="">Select a book…</option>
+              {products
+                .filter(p => p.type === "book" && !popular.some(pb => pb.product.id === p.id))
+                .map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </select>
+            <button onClick={addPopularBook} disabled={!addPopularId || saving}
+              className="h-8 px-3 text-xs bg-primary text-white rounded-md flex items-center gap-1.5 hover:bg-primary-active transition-colors disabled:opacity-60">
+              <Plus size={12} /> Add
+            </button>
+          </div>
+        </div>
+        <div className="bg-surface-dark-elevated border border-white/8 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/8">
+                {["Title", "Author", "Publication", "Price", ""].map((h, i) => (
+                  <th key={i} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {popular.length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-8 text-center text-sm text-on-dark-soft">No popular books selected yet.</td></tr>
+              ) : popular.map((pb, i) => (
+                <tr key={pb.id} className={`hover:bg-white/3 transition-colors ${i < popular.length - 1 ? "border-b border-white/8" : ""}`}>
+                  <td className="px-5 py-3.5 text-on-dark font-medium max-w-[200px] truncate">{pb.product.title}</td>
+                  <td className="px-5 py-3.5 text-on-dark-soft text-xs">{pb.product.author ?? "—"}</td>
+                  <td className="px-5 py-3.5">
+                    {pb.product.publisher ? (
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${pb.product.publisher === "Tazeem Publication" ? "bg-primary/15 text-primary" : "bg-white/5 text-on-dark-soft"}`}>
+                        {pb.product.publisher === "Tazeem Publication" ? "Tazeem" : "Other"}
+                      </span>
+                    ) : <span className="text-on-dark-soft/40 text-xs">—</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-on-dark font-mono text-xs">₹{(pb.product.price / 100).toFixed(0)}</td>
+                  <td className="px-5 py-3.5">
+                    <button onClick={() => removePopularBook(pb.id)}
                       className="w-7 h-7 flex items-center justify-center rounded text-on-dark-soft hover:text-error hover:bg-error/10 transition-colors">
                       <X size={13} />
                     </button>

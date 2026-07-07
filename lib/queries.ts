@@ -93,6 +93,19 @@ export const getFeaturedProducts = unstable_cache(
   { tags: ["products", "homepage"] }
 );
 
+export const getPopularBooks = unstable_cache(
+  async (limit = 12): Promise<ProductUI[]> => {
+    const rows = await db.homepagePopularBook.findMany({
+      orderBy: { position: "asc" },
+      take: limit,
+      include: { product: { include } },
+    });
+    return rows.map((r) => toUI(r.product as DBProductFull));
+  },
+  ["popular-books"],
+  { tags: ["homepage"] }
+);
+
 // ponytail: React.cache deduplicates within a request (generateMetadata + page both call this)
 export const getProductBySlug = cache(
   unstable_cache(

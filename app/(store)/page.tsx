@@ -3,7 +3,7 @@ import Image from "next/image";
 import { ArrowRight, BookOpen, Gift, Sparkles, Crown } from "lucide-react";
 import type { ElementType } from "react";
 import { FadeIn } from "@/components/shared/FadeIn";
-import { getFeaturedProducts, getBanners, getCategoryCounts, getActivePopup } from "@/lib/queries";
+import { getFeaturedProducts, getPopularBooks, getBanners, getCategoryCounts, getActivePopup } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { HomepagePopup } from "@/components/shared/HomepagePopup";
 import { HomepageNavbar } from "@/components/layout/Navbar";
@@ -35,8 +35,9 @@ const W = "https://shiabazaar.com/wp-content/uploads";
 const FALLBACK_MAIN = `${W}/2026/05/file_00000000ab6c7208899e7d70e3e33471.png`;
 
 export default async function HomePage() {
-  const [featured, banners, categoryCounts, activePopup] = await Promise.all([
+  const [featured, popularBooks, banners, categoryCounts, activePopup] = await Promise.all([
     getFeaturedProducts(8).catch(() => []),
+    getPopularBooks(12).catch(() => []),
     getBanners().catch(() => []),
     getCategoryCounts().catch(() => []),
     getActivePopup().catch(() => null),
@@ -209,6 +210,30 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <div className="geometric-divider" />
+
+      {/* ── Popular Books ────────────────────────── */}
+      {popularBooks.length > 0 && (
+        <section className="max-w-[1200px] mx-auto px-6 py-section">
+          <FadeIn className="flex items-end justify-between mb-8">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[1.5px] text-primary mb-2">Curated Selection</p>
+              <h2 className="display-sm text-ink">Popular Books</h2>
+            </div>
+            <Link href="/products?type=book" className="text-sm font-medium text-primary hover:text-primary-active flex items-center gap-1 whitespace-nowrap">
+              All books <ArrowRight size={14} />
+            </Link>
+          </FadeIn>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {popularBooks.map((product, i) => (
+              <FadeIn key={product.id} delay={i * 60}>
+                <ProductCard product={product} />
+              </FadeIn>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="geometric-divider" />
 
