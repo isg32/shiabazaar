@@ -147,7 +147,7 @@ export default function AdminInventory() {
                     <button
                       onClick={() => toggleInStock(p.id, p.inStock)}
                       disabled={toggling === p.id}
-                      className={`w-10 h-5 rounded-full transition-colors relative ${p.inStock ? "bg-success" : "bg-white/15"} disabled:opacity-60`}
+                      className={`w-10 h-5 rounded-full transition-colors relative ${p.inStock ? "bg-primary" : "bg-white/15"} disabled:opacity-60`}
                     >
                       <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${p.inStock ? "left-[22px]" : "left-0.5"}`} />
                     </button>

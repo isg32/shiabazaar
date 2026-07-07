@@ -248,7 +248,7 @@ export default function NewProductPage() {
               <button
                 type="button"
                 onClick={() => set("inStock", !form.inStock)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${form.inStock ? "bg-success" : "bg-white/20"}`}
+                className={`relative w-10 h-6 rounded-full transition-colors ${form.inStock ? "bg-primary" : "bg-white/20"}`}
               >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-4" : "translate-x-0.5"}`} />
               </button>

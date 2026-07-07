@@ -65,7 +65,7 @@ function CategoryRow({ cat, onUpdate, onDelete }: {
       <button
         onClick={toggleActive}
         disabled={saving}
-        className={`shrink-0 w-9 h-5 rounded-full relative transition-colors disabled:opacity-50 ${cat.active ? "bg-success" : "bg-on-dark-soft/30"}`}
+        className={`shrink-0 w-9 h-5 rounded-full relative transition-colors disabled:opacity-50 ${cat.active ? "bg-primary" : "bg-on-dark-soft/30"}`}
         aria-label={cat.active ? "Deactivate" : "Activate"}
       >
         <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-4" : "translate-x-0.5"}`} />
