@@ -114,9 +114,13 @@ export default function EditBookPage({
           .then((r) => r.json())
           .then(({ popular: list }) => {
             const entry = (list ?? []).find(
-              (p: { product: { id: string }; id: string }) => p.product.id === id,
+              (p: { product: { id: string }; id: string }) =>
+                p.product.id === id,
             );
-            if (entry) { setPopular(true); setPopularRecordId(entry.id); }
+            if (entry) {
+              setPopular(true);
+              setPopularRecordId(entry.id);
+            }
           })
           .catch(() => {})
           .finally(() => setLoading(false));
@@ -133,7 +137,9 @@ export default function EditBookPage({
 
   async function togglePopular() {
     if (popular && popularRecordId) {
-      await fetch(`/api/admin/popular-books/${popularRecordId}`, { method: "DELETE" });
+      await fetch(`/api/admin/popular-books/${popularRecordId}`, {
+        method: "DELETE",
+      });
       setPopular(false);
       setPopularRecordId(null);
     } else {
@@ -412,7 +418,7 @@ export default function EditBookPage({
                 className={`relative w-9 h-5 rounded-full transition-colors ${popular ? "bg-accent-amber" : "bg-on-dark-soft/30"}`}
               >
                 <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-4" : "translate-x-0.5"}`}
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-4" : "-translate-x-0.4"}`}
                 />
               </button>
               <label className="text-sm text-on-dark">Popular Book</label>
