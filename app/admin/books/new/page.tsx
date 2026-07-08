@@ -315,7 +315,7 @@ export default function NewBookPage() {
                 className={`relative w-9 h-5 rounded-full transition-colors ${popular ? "bg-accent-amber" : "bg-on-dark-soft/30"}`}
               >
                 <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-4" : "-translate-x-0.4"}`}
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-0.4" : "-translate-x-4"}`}
                 />
               </button>
               <label className="text-sm text-on-dark">Popular Book</label>
