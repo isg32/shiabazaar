@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Papa from "papaparse";
-import { Upload, AlertCircle, CheckCircle2, Download } from "lucide-react";
+import { Upload, AlertCircle, CheckCircle2, Download, FileDown } from "lucide-react";
 
 const REQUIRED = ["title", "type", "price"] as const;
 const COLUMNS = [
@@ -19,6 +19,7 @@ const EXAMPLE_CSV = [
 ].join("\n");
 
 type Row = Record<string, string>;
+type DuplicateMode = "skip" | "update";
 
 function rowErrors(row: Row): string[] {
   const errs: string[] = [];
@@ -43,11 +44,15 @@ export default function ImportPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [skipErrors, setSkipErrors] = useState(true);
+  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
   const [progress, setProgress] = useState(0);
   const [total, setTotal] = useState(0);
-  const [result, setResult] = useState<{ created: number; errors: { row: number; title: string; error: string }[] } | null>(null);
+  const [result, setResult] = useState<{
+    created: number;
+    updated: number;
+    errors: { row: number; title: string; error: string }[];
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const dragRef = useRef<HTMLDivElement>(null);
 
   const parseFile = useCallback((file: File) => {
     Papa.parse<Row>(file, {
@@ -78,6 +83,7 @@ export default function ImportPage() {
 
     const BATCH = 50;
     let allCreated = 0;
+    let allUpdated = 0;
     const allErrors: { row: number; title: string; error: string }[] = [];
 
     for (let i = 0; i < rowsToImport.length; i += BATCH) {
@@ -85,30 +91,40 @@ export default function ImportPage() {
       const res = await fetch("/api/admin/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: batch }),
+        body: JSON.stringify({ rows: batch, on_duplicate: duplicateMode }),
       });
       const data = await res.json();
       allCreated += data.created ?? 0;
+      allUpdated += data.updated ?? 0;
       for (const err of data.errors ?? []) {
         allErrors.push({ ...err, row: err.row + i });
       }
       setProgress(Math.min(i + BATCH, rowsToImport.length));
     }
 
-    setResult({ created: allCreated, errors: allErrors });
+    setResult({ created: allCreated, updated: allUpdated, errors: allErrors });
   }
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-on-dark">Bulk Import Products</h1>
-        <button
-          onClick={downloadTemplate}
-          className="flex items-center gap-2 px-4 py-2 text-sm border border-hairline rounded-md text-on-dark-soft hover:text-on-dark transition-colors"
-        >
-          <Download size={14} />
-          Download Template
-        </button>
+        <h1 className="text-2xl font-semibold text-on-dark">Import / Export</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-hairline rounded-md text-on-dark-soft hover:text-on-dark transition-colors"
+          >
+            <Download size={14} />
+            Template
+          </button>
+          <a
+            href="/api/admin/products/export"
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-hairline rounded-md text-on-dark-soft hover:text-on-dark transition-colors"
+          >
+            <FileDown size={14} />
+            Export CSV
+          </a>
+        </div>
       </div>
 
       {/* Steps */}
@@ -130,7 +146,6 @@ export default function ImportPage() {
       {/* Step 1: Upload */}
       {step === 1 && (
         <div
-          ref={dragRef}
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileRef.current?.click()}
@@ -152,14 +167,16 @@ export default function ImportPage() {
       {/* Step 2: Preview */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
             <span className="text-on-dark">{rows.length} rows parsed</span>
+
             {badRows.length > 0 && (
               <span className="text-error flex items-center gap-1">
                 <AlertCircle size={14} />
                 {badRows.length} rows have errors
               </span>
             )}
+
             {badRows.length > 0 && (
               <label className="flex items-center gap-2 text-on-dark-soft cursor-pointer">
                 <input
@@ -171,6 +188,26 @@ export default function ImportPage() {
                 Skip errored rows
               </label>
             )}
+
+            {/* Duplicate mode */}
+            <div className="flex items-center gap-2 text-on-dark-soft ml-auto">
+              <span className="text-xs">If slug exists:</span>
+              <div className="flex rounded-md overflow-hidden border border-hairline text-xs">
+                {(["skip", "update"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setDuplicateMode(mode)}
+                    className={`px-3 py-1 font-medium capitalize transition-colors ${
+                      duplicateMode === mode
+                        ? "bg-primary text-white"
+                        : "text-on-dark-soft hover:text-on-dark"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Preview table */}
@@ -245,7 +282,10 @@ export default function ImportPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 size={24} className="text-success shrink-0" />
                 <div>
-                  <p className="text-on-dark font-medium">{result.created} products imported successfully</p>
+                  <p className="text-on-dark font-medium">
+                    {result.created} created
+                    {result.updated > 0 && `, ${result.updated} updated`}
+                  </p>
                   {result.errors.length > 0 && (
                     <p className="text-sm text-error mt-0.5">{result.errors.length} rows failed</p>
                   )}

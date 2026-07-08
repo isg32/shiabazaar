@@ -8,19 +8,49 @@ import {
 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 
-const nav = [
-  { href: "/admin",           label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/admin/books",      label: "Books",      Icon: BookOpen    },
-  { href: "/admin/products",   label: "Products",   Icon: Package     },
-  { href: "/admin/categories", label: "Categories", Icon: FolderOpen  },
-  { href: "/admin/orders",    label: "Orders",    Icon: ShoppingBag     },
-  { href: "/admin/returns",   label: "Returns",   Icon: RotateCcw       },
-  { href: "/admin/inventory", label: "Inventory", Icon: Warehouse       },
-  { href: "/admin/coupons",   label: "Coupons",   Icon: Tag             },
-  { href: "/admin/users",     label: "Users",     Icon: Users           },
-  { href: "/admin/homepage",  label: "Homepage",  Icon: Home            },
-  { href: "/admin/images",    label: "Images",    Icon: Image           },
-  { href: "/admin/import",    label: "Import",    Icon: Upload          },
+const groups = [
+  {
+    label: null,
+    items: [
+      { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Catalog",
+    items: [
+      { href: "/admin/books",      label: "Books",      Icon: BookOpen   },
+      { href: "/admin/products",   label: "Products",   Icon: Package    },
+      { href: "/admin/categories", label: "Categories", Icon: FolderOpen },
+      { href: "/admin/inventory",  label: "Inventory",  Icon: Warehouse  },
+    ],
+  },
+  {
+    label: "Commerce",
+    items: [
+      { href: "/admin/orders",  label: "Orders",  Icon: ShoppingBag },
+      { href: "/admin/returns", label: "Returns", Icon: RotateCcw   },
+      { href: "/admin/coupons", label: "Coupons", Icon: Tag         },
+    ],
+  },
+  {
+    label: "Users",
+    items: [
+      { href: "/admin/users", label: "Users", Icon: Users },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/homepage", label: "Homepage", Icon: Home  },
+      { href: "/admin/images",   label: "Images",   Icon: Image },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { href: "/admin/import", label: "Import / Export", Icon: Upload },
+    ],
+  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -58,24 +88,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-          {nav.map(({ href, label, Icon }) => {
-            const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-primary/15 text-primary"
-                    : "text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated"
-                }`}
-              >
-                <Icon size={15} />
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-4 overflow-y-auto">
+          {groups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <p className="px-3 mb-1 text-[10px] font-semibold tracking-[0.18em] uppercase text-on-dark-soft/50">
+                  {group.label}
+                </p>
+              )}
+              <div className="flex flex-col gap-0.5">
+                {group.items.map(({ href, label, Icon }) => {
+                  const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-primary/15 text-primary"
+                          : "text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated"
+                      }`}
+                    >
+                      <Icon size={15} />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Sign out */}
