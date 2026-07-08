@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Warehouse,
-  Tag, Users, Image, Home, LogOut, RotateCcw, FolderOpen, BookOpen,
+  Tag, Users, Image, Home, LogOut, RotateCcw, FolderOpen, BookOpen, Upload,
 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 
@@ -20,6 +20,7 @@ const nav = [
   { href: "/admin/users",     label: "Users",     Icon: Users           },
   { href: "/admin/homepage",  label: "Homepage",  Icon: Home            },
   { href: "/admin/images",    label: "Images",    Icon: Image           },
+  { href: "/admin/import",    label: "Import",    Icon: Upload          },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
