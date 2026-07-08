@@ -64,6 +64,8 @@ export default function EditBookPage({
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const [newCatName, setNewCatName] = useState("");
   const [creatingCat, setCreatingCat] = useState(false);
+  const [popular, setPopular] = useState(false);
+  const [popularRecordId, setPopularRecordId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -107,7 +109,17 @@ export default function EditBookPage({
           categoryId: product.categoryId ?? "",
         });
         setExistingImages(product.images ?? []);
-        setLoading(false);
+        // Check popular status in parallel
+        fetch("/api/admin/popular-books")
+          .then((r) => r.json())
+          .then(({ popular: list }) => {
+            const entry = (list ?? []).find(
+              (p: { product: { id: string }; id: string }) => p.product.id === id,
+            );
+            if (entry) { setPopular(true); setPopularRecordId(entry.id); }
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
       })
       .catch(() => {
         setError("Failed to load book.");
@@ -117,6 +129,22 @@ export default function EditBookPage({
 
   function set(k: string, v: string | boolean) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function togglePopular() {
+    if (popular && popularRecordId) {
+      await fetch(`/api/admin/popular-books/${popularRecordId}`, { method: "DELETE" });
+      setPopular(false);
+      setPopularRecordId(null);
+    } else {
+      const res = await fetch("/api/admin/popular-books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id }),
+      }).then((r) => r.json());
+      setPopular(true);
+      setPopularRecordId(res.item?.id ?? null);
+    }
   }
 
   function addFiles(files: FileList | null) {
@@ -376,6 +404,18 @@ export default function EditBookPage({
                 />
               </button>
               <label className="text-sm text-on-dark">In Stock</label>
+            </div>
+            <div className="flex items-center gap-3 pt-5">
+              <button
+                type="button"
+                onClick={togglePopular}
+                className={`relative w-9 h-5 rounded-full transition-colors ${popular ? "bg-accent-amber" : "bg-on-dark-soft/30"}`}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-4" : "translate-x-0.5"}`}
+                />
+              </button>
+              <label className="text-sm text-on-dark">Popular Book</label>
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Or create new category</label>

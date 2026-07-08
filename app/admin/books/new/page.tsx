@@ -45,6 +45,7 @@ export default function NewBookPage() {
   const [previews, setPreviews] = useState<ImgPreview[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [popular, setPopular] = useState(false);
   const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
   const [newCatName, setNewCatName] = useState("");
   const [creatingCat, setCreatingCat] = useState(false);
@@ -186,6 +187,13 @@ export default function NewBookPage() {
           body: JSON.stringify({ url, cloudinaryId, isCover: p.isCover }),
         });
       }
+      if (popular) {
+        await fetch("/api/admin/popular-books", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: product.id }),
+        });
+      }
       router.push("/admin/books");
     } catch {
       setError("Something went wrong.");
@@ -299,6 +307,18 @@ export default function NewBookPage() {
                 />
               </button>
               <label className="text-sm text-on-dark">In Stock</label>
+            </div>
+            <div className="flex items-center gap-3 pt-5">
+              <button
+                type="button"
+                onClick={() => setPopular((p) => !p)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${popular ? "bg-accent-amber" : "bg-on-dark-soft/30"}`}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${popular ? "translate-x-4" : "translate-x-0.5"}`}
+                />
+              </button>
+              <label className="text-sm text-on-dark">Popular Book</label>
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Or create new category</label>
