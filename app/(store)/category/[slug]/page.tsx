@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { getProducts, getProductsByCategoryId } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import { db } from "@/lib/db";
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryPage({ params }: Props) {
+  noStore();
   const { slug } = await params;
 
   // Tazeem Publication: books where publisher contains "tazeem"
