@@ -47,7 +47,7 @@ export function toUI(p: DBProductFull): ProductUI {
     author: p.author ?? undefined,
     price: p.price / 100,
     originalPrice: p.originalPrice ? p.originalPrice / 100 : undefined,
-    coverImage: cover?.url ?? "/placeholder-book.jpg",
+    coverImage: cover?.url ?? "/placeholder-book.svg",
     images: sorted.filter((i) => !i.isCover).map((i) => i.url),
     badge: p.badge ?? undefined,
     inStock: p.inStock,

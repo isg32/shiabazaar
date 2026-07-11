@@ -57,16 +57,11 @@ const catMeta: Record<
 };
 
 const trustSignals = [
-  { icon: "🚚", title: "Free Shipping", description: "On orders above ₹500" },
+  { icon: "🚚", title: "Free Shipping", description: "On orders above ₹2,500" },
   {
     icon: "🔒",
     title: "Secure Payments",
     description: "Razorpay protected checkout",
-  },
-  {
-    icon: "↩️",
-    title: "Easy Returns",
-    description: "7-day hassle-free returns",
   },
   {
     icon: "📦",

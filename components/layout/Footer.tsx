@@ -17,7 +17,6 @@ const footerLinks = {
   ],
   Info: [
     { label: "Contact", href: "/contact" },
-    { label: "Returns", href: "/returns" },
     { label: "Track Order", href: "/account/orders" },
   ],
   Legal: [

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
+  <rect width="400" height="500" fill="#efe9de"/>
+  <rect x="1" y="1" width="398" height="498" fill="none" stroke="#e6dfd8" stroke-width="1"/>
+  <rect x="160" y="170" width="80" height="80" rx="4" fill="none" stroke="#8e8b82" stroke-width="1.5"/>
+  <line x1="160" y1="170" x2="240" y2="250" stroke="#8e8b82" stroke-width="1.5"/>
+  <line x1="240" y1="170" x2="160" y2="250" stroke="#8e8b82" stroke-width="1.5"/>
+  <circle cx="185" cy="192" r="8" fill="#8e8b82" opacity="0.4"/>
+  <text x="200" y="295" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#8e8b82" text-anchor="middle">Product Image</text>
+  <text x="200" y="315" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#8e8b82" text-anchor="middle">Not Available</text>
+</svg>
