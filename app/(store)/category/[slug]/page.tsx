@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { getProducts, getProductsByCategoryId } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
