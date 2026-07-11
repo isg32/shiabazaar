@@ -196,20 +196,26 @@ export default function AdminProducts() {
           </tbody>
         </table>
         )}
-        <div className="px-5 py-3 border-t border-white/8 flex items-center justify-between">
-          <span className="text-xs text-on-dark-soft">
-            Showing {filtered.length === 0 ? 0 : (page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
+        <div className="px-5 py-3 border-t border-white/8 flex items-center justify-between gap-4">
+          <span className="text-xs text-on-dark-soft shrink-0">
+            {filtered.length === 0 ? "0 products" : `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, filtered.length)} of ${filtered.length}`}
           </span>
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`w-7 h-7 text-xs rounded transition-colors ${page === i + 1 ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
-              >
-                {i + 1}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="h-7 px-3 text-xs rounded text-on-dark-soft hover:text-on-dark disabled:opacity-30 transition-colors"
+            >
+              ← Prev
+            </button>
+            <span className="text-xs text-on-dark-soft">Page {page} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="h-7 px-3 text-xs rounded text-on-dark-soft hover:text-on-dark disabled:opacity-30 transition-colors"
+            >
+              Next →
+            </button>
           </div>
         </div>
       </div>
