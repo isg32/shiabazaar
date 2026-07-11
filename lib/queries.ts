@@ -36,7 +36,7 @@ export interface ProductUI {
   categoryName?: string;
 }
 
-function toUI(p: DBProductFull): ProductUI {
+export function toUI(p: DBProductFull): ProductUI {
   const sorted = [...p.images].sort((a, b) => a.position - b.position);
   const cover = sorted.find((i) => i.isCover) ?? sorted[0];
   return {
@@ -72,7 +72,7 @@ function toUI(p: DBProductFull): ProductUI {
   };
 }
 
-const include = { images: true, variants: true, category: true } as const;
+export const include = { images: true, variants: true, category: true } as const;
 
 export const getFeaturedProducts = unstable_cache(
   async (limit = 8): Promise<ProductUI[]> => {

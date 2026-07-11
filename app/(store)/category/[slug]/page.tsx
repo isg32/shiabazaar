@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { unstable_noStore as noStore } from "next/cache";
-import { getProducts, getProductsByCategoryId } from "@/lib/queries";
+import { getProducts, getProductsByCategoryId, toUI, include } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import { db } from "@/lib/db";
 import type { Metadata } from "next";
@@ -28,29 +27,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryPage({ params }: Props) {
-  noStore();
   const { slug } = await params;
 
-  // Tazeem Publication: books where publisher contains "tazeem"
+  // Tazeem Publication — direct DB query, bypasses unstable_cache
   if (slug === "tazeem-publication") {
-    const products = await getProducts({ type: "book", publisherContains: "tazeem", limit: 200 });
+    const rows = await db.product.findMany({
+      where: { type: "book", publisher: "Tazeem Publication" },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      include,
+    });
     return (
       <CollectionView
         label="Tazeem Publication"
         crumbs={[{ label: "Home", href: "/" }, { label: "Tazeem Publication" }]}
-        products={products}
+        products={rows.map(toUI)}
       />
     );
   }
 
-  // Other Publications: books where publisher does NOT contain "tazeem"
+  // Other Publications — direct DB query, bypasses unstable_cache
   if (slug === "other-publications") {
-    const products = await getProducts({ type: "book", publisherNotContains: "tazeem", limit: 200 });
+    const rows = await db.product.findMany({
+      where: { type: "book", NOT: { publisher: "Tazeem Publication" } },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      include,
+    });
     return (
       <CollectionView
         label="Other Publications"
         crumbs={[{ label: "Home", href: "/" }, { label: "Other Publications" }]}
-        products={products}
+        products={rows.map(toUI)}
       />
     );
   }
