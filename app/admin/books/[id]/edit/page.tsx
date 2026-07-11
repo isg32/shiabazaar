@@ -99,7 +99,7 @@ export default function EditBookPage({
           badge: product.badge ?? "",
           author: product.author ?? "",
           isbn: product.isbn ?? "",
-          publisher: product.publisher ?? "",
+          publisher: product.publisher === "Tazeem Publication" ? "Tazeem Publication" : product.publisher ? "Other Publications" : "",
           language: product.language ?? "",
           genre: product.genre ?? "",
           pageCount: product.pageCount ? String(product.pageCount) : "",
