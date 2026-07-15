@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Warehouse,
-  Tag, Users, Image, Home, LogOut, RotateCcw, FolderOpen, BookOpen, Upload,
+  Tag, Users, Image, Home, LogOut, RotateCcw, FolderOpen, BookOpen, Upload, Truck,
 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 
@@ -27,9 +27,10 @@ const groups = [
   {
     label: "Commerce",
     items: [
-      { href: "/admin/orders",  label: "Orders",  Icon: ShoppingBag },
-      { href: "/admin/returns", label: "Returns", Icon: RotateCcw   },
-      { href: "/admin/coupons", label: "Coupons", Icon: Tag         },
+      { href: "/admin/orders",   label: "Orders",   Icon: ShoppingBag },
+      { href: "/admin/returns",  label: "Returns",  Icon: RotateCcw   },
+      { href: "/admin/coupons",  label: "Coupons",  Icon: Tag         },
+      { href: "/admin/shipping", label: "Shipping", Icon: Truck       },
     ],
   },
   {

@@ -1,17 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, CheckCircle2 } from "lucide-react";
+import { MapPin, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+
+type Result =
+  | { ok: true; zone: string; label: string; price: number; district: string; state: string }
+  | { ok: false; error: string };
 
 export function PincodeChecker() {
   const [value, setValue] = useState("");
-  const [status, setStatus] = useState<"idle" | "ok" | "invalid">("idle");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<Result | null>(null);
 
-  function check() {
-    if (/^[1-9]\d{5}$/.test(value.trim())) {
-      setStatus("ok");
-    } else {
-      setStatus("invalid");
+  async function check() {
+    const pin = value.trim();
+    if (!/^[1-9]\d{5}$/.test(pin)) {
+      setResult({ ok: false, error: "Please enter a valid 6-digit pincode." });
+      return;
+    }
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch(`/api/shipping/check?pincode=${pin}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setResult({ ok: false, error: data.error ?? "Could not check pincode." });
+      } else {
+        setResult({ ok: true, ...data });
+      }
+    } catch {
+      setResult({ ok: false, error: "Network error. Please try again." });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -24,7 +44,7 @@ export function PincodeChecker() {
       <div className="flex gap-2">
         <input
           value={value}
-          onChange={(e) => { setValue(e.target.value); setStatus("idle"); }}
+          onChange={(e) => { setValue(e.target.value); setResult(null); }}
           onKeyDown={(e) => e.key === "Enter" && check()}
           placeholder="Enter pincode…"
           maxLength={6}
@@ -33,18 +53,32 @@ export function PincodeChecker() {
         />
         <button
           onClick={check}
-          className="h-9 px-4 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-active transition-colors shrink-0"
+          disabled={loading}
+          className="h-9 px-4 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-active transition-colors shrink-0 disabled:opacity-60 flex items-center gap-1.5"
         >
+          {loading && <Loader2 size={12} className="animate-spin" />}
           Check
         </button>
       </div>
-      {status === "ok" && (
-        <p className="mt-2 text-xs text-success flex items-center gap-1.5">
-          <CheckCircle2 size={12} /> Delivery available to {value.trim()}
-        </p>
+      {result?.ok && (
+        <div className="mt-2 flex items-start gap-1.5">
+          <CheckCircle2 size={13} className="text-success mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs text-success font-medium">
+              Delivery available to {value.trim()}
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              {result.district}, {result.state} · Zone {result.zone} ·{" "}
+              {result.price === 0 ? "Free shipping" : `₹${result.price / 100} shipping`}
+            </p>
+          </div>
+        </div>
       )}
-      {status === "invalid" && (
-        <p className="mt-2 text-xs text-error">Please enter a valid 6-digit pincode.</p>
+      {result && !result.ok && (
+        <p className="mt-2 text-xs text-error flex items-center gap-1.5">
+          <AlertCircle size={12} />
+          {result.error}
+        </p>
       )}
     </div>
   );

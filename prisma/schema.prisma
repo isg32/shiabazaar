@@ -292,12 +292,10 @@ model ReturnRequest {
 // ── Shipping Zones ───────────────────────────────────
 
 model ShippingZone {
-  id           String @id @default(cuid())
-  label        String // e.g. "Metro", "Rest of India"
-  states       String[] // list of state codes
-  baseRate     Int    // paise
-  perKgRate    Int    // paise per kg
-  freeAbove    Int?   // free shipping threshold in paise
+  id    String @id @default(cuid())
+  zone  String @unique // "A" | "B" | "C" | "D"
+  label String         // display name
+  price Int            // flat shipping fee in paise; 0 = free
 
   @@map("shipping_zones")
 }
