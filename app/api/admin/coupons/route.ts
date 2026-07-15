@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       usageLimit: body.usageLimit ?? null,
       expiresAt:  body.expiresAt ? new Date(body.expiresAt) : null,
       active:     true,
+      autoApply:  body.autoApply ?? false,
     },
   });
   return NextResponse.json({ coupon }, { status: 201 });

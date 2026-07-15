@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Copy, Trash2, Check, Loader2 } from "lucide-react";
+import { Plus, Copy, Trash2, Check, Loader2, Zap, Save } from "lucide-react";
 
 interface Coupon {
   id: string;
   code: string;
   type: string;
-  value: number;       // percent or paise
-  minOrder: number;    // paise
+  value: number;
+  minOrder: number;
   usageCount: number;
   usageLimit?: number | null;
   expiresAt?: string | null;
   active: boolean;
+  autoApply: boolean;
 }
+
+const inputCls = "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
 
 function displayValue(c: Coupon) {
   return c.type === "percent" ? `${c.value}%` : `₹${(c.value / 100).toFixed(0)}`;
@@ -30,13 +33,91 @@ export default function AdminCoupons() {
   const [form, setForm] = useState({ code: "", type: "percent", value: "", minOrder: "", limit: "", expiry: "" });
   const [err,  setErr]  = useState("");
 
+  // Auto-apply coupon state
+  const [autoForm, setAutoForm] = useState({ code: "AUTO10", value: "100", minOrder: "1000" });
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [autoSaved,  setAutoSaved]  = useState(false);
+  const [autoEnabled, setAutoEnabled] = useState(false);
+
   useEffect(() => {
     fetch("/api/admin/coupons")
       .then(r => r.json())
-      .then(d => { setCoupons(d.coupons ?? []); setLoading(false); });
+      .then(d => {
+        const all: Coupon[] = d.coupons ?? [];
+        setCoupons(all);
+        setLoading(false);
+        const auto = all.find(c => c.autoApply);
+        if (auto) {
+          setAutoEnabled(auto.active);
+          setAutoForm({
+            code:     auto.code,
+            value:    String(auto.value / 100),
+            minOrder: String(auto.minOrder / 100),
+          });
+        }
+      });
   }, []);
 
-  const active = useMemo(() => coupons.filter(c => c.active).length, [coupons]);
+  const active = useMemo(() => coupons.filter(c => c.active && !c.autoApply).length, [coupons]);
+  const autoCoupon = useMemo(() => coupons.find(c => c.autoApply) ?? null, [coupons]);
+
+  async function saveAutoApply() {
+    const code = autoForm.code.trim().toUpperCase();
+    if (!code || !autoForm.value || !autoForm.minOrder) return;
+    setAutoSaving(true);
+
+    if (autoCoupon) {
+      // Update existing
+      await fetch(`/api/admin/coupons/${autoCoupon.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          value:    Math.round(parseFloat(autoForm.value) * 100),
+          minOrder: Math.round(parseFloat(autoForm.minOrder) * 100),
+          active:   autoEnabled,
+        }),
+      });
+      setCoupons(prev => prev.map(c =>
+        c.id === autoCoupon.id
+          ? { ...c, code, value: Math.round(parseFloat(autoForm.value) * 100), minOrder: Math.round(parseFloat(autoForm.minOrder) * 100), active: autoEnabled }
+          : c
+      ));
+    } else {
+      // Create new auto-apply coupon
+      const res = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          type:      "flat",
+          value:     parseFloat(autoForm.value),
+          minOrder:  parseFloat(autoForm.minOrder),
+          autoApply: true,
+          active:    autoEnabled,
+        }),
+      });
+      const d = await res.json();
+      setCoupons(prev => [d.coupon, ...prev]);
+    }
+
+    setAutoSaving(false);
+    setAutoSaved(true);
+    setTimeout(() => setAutoSaved(false), 2000);
+  }
+
+  async function toggleAutoEnabled() {
+    const next = !autoEnabled;
+    setAutoEnabled(next);
+    if (autoCoupon) {
+      await fetch(`/api/admin/coupons/${autoCoupon.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: next }),
+      });
+      setCoupons(prev => prev.map(c => c.id === autoCoupon.id ? { ...c, active: next } : c));
+    }
+  }
 
   async function handleSave() {
     const code = form.code.trim().toUpperCase();
@@ -78,24 +159,86 @@ export default function AdminCoupons() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-on-dark">Coupons</h1>
-          <p className="text-sm text-on-dark-soft mt-0.5">{active} active coupons</p>
+          <p className="text-sm text-on-dark-soft mt-0.5">{active} active manual coupons</p>
         </div>
       </div>
 
-      {/* Create form */}
+      {/* ── Auto-Apply Coupon ── */}
       <div className="bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-6">
-        <h2 className="text-sm font-medium text-on-dark mb-4">New Coupon</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Zap size={15} className="text-accent-amber" />
+            <h2 className="text-sm font-medium text-on-dark">Auto-Apply Coupon</h2>
+            <span className="text-[10px] font-medium uppercase tracking-[0.15em] px-2 py-0.5 rounded-full bg-accent-amber/15 text-accent-amber">
+              Auto
+            </span>
+          </div>
+          {/* Enable / disable toggle */}
+          <button
+            onClick={toggleAutoEnabled}
+            className={`relative w-10 h-5 rounded-full transition-colors ${autoEnabled ? "bg-primary" : "bg-white/15"}`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${autoEnabled ? "left-5.5" : "left-0.5"}`} />
+          </button>
+        </div>
+        <p className="text-xs text-on-dark-soft mb-4">
+          Automatically applied at checkout when the cart meets the minimum amount. No code entry required.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Coupon Code</label>
+            <input
+              value={autoForm.code}
+              onChange={e => setAutoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+              placeholder="AUTO10"
+              className={inputCls + " uppercase"}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Discount (₹ flat)</label>
+            <input
+              type="number" min="0"
+              value={autoForm.value}
+              onChange={e => setAutoForm(f => ({ ...f, value: e.target.value }))}
+              placeholder="100"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Min. Cart Amount (₹)</label>
+            <input
+              type="number" min="0"
+              value={autoForm.minOrder}
+              onChange={e => setAutoForm(f => ({ ...f, minOrder: e.target.value }))}
+              placeholder="1000"
+              className={inputCls}
+            />
+          </div>
+        </div>
+        <button
+          onClick={saveAutoApply}
+          disabled={autoSaving}
+          className="mt-4 flex items-center gap-2 h-9 px-5 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors disabled:opacity-60"
+        >
+          {autoSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+          {autoSaved ? "Saved!" : "Save"}
+        </button>
+      </div>
+
+      {/* ── Create manual coupon ── */}
+      <div className="bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-6">
+        <h2 className="text-sm font-medium text-on-dark mb-4">New Manual Coupon</h2>
         {err && <p className="text-xs text-error mb-3">{err}</p>}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Code</label>
             <input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="SUMMER25"
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary uppercase" />
+              className={inputCls + " uppercase"} />
           </div>
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Type</label>
             <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary">
+              className={inputCls}>
               <option value="percent">Percent</option>
               <option value="flat">Flat</option>
             </select>
@@ -103,22 +246,22 @@ export default function AdminCoupons() {
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Value ({form.type === "percent" ? "%" : "₹"})</label>
             <input type="number" min="0" value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} placeholder="10"
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary" />
+              className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Min. Order (₹)</label>
             <input type="number" min="0" value={form.minOrder} onChange={e => setForm(f => ({ ...f, minOrder: e.target.value }))} placeholder="500"
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary" />
+              className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Usage Limit</label>
             <input type="number" min="0" value={form.limit} onChange={e => setForm(f => ({ ...f, limit: e.target.value }))} placeholder="Unlimited"
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary" />
+              className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-on-dark-soft uppercase tracking-wide block mb-1.5">Expiry Date</label>
             <input type="date" value={form.expiry} onChange={e => setForm(f => ({ ...f, expiry: e.target.value }))}
-              className="w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary" />
+              className={inputCls} />
           </div>
           <div className="lg:col-span-2 flex items-end">
             <button onClick={handleSave} disabled={saving}
@@ -130,7 +273,7 @@ export default function AdminCoupons() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-2 text-on-dark-soft">
@@ -140,18 +283,18 @@ export default function AdminCoupons() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/8">
-              {["Code", "Type", "Value", "Min. Order", "Used / Limit", "Expiry", "Status", "Actions"].map(h => (
+              {["Code", "Type", "Value", "Min. Order", "Used / Limit", "Expiry", "Status", ""].map(h => (
                 <th key={h} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {coupons.length === 0 ? (
+            {coupons.filter(c => !c.autoApply).length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-sm text-on-dark-soft">No coupons yet.</td>
+                <td colSpan={8} className="px-5 py-10 text-center text-sm text-on-dark-soft">No manual coupons yet.</td>
               </tr>
-            ) : coupons.map((c, i) => (
-              <tr key={c.id} className={`hover:bg-white/3 transition-colors ${i < coupons.length - 1 ? "border-b border-white/8" : ""}`}>
+            ) : coupons.filter(c => !c.autoApply).map((c, i, arr) => (
+              <tr key={c.id} className={`hover:bg-white/3 transition-colors ${i < arr.length - 1 ? "border-b border-white/8" : ""}`}>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-on-dark font-medium">{c.code}</span>

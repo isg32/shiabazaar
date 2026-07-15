@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const [cartLoaded, setCartLoaded] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState("");
+  const [autoApplied, setAutoApplied] = useState(false); // true when coupon was auto-applied
   const [placing, setPlacing] = useState(false);
   const [placeError, setPlaceError] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
@@ -93,6 +94,25 @@ export default function CheckoutPage() {
   const shippingPrice = SHIPPING_OPTIONS.find(o => o.id === form.shipping)?.price ?? 99;
   const subtotal      = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const total         = subtotal + shippingPrice;
+
+  // Auto-apply coupon: check whenever subtotal changes (subtotal is in rupees, API expects paise)
+  useEffect(() => {
+    if (subtotal <= 0) return;
+    fetch(`/api/coupons/auto?subtotal=${Math.round(subtotal * 100)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(c => {
+        if (c?.code) {
+          setCouponApplied(c.code);
+          setAutoApplied(true);
+        } else if (autoApplied) {
+          // subtotal dropped below threshold — remove the auto-applied coupon
+          setCouponApplied("");
+          setAutoApplied(false);
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
 
   const inputCls = "w-full h-10 px-3 text-sm border border-hairline rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors";
   const labelCls = "text-xs font-medium text-muted uppercase tracking-wide block mb-1.5";
@@ -327,13 +347,16 @@ export default function CheckoutPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => { setCouponApplied(coupon); }}
+                    onClick={() => { setCouponApplied(coupon); setAutoApplied(false); }}
                     className="h-10 px-4 text-sm font-medium border border-hairline rounded-md hover:bg-surface-card text-ink transition-colors shrink-0"
                   >
                     Apply
                   </button>
                 </div>
-                {couponApplied && (
+                {couponApplied && autoApplied && (
+                  <p className="text-xs text-success mt-1.5">🎉 "{couponApplied}" auto-applied — discount calculated at checkout.</p>
+                )}
+                {couponApplied && !autoApplied && (
                   <p className="text-xs text-success mt-1.5">Coupon "{couponApplied}" applied — discount calculated at checkout.</p>
                 )}
               </div>
