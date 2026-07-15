@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Star, MapPin, Scale, TrendingDown } from "lucide-react";
+import { Star, Scale, TrendingDown } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/shared/Badge";
@@ -11,6 +11,7 @@ import { ProductAccordion } from "@/components/shared/ProductAccordion";
 import { ReviewForm } from "@/components/shared/ReviewForm";
 import { WishlistButton } from "@/components/shared/WishlistButton";
 import { MembershipBar } from "@/components/shared/MembershipBar";
+import { PincodeChecker } from "@/components/shared/PincodeChecker";
 import type { Metadata } from "next";
 
 interface Props { params: Promise<{ slug: string }> }
@@ -141,29 +142,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
             <WishlistButton productId={product.id} />
 
-            {/* ── Pincode — Coming Soon ── */}
-            <div className="pt-3 border-t border-hairline">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin size={13} className="text-muted" />
-                <span className="text-xs font-medium text-muted">Check delivery to your area</span>
-                <span className="text-[9px] font-medium uppercase tracking-[0.8px] bg-surface-cream-strong text-muted px-2 py-0.5 rounded-full">
-                  Coming Soon
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  disabled
-                  placeholder="Enter pincode…"
-                  className="h-9 flex-1 min-w-0 px-3 text-sm border border-hairline rounded-md bg-surface-soft text-muted placeholder:text-muted-soft cursor-not-allowed"
-                />
-                <button
-                  disabled
-                  className="h-9 px-4 text-sm font-medium bg-primary-disabled text-muted-soft rounded-md cursor-not-allowed shrink-0"
-                >
-                  Check
-                </button>
-              </div>
-            </div>
+            <PincodeChecker />
 
             {/* ── Coming-soon actions ── */}
             <div className="flex flex-wrap gap-x-5 gap-y-2">
