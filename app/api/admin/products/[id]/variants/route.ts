@@ -7,14 +7,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (guard) return guard.error;
 
   const { id } = await params;
-  const { label, stock = 0, price } = await req.json();
+  const { label, stock = 0, price, extraDelivery = 0 } = await req.json();
 
   const variant = await db.productVariant.create({
     data: {
       productId: id,
       label,
-      stock: Number(stock),
-      price: price ? Math.round(Number(price) * 100) : null,
+      stock:         Number(stock),
+      price:         price ? Math.round(Number(price) * 100) : null,
+      extraDelivery: Number(extraDelivery),
     },
   });
 
@@ -26,14 +27,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (guard) return guard.error;
 
   const { id } = await params;
-  const { variantId, label, stock, price } = await req.json();
+  const { variantId, label, stock, price, extraDelivery } = await req.json();
 
   const variant = await db.productVariant.update({
     where: { id: variantId, productId: id },
     data: {
-      ...(label !== undefined && { label }),
-      ...(stock !== undefined && { stock: Number(stock) }),
-      ...(price !== undefined && { price: price ? Math.round(Number(price) * 100) : null }),
+      ...(label          !== undefined && { label }),
+      ...(stock          !== undefined && { stock: Number(stock) }),
+      ...(price          !== undefined && { price: price ? Math.round(Number(price) * 100) : null }),
+      ...(extraDelivery  !== undefined && { extraDelivery: Number(extraDelivery) }),
     },
   });
 

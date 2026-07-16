@@ -26,8 +26,9 @@ type ExistingVariant = {
   label: string;
   stock: number;
   price: number | null;
+  extraDelivery: number;
 };
-type NewVariant = { label: string; stock: string; price: string };
+type NewVariant = { label: string; stock: string; price: string; extraDelivery: string };
 type NavCategory = { id: string; name: string; slug: string; group: string };
 
 function groupForType(type: ProductType) {
@@ -127,10 +128,11 @@ export default function EditProductPage({
         setExistingImages(product.images ?? []);
         setExistingVariants(
           product.variants?.map((v: ExistingVariant) => ({
-            id: v.id,
-            label: v.label,
-            stock: v.stock,
-            price: v.price,
+            id:            v.id,
+            label:         v.label,
+            stock:         v.stock,
+            price:         v.price,
+            extraDelivery: v.extraDelivery ?? 0,
           })) ?? [],
         );
         setLoading(false);
@@ -199,7 +201,7 @@ export default function EditProductPage({
 
   function updateExistingVariant(
     variantId: string,
-    k: "label" | "stock" | "price",
+    k: "label" | "stock" | "price" | "extraDelivery",
     v: string,
   ) {
     setExistingVariants((prev) =>
@@ -220,7 +222,7 @@ export default function EditProductPage({
   }
 
   function addNewVariant() {
-    setNewVariants((v) => [...v, { label: "", stock: "0", price: "" }]);
+    setNewVariants((v) => [...v, { label: "", stock: "0", price: "", extraDelivery: "0" }]);
   }
   function updateNewVariant(i: number, k: keyof NewVariant, v: string) {
     setNewVariants((prev) =>
@@ -339,10 +341,11 @@ export default function EditProductPage({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            variantId: v.id,
-            label: v.label,
-            stock: v.stock,
-            price: v.price,
+            variantId:     v.id,
+            label:         v.label,
+            stock:         v.stock,
+            price:         v.price,
+            extraDelivery: v.extraDelivery,
           }),
         });
       }
@@ -354,9 +357,10 @@ export default function EditProductPage({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            label: v.label,
-            stock: parseInt(v.stock) || 0,
-            price: v.price ? parseFloat(v.price) : null,
+            label:         v.label,
+            stock:         parseInt(v.stock) || 0,
+            price:         v.price ? parseFloat(v.price) : null,
+            extraDelivery: parseInt(v.extraDelivery) || 0,
           }),
         });
       }
@@ -760,16 +764,14 @@ export default function EditProductPage({
                 {existingVariants.map((v, i) => (
                   <div
                     key={v.id}
-                    className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end"
+                    className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end"
                   >
                     <div>
                       {i === 0 && <label className={labelCls}>Label</label>}
                       <input
                         className={inputCls}
                         value={v.label}
-                        onChange={(e) =>
-                          updateExistingVariant(v.id, "label", e.target.value)
-                        }
+                        onChange={(e) => updateExistingVariant(v.id, "label", e.target.value)}
                       />
                     </div>
                     <div>
@@ -779,25 +781,31 @@ export default function EditProductPage({
                         type="number"
                         min="0"
                         value={v.stock}
-                        onChange={(e) =>
-                          updateExistingVariant(v.id, "stock", e.target.value)
-                        }
+                        onChange={(e) => updateExistingVariant(v.id, "stock", e.target.value)}
                       />
                     </div>
                     <div>
-                      {i === 0 && (
-                        <label className={labelCls}>Price (₹, optional)</label>
-                      )}
+                      {i === 0 && <label className={labelCls}>Price (₹, optional)</label>}
                       <input
                         className={inputCls}
                         type="number"
                         min="0"
                         step="0.01"
                         value={v.price !== null ? String(v.price / 100) : ""}
-                        onChange={(e) =>
-                          updateExistingVariant(v.id, "price", e.target.value)
-                        }
+                        onChange={(e) => updateExistingVariant(v.id, "price", e.target.value)}
                       />
+                    </div>
+                    <div>
+                      {i === 0 && <label className={labelCls}>Extra Delivery</label>}
+                      <select
+                        className={inputCls}
+                        value={v.extraDelivery}
+                        onChange={(e) => updateExistingVariant(v.id, "extraDelivery", e.target.value)}
+                      >
+                        <option value={0}>₹0 (under 500g)</option>
+                        <option value={2000}>+₹20 (500g+)</option>
+                        <option value={4000}>+₹40 (1kg+)</option>
+                      </select>
                     </div>
                     <button
                       type="button"
@@ -814,52 +822,50 @@ export default function EditProductPage({
                   return (
                     <div
                       key={`new-${i}`}
-                      className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end"
+                      className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end"
                     >
                       <div>
-                        {offset === 0 && (
-                          <label className={labelCls}>Label</label>
-                        )}
+                        {offset === 0 && <label className={labelCls}>Label</label>}
                         <input
                           className={inputCls}
                           value={v.label}
-                          onChange={(e) =>
-                            updateNewVariant(i, "label", e.target.value)
-                          }
+                          onChange={(e) => updateNewVariant(i, "label", e.target.value)}
                           placeholder="Small"
                         />
                       </div>
                       <div>
-                        {offset === 0 && (
-                          <label className={labelCls}>Stock</label>
-                        )}
+                        {offset === 0 && <label className={labelCls}>Stock</label>}
                         <input
                           className={inputCls}
                           type="number"
                           min="0"
                           value={v.stock}
-                          onChange={(e) =>
-                            updateNewVariant(i, "stock", e.target.value)
-                          }
+                          onChange={(e) => updateNewVariant(i, "stock", e.target.value)}
                         />
                       </div>
                       <div>
-                        {offset === 0 && (
-                          <label className={labelCls}>
-                            Price (₹, optional)
-                          </label>
-                        )}
+                        {offset === 0 && <label className={labelCls}>Price (₹, optional)</label>}
                         <input
                           className={inputCls}
                           type="number"
                           min="0"
                           step="0.01"
                           value={v.price}
-                          onChange={(e) =>
-                            updateNewVariant(i, "price", e.target.value)
-                          }
+                          onChange={(e) => updateNewVariant(i, "price", e.target.value)}
                           placeholder="—"
                         />
+                      </div>
+                      <div>
+                        {offset === 0 && <label className={labelCls}>Extra Delivery</label>}
+                        <select
+                          className={inputCls}
+                          value={v.extraDelivery}
+                          onChange={(e) => updateNewVariant(i, "extraDelivery", e.target.value)}
+                        >
+                          <option value="0">₹0 (under 500g)</option>
+                          <option value="2000">+₹20 (500g+)</option>
+                          <option value="4000">+₹40 (1kg+)</option>
+                        </select>
                       </div>
                       <button
                         type="button"

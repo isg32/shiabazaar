@@ -20,7 +20,7 @@ function slugify(s: string) {
     .replace(/^-|-$/g, "");
 }
 
-type Variant = { label: string; stock: string; price: string };
+type Variant = { label: string; stock: string; price: string; extraDelivery: string };
 type ImgPreview = { file: File; url: string; isCover: boolean };
 type NavCategory = { id: string; name: string; slug: string; group: string };
 
@@ -97,7 +97,7 @@ export default function NewProductPage() {
   }
 
   function addVariant() {
-    setVariants((v) => [...v, { label: "", stock: "0", price: "" }]);
+    setVariants((v) => [...v, { label: "", stock: "0", price: "", extraDelivery: "0" }]);
   }
   function updateVariant(i: number, k: keyof Variant, v: string) {
     setVariants((prev) =>
@@ -203,9 +203,10 @@ export default function NewProductPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            label: v.label,
-            stock: parseInt(v.stock) || 0,
-            price: v.price ? parseFloat(v.price) : null,
+            label:         v.label,
+            stock:         parseInt(v.stock) || 0,
+            price:         v.price ? parseFloat(v.price) : null,
+            extraDelivery: parseInt(v.extraDelivery) || 0,
           }),
         });
       }
@@ -572,16 +573,14 @@ export default function NewProductPage() {
                 {variants.map((v, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end"
+                    className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-end"
                   >
                     <div>
                       {i === 0 && <label className={labelCls}>Label</label>}
                       <input
                         className={inputCls}
                         value={v.label}
-                        onChange={(e) =>
-                          updateVariant(i, "label", e.target.value)
-                        }
+                        onChange={(e) => updateVariant(i, "label", e.target.value)}
                         placeholder="Small"
                       />
                     </div>
@@ -592,27 +591,33 @@ export default function NewProductPage() {
                         type="number"
                         min="0"
                         value={v.stock}
-                        onChange={(e) =>
-                          updateVariant(i, "stock", e.target.value)
-                        }
+                        onChange={(e) => updateVariant(i, "stock", e.target.value)}
                         placeholder="10"
                       />
                     </div>
                     <div>
-                      {i === 0 && (
-                        <label className={labelCls}>Price (₹, optional)</label>
-                      )}
+                      {i === 0 && <label className={labelCls}>Price (₹, optional)</label>}
                       <input
                         className={inputCls}
                         type="number"
                         min="0"
                         step="0.01"
                         value={v.price}
-                        onChange={(e) =>
-                          updateVariant(i, "price", e.target.value)
-                        }
+                        onChange={(e) => updateVariant(i, "price", e.target.value)}
                         placeholder="—"
                       />
+                    </div>
+                    <div>
+                      {i === 0 && <label className={labelCls}>Extra Delivery</label>}
+                      <select
+                        className={inputCls}
+                        value={v.extraDelivery}
+                        onChange={(e) => updateVariant(i, "extraDelivery", e.target.value)}
+                      >
+                        <option value="0">₹0 (under 500g)</option>
+                        <option value="2000">+₹20 (500g+)</option>
+                        <option value="4000">+₹40 (1kg+)</option>
+                      </select>
                     </div>
                     <button
                       type="button"

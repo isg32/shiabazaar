@@ -28,6 +28,7 @@ type ProductRow = {
   isbn?: string;
   edition?: string;
   page_count?: string | number;
+  extra_delivery?: string | number;
 };
 
 export async function POST(req: NextRequest) {
@@ -84,7 +85,8 @@ export async function POST(req: NextRequest) {
         genre: row.genre || null,
         isbn: row.isbn || null,
         edition: row.edition || null,
-        pageCount: row.page_count ? Number(row.page_count) : null,
+        pageCount:     row.page_count ? Number(row.page_count) : null,
+        extraDelivery: row.extra_delivery ? Math.round(Number(row.extra_delivery) * 100) : 0,
         categoryId,
       };
 
