@@ -134,7 +134,11 @@ export default function CartPage() {
                 <span>Shipping</span>
                 <span>{shipping === 0 ? <span className="text-success">Free</span> : `₹${shipping}`}</span>
               </div>
-              {shipping > 0 && <p className="text-xs text-muted">Add ₹{(500 - subtotal).toFixed(0)} more for free shipping</p>}
+              {subtotal < 1000 && (
+                <p className="text-xs text-accent-amber font-medium">
+                  Add ₹{(1000 - subtotal).toFixed(0)} more to get ₹100 off your order!
+                </p>
+              )}
             </div>
 
             <div className="flex justify-between font-semibold text-ink border-t border-hairline pt-4">

@@ -11,7 +11,7 @@ const steps = ["Address", "Shipping", "Payment"];
 const SHIPPING_OPTIONS = [
   { id: "standard", label: "Standard Delivery", sub: "5–7 business days", price: 99 },
   { id: "express",  label: "Express Delivery",  sub: "2–3 business days", price: 199 },
-  { id: "free",     label: "Free Shipping",      sub: "7–10 business days (orders ₹500+)", price: 0 },
+  { id: "free",     label: "Free Shipping",      sub: "7–10 business days (orders ₹2,500+)", price: 0 },
 ];
 
 type CartItem = {
@@ -438,6 +438,12 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+
+            {subtotal < 1000 && (
+              <p className="text-xs text-accent-amber font-medium -mt-1">
+                Add ₹{(1000 - subtotal).toFixed(0)} more to get ₹100 off!
+              </p>
+            )}
 
             <div className="border-t border-hairline pt-3 space-y-1.5 text-sm text-body">
               <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(0)}</span></div>
