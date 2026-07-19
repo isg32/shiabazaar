@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
+import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
 
 type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
@@ -22,7 +23,7 @@ function slugify(s: string) {
 
 type Variant = { label: string; stock: string; price: string; extraDelivery: string };
 type ImgPreview = { file: File; url: string; isCover: boolean };
-type NavCategory = { id: string; name: string; slug: string; group: string };
+type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
 
 function groupForType(type: ProductType) {
   return type;
@@ -219,8 +220,8 @@ export default function NewProductPage() {
   }
 
   const isBook = form.type === "book";
-  const filteredCategories = allCategories.filter(
-    (c) => c.group === groupForType(form.type),
+  const filteredCategories = flattenTreeWithDepth(
+    buildCategoryTree(allCategories, groupForType(form.type)),
   );
 
   async function createCategory() {
@@ -355,9 +356,10 @@ export default function NewProductPage() {
                   onChange={(e) => set("categoryId", e.target.value)}
                 >
                   <option value="">— No category —</option>
-                  {filteredCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                  {filteredCategories.map(({ node, depth }) => (
+                    <option key={node.id} value={node.id}>
+                      {depth > 0 ? "-".repeat(depth) + " " : ""}
+                      {node.name}
                     </option>
                   ))}
                 </select>

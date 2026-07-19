@@ -170,11 +170,13 @@ export const searchProducts = unstable_cache(
   { tags: ["products"] }
 );
 
-// Renamed: takes categoryId directly, no second DB lookup
+// Takes categoryId(s) directly, no second DB lookup. Pass an array (root + all
+// descendant ids) to aggregate products across a category subtree.
 export const getProductsByCategoryId = unstable_cache(
-  async (categoryId: string): Promise<ProductUI[]> => {
+  async (categoryIds: string | string[]): Promise<ProductUI[]> => {
+    const ids = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
     const products = await db.product.findMany({
-      where: { categoryId },
+      where: { categoryId: { in: ids } },
       orderBy: { createdAt: "desc" },
       include,
     });

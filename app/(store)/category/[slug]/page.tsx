@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getProducts, getProductsByCategoryId, toUI, include } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import { db } from "@/lib/db";
+import { getDescendantIds } from "@/lib/category-tree";
 import type { Metadata } from "next";
 
 interface Props { params: Promise<{ slug: string }> }
@@ -91,11 +92,16 @@ export default async function CategoryPage({ params }: Props) {
     );
   }
 
-  // Dynamic DB category
+  // Dynamic DB category — aggregates products from this category and every subcategory beneath it
   const cat = await db.category.findUnique({ where: { slug } });
   if (!cat) notFound();
 
-  const products = await getProductsByCategoryId(cat.id);
+  const siblingsInGroup = await db.category.findMany({
+    where: { group: cat.group },
+    select: { id: true, parentId: true },
+  });
+  const categoryIds = getDescendantIds(siblingsInGroup, cat.id);
+  const products = await getProductsByCategoryId(categoryIds);
   return (
     <CollectionView
       label={cat.name}

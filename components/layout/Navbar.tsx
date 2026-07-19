@@ -4,11 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ChevronDown } from "lucide-react";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
+import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 
-type NavCategory = { id: string; name: string; slug: string; group: string };
+type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
 
 // group = null → flat link, no dropdown
 const navLinks = [
@@ -19,16 +20,49 @@ const navLinks = [
   { label: "Other Products",href: "/category/other-products",group: "other" },
 ];
 
+// Desktop — recursive hover flyout. Nodes with children reveal a nested panel to the right on hover.
+function DesktopCategoryFlyout({ nodes }: { nodes: CategoryNode[] }) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function enter(id: string) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setHoveredId(id);
+  }
+  function leave() {
+    timeoutRef.current = setTimeout(() => setHoveredId(null), 120);
+  }
+
+  return (
+    <div className="min-w-[180px] bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5">
+      {nodes.map(node => (
+        <div key={node.id} className="relative" onMouseEnter={() => enter(node.id)} onMouseLeave={leave}>
+          <Link href={`/category/${node.slug}`}
+            className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
+            {node.name}
+            {node.children.length > 0 && <ChevronRight size={12} className="opacity-50 shrink-0" />}
+          </Link>
+          {node.children.length > 0 && hoveredId === node.id && (
+            <div className="absolute left-full top-0 -mt-1.5 ml-0.5 z-50">
+              <DesktopCategoryFlyout nodes={node.children} />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function NavDropdown({ label, href, group, categories }: {
   label: string; href: string; group: string; categories: NavCategory[];
 }) {
   const [open, setOpen] = useState(false);
-  const items = categories.filter(c => c.group === group);
+  const tree = buildCategoryTree(categories, group);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function onEnter() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (items.length) setOpen(true);
+    if (tree.length) setOpen(true);
   }
   function onLeave() {
     timeoutRef.current = setTimeout(() => setOpen(false), 120);
@@ -39,19 +73,58 @@ function NavDropdown({ label, href, group, categories }: {
       <Link href={href}
         className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft flex items-center gap-1">
         {label}
-        {items.length > 0 && (
+        {tree.length > 0 && (
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mt-px opacity-50">
             <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         )}
       </Link>
-      {open && items.length > 0 && (
-        <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5 overflow-hidden">
-          {items.map(cat => (
-            <Link key={cat.id} href={`/category/${cat.slug}`}
-              className="block px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
-              {cat.name}
-            </Link>
+      {open && tree.length > 0 && (
+        <div className="absolute top-full left-0 mt-1 z-50">
+          <DesktopCategoryFlyout nodes={tree} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Mobile — recursive accordion. Each node with children gets its own expand/collapse,
+// indented one step further than its parent.
+function MobileCategoryNode({ node, depth, onNavigate }: {
+  node: CategoryNode; depth: number; onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const indent = 16 * depth;
+
+  if (node.children.length === 0) {
+    return (
+      <Link href={`/category/${node.slug}`} style={{ paddingLeft: indent }}
+        className="block py-2 text-sm text-body" onClick={onNavigate}>
+        {node.name}
+      </Link>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        style={{ paddingLeft: indent }}
+        className="w-full flex items-center justify-between pr-2 py-2 text-sm text-body"
+      >
+        {node.name}
+        <ChevronDown size={14} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-0.5">
+          <Link href={`/category/${node.slug}`} style={{ paddingLeft: indent + 16 }}
+            className="py-2 text-sm font-medium text-primary" onClick={onNavigate}>
+            All {node.name}
+          </Link>
+          {node.children.map(child => (
+            <MobileCategoryNode key={child.id} node={child} depth={depth + 1} onNavigate={onNavigate} />
           ))}
         </div>
       )}
@@ -63,9 +136,9 @@ function MobileNavAccordionItem({ label, href, group, categories, onNavigate }: 
   label: string; href: string; group: string; categories: NavCategory[]; onNavigate: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const items = categories.filter(c => c.group === group);
+  const tree = buildCategoryTree(categories, group);
 
-  if (items.length === 0) {
+  if (tree.length === 0) {
     return (
       <Link href={href} className="py-3 text-lg font-medium text-ink border-b border-hairline" onClick={onNavigate}>
         {label}
@@ -89,10 +162,8 @@ function MobileNavAccordionItem({ label, href, group, categories, onNavigate }: 
           <Link href={href} className="py-2 text-sm font-medium text-primary" onClick={onNavigate}>
             All {label}
           </Link>
-          {items.map(cat => (
-            <Link key={cat.id} href={`/category/${cat.slug}`} className="py-2 text-sm text-body" onClick={onNavigate}>
-              {cat.name}
-            </Link>
+          {tree.map(node => (
+            <MobileCategoryNode key={node.id} node={node} depth={1} onNavigate={onNavigate} />
           ))}
         </div>
       )}
