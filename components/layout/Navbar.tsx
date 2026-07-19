@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard } from "lucide-react";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ChevronDown } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
 
@@ -50,6 +50,47 @@ function NavDropdown({ label, href, group, categories }: {
           {items.map(cat => (
             <Link key={cat.id} href={`/category/${cat.slug}`}
               className="block px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileNavAccordionItem({ label, href, group, categories, onNavigate }: {
+  label: string; href: string; group: string; categories: NavCategory[]; onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const items = categories.filter(c => c.group === group);
+
+  if (items.length === 0) {
+    return (
+      <Link href={href} className="py-3 text-lg font-medium text-ink border-b border-hairline" onClick={onNavigate}>
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="border-b border-hairline">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between py-3 text-lg font-medium text-ink"
+      >
+        {label}
+        <ChevronDown size={18} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="pb-3 pl-4 flex flex-col gap-0.5">
+          <Link href={href} className="py-2 text-sm font-medium text-primary" onClick={onNavigate}>
+            All {label}
+          </Link>
+          {items.map(cat => (
+            <Link key={cat.id} href={`/category/${cat.slug}`} className="py-2 text-sm text-body" onClick={onNavigate}>
               {cat.name}
             </Link>
           ))}
@@ -226,13 +267,24 @@ function NavInner({ onClose }: { onClose?: () => void }) {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col px-6 py-8 gap-2" style={{ top: "64px", backgroundColor: "#faf9f5" }}>
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href}
-              className="py-3 text-lg font-medium text-ink border-b border-hairline"
-              onClick={close}>
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            link.group ? (
+              <MobileNavAccordionItem
+                key={link.href}
+                label={link.label}
+                href={link.href}
+                group={link.group}
+                categories={navCategories}
+                onNavigate={close}
+              />
+            ) : (
+              <Link key={link.href} href={link.href}
+                className="py-3 text-lg font-medium text-ink border-b border-hairline"
+                onClick={close}>
+                {link.label}
+              </Link>
+            )
+          )}
           {user ? (
             <>
               <Link href="/account/orders" className="mt-4 py-3 text-lg font-medium text-ink border-b border-hairline" onClick={close}>Orders</Link>

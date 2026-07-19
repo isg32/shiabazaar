@@ -220,7 +220,7 @@ export default function AdminCategories() {
         </h1>
         <p className="text-sm text-on-dark-soft mt-1">
           Manage the dropdown categories shown in the navbar under Books, Gifts,
-          Ladies, Gents, and Other Products.
+          and Other Products.
         </p>
       </div>
 
