@@ -20,10 +20,12 @@ const navLinks = [
   { label: "Other Products",href: "/category/other-products",group: "other" },
 ];
 
-// Desktop — recursive hover flyout. Nodes with children reveal a nested panel to the right on hover.
-function DesktopCategoryFlyout({ nodes }: { nodes: CategoryNode[] }) {
+// Desktop — recursive hover flyout. The top-level panel opens down from the nav label;
+// each nested panel alternates direction (right, down, right, down, ...) from there.
+function DesktopCategoryFlyout({ nodes, depth = 0 }: { nodes: CategoryNode[]; depth?: number }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const childOpensRight = depth % 2 === 0;
 
   function enter(id: string) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -40,11 +42,17 @@ function DesktopCategoryFlyout({ nodes }: { nodes: CategoryNode[] }) {
           <Link href={`/category/${node.slug}`}
             className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
             {node.name}
-            {node.children.length > 0 && <ChevronRight size={12} className="opacity-50 shrink-0" />}
+            {node.children.length > 0 && (
+              childOpensRight
+                ? <ChevronRight size={12} className="opacity-50 shrink-0" />
+                : <ChevronDown size={12} className="opacity-50 shrink-0" />
+            )}
           </Link>
           {node.children.length > 0 && hoveredId === node.id && (
-            <div className="absolute left-full top-0 -mt-1.5 ml-0.5 z-50">
-              <DesktopCategoryFlyout nodes={node.children} />
+            <div className={childOpensRight
+              ? "absolute left-full top-0 -mt-1.5 ml-0.5 z-50"
+              : "absolute top-full left-0 mt-1 z-50"}>
+              <DesktopCategoryFlyout nodes={node.children} depth={depth + 1} />
             </div>
           )}
         </div>
