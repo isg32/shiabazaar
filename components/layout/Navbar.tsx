@@ -2,96 +2,88 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ChevronDown } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
 import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 
 type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
+type ExtraLink = { label: string; href: string };
 
 // group = null → flat link, no dropdown
 const navLinks = [
-  { label: "Tazeem Publication", href: "/category/tazeem-publication", group: null },
-  { label: "Other Publications", href: "/category/other-publications", group: null },
   { label: "Books",         href: "/category/books",         group: "book" },
   { label: "Gifts",         href: "/category/gifts",         group: "gift" },
   { label: "Other Products",href: "/category/other-products",group: "other" },
 ];
 
-// Desktop — recursive hover flyout. The top-level panel opens down from the nav label;
-// each nested panel alternates direction (right, down, right, down, ...) from there.
-function DesktopCategoryFlyout({ nodes, depth = 0 }: { nodes: CategoryNode[]; depth?: number }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const childOpensRight = depth % 2 === 0;
+// Extra flat links folded into a group's dropdown alongside the category tree.
+const groupExtraLinks: Record<string, ExtraLink[]> = {
+  book: [
+    { label: "Tazeem Publication", href: "/category/tazeem-publication" },
+    { label: "Other Publications", href: "/category/other-publications" },
+  ],
+};
 
-  function enter(id: string) {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setHoveredId(id);
-  }
-  function leave() {
-    timeoutRef.current = setTimeout(() => setHoveredId(null), 120);
-  }
-
+// Desktop mega menu — one column per top-level category, full subtree listed
+// statically underneath (no nested hover flyouts). Panel spans the full nav width.
+function MegaMenuTree({ node, depth }: { node: CategoryNode; depth: number }) {
   return (
-    <div className="min-w-[180px] bg-canvas border border-hairline rounded-xl shadow-[0_4px_20px_rgba(20,20,19,0.10)] py-1.5">
-      {nodes.map(node => (
-        <div key={node.id} className="relative" onMouseEnter={() => enter(node.id)} onMouseLeave={leave}>
-          <Link href={`/category/${node.slug}`}
-            className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-body hover:text-ink hover:bg-surface-soft transition-colors whitespace-nowrap">
-            {node.name}
-            {node.children.length > 0 && (
-              childOpensRight
-                ? <ChevronRight size={12} className="opacity-50 shrink-0" />
-                : <ChevronDown size={12} className="opacity-50 shrink-0" />
-            )}
-          </Link>
-          {node.children.length > 0 && hoveredId === node.id && (
-            <div className={childOpensRight
-              ? "absolute left-full top-0 -mt-1.5 ml-0.5 z-50"
-              : "absolute top-full left-0 mt-1 z-50"}>
-              <DesktopCategoryFlyout nodes={node.children} depth={depth + 1} />
-            </div>
-          )}
-        </div>
+    <>
+      <Link href={`/category/${node.slug}`} style={{ paddingLeft: depth * 12 }}
+        className="block py-1 text-sm text-body hover:text-primary transition-colors truncate">
+        {node.name}
+      </Link>
+      {node.children.map(child => (
+        <MegaMenuTree key={child.id} node={child} depth={depth + 1} />
       ))}
+    </>
+  );
+}
+
+function MegaMenuColumn({ title, href, children }: { title: string; href?: string; children?: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      {href ? (
+        <Link href={href} className="block text-sm font-semibold text-ink hover:text-primary transition-colors mb-2 truncate">
+          {title}
+        </Link>
+      ) : (
+        <p className="text-sm font-semibold text-ink mb-2 truncate">{title}</p>
+      )}
+      {children && <div className="flex flex-col">{children}</div>}
     </div>
   );
 }
 
-function NavDropdown({ label, href, group, categories }: {
-  label: string; href: string; group: string; categories: NavCategory[];
+function MegaMenu({ group, categories, extraLinks }: {
+  group: string; categories: NavCategory[]; extraLinks?: ExtraLink[];
 }) {
-  const [open, setOpen] = useState(false);
   const tree = buildCategoryTree(categories, group);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function onEnter() {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (tree.length) setOpen(true);
-  }
-  function onLeave() {
-    timeoutRef.current = setTimeout(() => setOpen(false), 120);
-  }
+  if (tree.length === 0 && !extraLinks?.length) return null;
 
   return (
-    <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      <Link href={href}
-        className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft flex items-center gap-1">
-        {label}
-        {tree.length > 0 && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="mt-px opacity-50">
-            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+    <div className="w-full bg-canvas border-b border-hairline shadow-[0_8px_24px_rgba(20,20,19,0.08)]">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 max-h-[70vh] overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-6">
+        {tree.map(node => (
+          <MegaMenuColumn key={node.id} title={node.name} href={`/category/${node.slug}`}>
+            {node.children.length > 0 &&
+              node.children.map(child => <MegaMenuTree key={child.id} node={child} depth={0} />)}
+          </MegaMenuColumn>
+        ))}
+        {extraLinks && extraLinks.length > 0 && (
+          <MegaMenuColumn title="Publications">
+            {extraLinks.map(link => (
+              <Link key={link.href} href={link.href}
+                className="block py-1 text-sm text-body hover:text-primary transition-colors truncate">
+                {link.label}
+              </Link>
+            ))}
+          </MegaMenuColumn>
         )}
-      </Link>
-      {open && tree.length > 0 && (
-        <div className="absolute top-full left-0 mt-1 z-50">
-          <DesktopCategoryFlyout nodes={tree} />
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -140,13 +132,13 @@ function MobileCategoryNode({ node, depth, onNavigate }: {
   );
 }
 
-function MobileNavAccordionItem({ label, href, group, categories, onNavigate }: {
-  label: string; href: string; group: string; categories: NavCategory[]; onNavigate: () => void;
+function MobileNavAccordionItem({ label, href, group, categories, extraLinks, onNavigate }: {
+  label: string; href: string; group: string; categories: NavCategory[]; extraLinks?: ExtraLink[]; onNavigate: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const tree = buildCategoryTree(categories, group);
 
-  if (tree.length === 0) {
+  if (tree.length === 0 && !extraLinks?.length) {
     return (
       <Link href={href} className="py-3 text-lg font-medium text-ink border-b border-hairline" onClick={onNavigate}>
         {label}
@@ -172,6 +164,12 @@ function MobileNavAccordionItem({ label, href, group, categories, onNavigate }: 
           </Link>
           {tree.map(node => (
             <MobileCategoryNode key={node.id} node={node} depth={1} onNavigate={onNavigate} />
+          ))}
+          {extraLinks?.map(link => (
+            <Link key={link.href} href={link.href} style={{ paddingLeft: 16 }}
+              className="block py-2 text-sm text-body" onClick={onNavigate}>
+              {link.label}
+            </Link>
           ))}
         </div>
       )}
@@ -279,6 +277,8 @@ function NavInner({ onClose }: { onClose?: () => void }) {
   const { count: cartCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [navCategories, setNavCategories] = useState<NavCategory[]>([]);
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  const megaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const user = session.data?.user;
 
   useEffect(() => {
@@ -286,6 +286,14 @@ function NavInner({ onClose }: { onClose?: () => void }) {
   }, []);
 
   const close = () => { setMenuOpen(false); onClose?.(); };
+
+  function openGroup(group: string) {
+    if (megaTimeoutRef.current) clearTimeout(megaTimeoutRef.current);
+    setHoveredGroup(group);
+  }
+  function closeGroupDelayed() {
+    megaTimeoutRef.current = setTimeout(() => setHoveredGroup(null), 150);
+  }
 
   return (
     <>
@@ -306,7 +314,13 @@ function NavInner({ onClose }: { onClose?: () => void }) {
         <nav className="hidden lg:flex items-center gap-0.5">
           {navLinks.map((link) =>
             link.group ? (
-              <NavDropdown key={link.href} label={link.label} href={link.href} group={link.group} categories={navCategories} />
+              <div key={link.href} onMouseEnter={() => openGroup(link.group)} onMouseLeave={closeGroupDelayed}>
+                <Link href={link.href}
+                  className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft flex items-center gap-1">
+                  {link.label}
+                  <ChevronDown size={12} className="opacity-50" />
+                </Link>
+              </div>
             ) : (
               <Link key={link.href} href={link.href}
                 className="px-3 py-2 text-sm font-medium text-muted hover:text-ink whitespace-nowrap transition-colors rounded-md hover:bg-surface-soft">
@@ -343,6 +357,17 @@ function NavInner({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
+      {/* Desktop mega menu — full-width panel, spans the whole header */}
+      {hoveredGroup && (
+        <div
+          className="hidden lg:block absolute top-full left-0 w-full z-50"
+          onMouseEnter={() => openGroup(hoveredGroup)}
+          onMouseLeave={closeGroupDelayed}
+        >
+          <MegaMenu group={hoveredGroup} categories={navCategories} extraLinks={groupExtraLinks[hoveredGroup]} />
+        </div>
+      )}
+
       {/* Mobile menu */}
       {menuOpen && (
         <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col px-6 py-8 gap-2" style={{ top: "64px", backgroundColor: "#faf9f5" }}>
@@ -354,6 +379,7 @@ function NavInner({ onClose }: { onClose?: () => void }) {
                 href={link.href}
                 group={link.group}
                 categories={navCategories}
+                extraLinks={groupExtraLinks[link.group]}
                 onNavigate={close}
               />
             ) : (
