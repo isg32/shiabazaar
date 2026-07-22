@@ -3,14 +3,25 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Filter, ExternalLink, ChevronDown, Check, Loader2 } from "lucide-react";
 
+interface Address {
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 interface Order {
   id: string;
   status: string;
-  total: number;       // paise
+  total: number;
   createdAt: string;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
   user?: { name?: string | null; email: string } | null;
+  address?: Address | null;
   items: { qty: number }[];
 }
 
@@ -115,7 +126,7 @@ export default function AdminOrders() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/8">
-              {["Order ID", "Customer", "Items", "Total", "Status", "Date", "Tracking", "Actions"].map(h => (
+              {["Order ID", "Customer", "Phone", "Address", "Items", "Total", "Status", "Date", "Tracking", "Actions"].map(h => (
                 <th key={h} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -123,7 +134,7 @@ export default function AdminOrders() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-sm text-on-dark-soft">
+                <td colSpan={10} className="px-5 py-10 text-center text-sm text-on-dark-soft">
                   {orders.length === 0 ? "No orders yet." : "No orders match your search."}
                 </td>
               </tr>
@@ -133,6 +144,18 @@ export default function AdminOrders() {
                 <td className="px-5 py-3.5">
                   <p className="text-on-dark font-medium">{o.user?.name ?? "Guest"}</p>
                   <p className="text-[11px] text-on-dark-soft">{o.user?.email ?? ""}</p>
+                </td>
+                <td className="px-5 py-3.5 text-xs text-on-dark-soft">
+                  {o.address ? <span className="font-mono">{o.address.phone}</span> : "—"}
+                </td>
+                <td className="px-5 py-3.5 max-w-[220px]">
+                  {o.address ? (
+                    <div className="text-xs text-on-dark-soft leading-relaxed">
+                      <p className="text-on-dark">{o.address.name}</p>
+                      <p>{o.address.line1}{o.address.line2 ? `, ${o.address.line2}` : ""}</p>
+                      <p>{o.address.city}, {o.address.state} — {o.address.pincode}</p>
+                    </div>
+                  ) : <span className="text-xs text-on-dark-soft">—</span>}
                 </td>
                 <td className="px-5 py-3.5 text-on-dark-soft text-center">{o.items.reduce((s, item) => s + item.qty, 0)}</td>
                 <td className="px-5 py-3.5 text-on-dark font-medium">₹{(o.total / 100).toFixed(0)}</td>
