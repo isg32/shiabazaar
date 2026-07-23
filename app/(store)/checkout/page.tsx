@@ -284,7 +284,17 @@ export default function CheckoutPage() {
                   <label className={labelCls}>State *</label>
                   <select className={inputCls} value={form.state} onChange={e => set("state", e.target.value)}>
                     <option value="">Select state</option>
-                    {["Maharashtra","Delhi","UP","Gujarat","Karnataka","Tamil Nadu","West Bengal","Rajasthan","Bihar","MP","Odisha","Kerala","Punjab","Haryana","Jharkhand","Uttarakhand","Himachal Pradesh","Goa","Assam","Andhra Pradesh","Telangana","Chhattisgarh","J&K","Chandigarh","Other"].map(s => <option key={s}>{s}</option>)}
+                    {[
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
+  "Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
+  "Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur",
+  "Meghalaya","Mizoram","Nagaland","Odisha","Punjab",
+  "Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura",
+  "Uttar Pradesh","Uttarakhand","West Bengal",
+  "Andaman and Nicobar Islands","Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu","Delhi",
+  "Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
+].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
