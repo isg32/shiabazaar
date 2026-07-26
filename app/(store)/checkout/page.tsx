@@ -6,13 +6,9 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Lock, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 
-const steps = ["Address", "Shipping", "Payment"];
+const steps = ["Address", "Payment"];
 
-const SHIPPING_OPTIONS = [
-  { id: "standard", label: "Standard Delivery", sub: "5–7 business days", price: 99 },
-  { id: "express",  label: "Express Delivery",  sub: "2–3 business days", price: 199 },
-  { id: "free",     label: "Free Shipping",      sub: "7–10 business days (orders ₹2,500+)", price: 0 },
-];
+type ShippingQuote = { price: number; zone: string; label: string }; // price in rupees
 
 type CartItem = {
   productId:  string;
@@ -56,11 +52,14 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [placeError, setPlaceError] = useState("");
   const [saveAddress, setSaveAddress] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
 
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
     line1: "", line2: "", city: "", state: "", pincode: "",
-    shipping: "standard",
   });
 
   // Load cart (DB if logged in, localStorage if guest)
@@ -89,11 +88,55 @@ export default function CheckoutPage() {
       .catch(() => setCartLoaded(true));
   }, []);
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: string) => {
+    setForm(f => ({ ...f, [k]: v }));
+    setFieldErrors(fe => {
+      if (!fe[k]) return fe;
+      const next = { ...fe };
+      delete next[k];
+      return next;
+    });
+  };
 
-  const shippingPrice = SHIPPING_OPTIONS.find(o => o.id === form.shipping)?.price ?? 99;
-  const subtotal      = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const total         = subtotal + shippingPrice;
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const total     = subtotal + (shippingQuote?.price ?? 0);
+
+  // Zonal delivery pricing — quote refreshes whenever the pincode changes to a valid 6-digit value.
+  useEffect(() => {
+    const pin = form.pincode.trim();
+    let cancelled = false;
+
+    const t = setTimeout(async () => {
+      if (cancelled) return;
+      if (!/^[1-9]\d{5}$/.test(pin)) {
+        setShippingQuote(null);
+        setShippingError("");
+        setShippingLoading(false);
+        return;
+      }
+      setShippingLoading(true);
+      setShippingError("");
+      try {
+        const res = await fetch(`/api/shipping/check?pincode=${pin}`);
+        const d = await res.json();
+        if (cancelled) return;
+        if (res.ok) {
+          setShippingQuote({ price: d.price / 100, zone: d.zone, label: d.label });
+        } else {
+          setShippingQuote(null);
+          setShippingError(d.error ?? "Could not calculate delivery charge for this pincode.");
+        }
+      } catch {
+        if (!cancelled) {
+          setShippingQuote(null);
+          setShippingError("Could not calculate delivery charge. Please try again.");
+        }
+      } finally {
+        if (!cancelled) setShippingLoading(false);
+      }
+    }, 500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [form.pincode]);
 
   // Auto-apply coupon: check whenever subtotal changes (subtotal is in rupees, API expects paise)
   useEffect(() => {
@@ -114,13 +157,32 @@ export default function CheckoutPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal]);
 
-  const inputCls = "w-full h-10 px-3 text-sm border border-hairline rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors";
+  function fieldCls(key: string) {
+    const base = "w-full h-10 px-3 text-sm border rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:ring-2 transition-colors";
+    return fieldErrors[key]
+      ? `${base} border-error focus:border-error focus:ring-error/15`
+      : `${base} border-hairline focus:border-primary focus:ring-primary/15`;
+  }
   const labelCls = "text-xs font-medium text-muted uppercase tracking-wide block mb-1.5";
+  const errorMsgCls = "text-sm text-error mt-1";
+
+  const requiredFields: { key: "name" | "phone" | "line1" | "city" | "state" | "pincode"; label: string }[] = [
+    { key: "name",    label: "Full Name" },
+    { key: "phone",   label: "Phone" },
+    { key: "line1",   label: "Full Address" },
+    { key: "city",    label: "City" },
+    { key: "state",   label: "State" },
+    { key: "pincode", label: "PIN Code" },
+  ];
 
   function validateAddress() {
-    const { name, phone, line1, city, state, pincode } = form;
-    if (!name || !phone || !line1 || !city || !state || !pincode) return false;
-    return true;
+    const errors: Record<string, boolean> = {};
+    for (const f of requiredFields) {
+      if (!form[f.key].trim()) errors[f.key] = true;
+    }
+    if (!errors.pincode && !shippingQuote) errors.pincode = true;
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   }
 
   async function placeOrder() {
@@ -145,7 +207,6 @@ export default function CheckoutPage() {
             state:   form.state,
             pincode: form.pincode,
           },
-          shipping:  form.shipping,
           couponCode: couponApplied || undefined,
           guestCart: cart.map(i => ({ productId: i.productId, variantId: i.variantId, qty: i.qty })),
         }),
@@ -258,31 +319,35 @@ export default function CheckoutPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Full Name *</label>
-                  <input className={inputCls} placeholder="Ali Hussain" value={form.name} onChange={e => set("name", e.target.value)} />
+                  <input className={fieldCls("name")} placeholder="Enter your name" value={form.name} onChange={e => set("name", e.target.value)} />
+                  {fieldErrors.name && <p className={errorMsgCls}>Full name is required.</p>}
                 </div>
                 <div>
                   <label className={labelCls}>Phone *</label>
-                  <input className={inputCls} type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={e => set("phone", e.target.value)} />
+                  <input className={fieldCls("phone")} type="tel" placeholder="Enter your phone number" value={form.phone} onChange={e => set("phone", e.target.value)} />
+                  {fieldErrors.phone && <p className={errorMsgCls}>Phone number is required.</p>}
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelCls}>Email (for order updates)</label>
-                  <input className={inputCls} type="email" placeholder="ali@example.com" value={form.email} onChange={e => set("email", e.target.value)} />
+                  <input className={fieldCls("email")} type="email" placeholder="Enter your email" value={form.email} onChange={e => set("email", e.target.value)} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelCls}>Street Address *</label>
-                  <input className={inputCls} placeholder="House / Flat no., Street name" value={form.line1} onChange={e => set("line1", e.target.value)} />
+                  <label className={labelCls}>Full Address *</label>
+                  <input className={fieldCls("line1")} placeholder="Enter your full address" value={form.line1} onChange={e => set("line1", e.target.value)} />
+                  {fieldErrors.line1 && <p className={errorMsgCls}>Address is required.</p>}
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelCls}>Apt / Floor (optional)</label>
-                  <input className={inputCls} placeholder="Apt 4B" value={form.line2} onChange={e => set("line2", e.target.value)} />
+                  <input className={fieldCls("line2")} placeholder="Enter apartment or floor number" value={form.line2} onChange={e => set("line2", e.target.value)} />
                 </div>
                 <div>
                   <label className={labelCls}>City *</label>
-                  <input className={inputCls} placeholder="Mumbai" value={form.city} onChange={e => set("city", e.target.value)} />
+                  <input className={fieldCls("city")} placeholder="Enter your city" value={form.city} onChange={e => set("city", e.target.value)} />
+                  {fieldErrors.city && <p className={errorMsgCls}>City is required.</p>}
                 </div>
                 <div>
                   <label className={labelCls}>State *</label>
-                  <select className={inputCls} value={form.state} onChange={e => set("state", e.target.value)}>
+                  <select className={fieldCls("state")} value={form.state} onChange={e => set("state", e.target.value)}>
                     <option value="">Select state</option>
                     {[
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh",
@@ -296,10 +361,24 @@ export default function CheckoutPage() {
   "Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
 ].map(s => <option key={s}>{s}</option>)}
                   </select>
+                  {fieldErrors.state && <p className={errorMsgCls}>State is required.</p>}
                 </div>
                 <div>
                   <label className={labelCls}>PIN Code *</label>
-                  <input className={inputCls} placeholder="400001" maxLength={6} value={form.pincode} onChange={e => set("pincode", e.target.value)} />
+                  <input className={fieldCls("pincode")} placeholder="Enter your PIN code" maxLength={6} inputMode="numeric" value={form.pincode} onChange={e => set("pincode", e.target.value)} />
+                  {fieldErrors.pincode && !form.pincode.trim() ? (
+                    <p className={errorMsgCls}>PIN code is required.</p>
+                  ) : shippingLoading ? (
+                    <p className="text-xs text-muted mt-1.5 flex items-center gap-1.5">
+                      <Loader2 size={11} className="animate-spin" /> Calculating delivery charge…
+                    </p>
+                  ) : shippingQuote ? (
+                    <p className="text-xs text-success mt-1.5">
+                      Delivery to {shippingQuote.label}: {shippingQuote.price === 0 ? "Free" : `₹${shippingQuote.price}`}
+                    </p>
+                  ) : shippingError ? (
+                    <p className={errorMsgCls}>{shippingError}</p>
+                  ) : null}
                 </div>
               </div>
               {isLoggedIn && (
@@ -315,33 +394,32 @@ export default function CheckoutPage() {
               )}
               <button
                 onClick={() => { if (!validateAddress()) { setPlaceError("Please fill in all required fields."); } else { setPlaceError(""); setStep(1); } }}
-                className="self-start h-11 px-8 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors"
+                disabled={shippingLoading}
+                className="self-start h-11 px-8 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors disabled:opacity-60"
               >
-                Continue to Shipping
+                Continue to Payment
               </button>
               {placeError && <p className="text-sm text-error">{placeError}</p>}
             </div>
           )}
 
-          {/* Step 1 — Shipping */}
+          {/* Step 1 — Payment */}
           {step === 1 && (
             <div className="flex flex-col gap-6">
-              <h1 className="display-sm text-ink">Shipping Method</h1>
-              <div className="space-y-3">
-                {SHIPPING_OPTIONS.map(opt => (
-                  <label key={opt.id} className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-colors ${form.shipping === opt.id ? "border-primary bg-surface-soft" : "border-hairline bg-canvas hover:bg-surface-soft"}`}>
-                    <div className="flex items-center gap-3">
-                      <input type="radio" name="shipping" value={opt.id} checked={form.shipping === opt.id} onChange={() => set("shipping", opt.id)} className="accent-[var(--color-primary)]" />
-                      <div>
-                        <p className="text-sm font-medium text-ink">{opt.label}</p>
-                        <p className="text-xs text-muted mt-0.5">{opt.sub}</p>
-                      </div>
-                    </div>
-                    <span className={`text-sm font-medium ${opt.price === 0 ? "text-success" : "text-ink"}`}>
-                      {opt.price === 0 ? "Free" : `₹${opt.price}`}
-                    </span>
-                  </label>
-                ))}
+              <h1 className="display-sm text-ink">Payment</h1>
+
+              {/* Address summary */}
+              <div className="bg-surface-card rounded-xl p-4 text-sm border border-hairline">
+                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Delivering to</p>
+                <p className="font-medium text-ink">{form.name}</p>
+                <p className="text-body mt-0.5">{form.line1}{form.line2 ? `, ${form.line2}` : ""}, {form.city}, {form.state} — {form.pincode}</p>
+                <p className="text-muted mt-0.5">{form.phone}</p>
+                {shippingQuote && (
+                  <p className="text-muted mt-0.5">
+                    Delivery ({shippingQuote.label}): {shippingQuote.price === 0 ? "Free" : `₹${shippingQuote.price}`}
+                  </p>
+                )}
+                <button onClick={() => setStep(0)} className="text-primary text-xs hover:text-primary-active mt-1.5 transition-colors">Change</button>
               </div>
 
               {/* Coupon */}
@@ -349,7 +427,7 @@ export default function CheckoutPage() {
                 <label className={labelCls}>Coupon Code</label>
                 <div className="flex gap-2">
                   <input
-                    className={inputCls}
+                    className={fieldCls("coupon")}
                     placeholder="ENTER CODE"
                     value={coupon}
                     onChange={e => setCoupon(e.target.value.toUpperCase())}
@@ -364,36 +442,11 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 {couponApplied && autoApplied && (
-                  <p className="text-xs text-success mt-1.5">🎉 "{couponApplied}" auto-applied — discount calculated at checkout.</p>
+                  <p className="text-xs text-success mt-1.5">🎉 &quot;{couponApplied}&quot; auto-applied — discount calculated at checkout.</p>
                 )}
                 {couponApplied && !autoApplied && (
-                  <p className="text-xs text-success mt-1.5">Coupon "{couponApplied}" applied — discount calculated at checkout.</p>
+                  <p className="text-xs text-success mt-1.5">Coupon &quot;{couponApplied}&quot; applied — discount calculated at checkout.</p>
                 )}
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setStep(0)} className="h-11 px-6 border border-hairline text-ink text-sm font-medium rounded-md hover:bg-surface-card transition-colors">
-                  Back
-                </button>
-                <button onClick={() => setStep(2)} className="h-11 px-8 bg-primary text-on-primary text-sm font-medium rounded-md hover:bg-primary-active transition-colors">
-                  Continue to Payment
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2 — Payment */}
-          {step === 2 && (
-            <div className="flex flex-col gap-6">
-              <h1 className="display-sm text-ink">Payment</h1>
-
-              {/* Address summary */}
-              <div className="bg-surface-card rounded-xl p-4 text-sm border border-hairline">
-                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Delivering to</p>
-                <p className="font-medium text-ink">{form.name}</p>
-                <p className="text-body mt-0.5">{form.line1}{form.line2 ? `, ${form.line2}` : ""}, {form.city}, {form.state} — {form.pincode}</p>
-                <p className="text-muted mt-0.5">{form.phone}</p>
-                <button onClick={() => setStep(0)} className="text-primary text-xs hover:text-primary-active mt-1.5 transition-colors">Change</button>
               </div>
 
               <div className="bg-surface-card rounded-xl p-5 border border-hairline">
@@ -402,14 +455,14 @@ export default function CheckoutPage() {
                   <span>Payments secured by Razorpay — UPI, Cards, Net Banking & Wallets</span>
                 </div>
                 <p className="text-sm text-body">
-                  Click <strong>"Pay ₹{total.toFixed(0)}"</strong> to open Razorpay&apos;s secure checkout. You&apos;ll be able to pay via UPI, card, net banking, or wallet.
+                  Click <strong>&quot;Pay ₹{total.toFixed(0)}&quot;</strong> to open Razorpay&apos;s secure checkout. You&apos;ll be able to pay via UPI, card, net banking, or wallet.
                 </p>
               </div>
 
               {placeError && <p className="text-sm text-error">{placeError}</p>}
 
               <div className="flex gap-3">
-                <button onClick={() => setStep(1)} className="h-11 px-6 border border-hairline text-ink text-sm font-medium rounded-md hover:bg-surface-card transition-colors">
+                <button onClick={() => setStep(0)} className="h-11 px-6 border border-hairline text-ink text-sm font-medium rounded-md hover:bg-surface-card transition-colors">
                   Back
                 </button>
                 <button
@@ -459,7 +512,15 @@ export default function CheckoutPage() {
               <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(0)}</span></div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span className={shippingPrice === 0 ? "text-success" : ""}>{shippingPrice === 0 ? "Free" : `₹${shippingPrice}`}</span>
+                {shippingLoading ? (
+                  <span className="text-muted">Calculating…</span>
+                ) : shippingQuote ? (
+                  <span className={shippingQuote.price === 0 ? "text-success" : ""}>
+                    {shippingQuote.price === 0 ? "Free" : `₹${shippingQuote.price}`}
+                  </span>
+                ) : (
+                  <span className="text-muted">—</span>
+                )}
               </div>
               {couponApplied && (
                 <div className="flex justify-between text-success text-xs"><span>Coupon: {couponApplied}</span><span>Applied</span></div>

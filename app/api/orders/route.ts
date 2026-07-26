@@ -3,29 +3,31 @@ import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { ensureUser } from "@/lib/user-sync";
 import { razorpay } from "@/lib/razorpay";
-
-const SHIPPING: Record<string, number> = {
-  standard: 9900,
-  express:  19900,
-  free:     0,
-};
+import { quoteShippingForPincode } from "@/lib/shipping";
 
 export async function POST(req: NextRequest) {
   const { data: session } = await auth.getSession();
   const body = await req.json();
 
-  const { address, shipping = "standard", couponCode, guestCart } = body as {
+  const { address, couponCode, guestCart } = body as {
     address: {
       name: string; phone: string; line1: string; line2?: string;
       city: string; state: string; pincode: string;
     };
-    shipping: string;
     couponCode?: string;
     guestCart?: { productId: string; variantId?: string | null; qty: number }[];
   };
 
-  if (!address?.name || !address?.line1 || !address?.city) {
+  if (!address?.name || !address?.line1 || !address?.city || !address?.pincode) {
     return NextResponse.json({ error: "Address is required." }, { status: 400 });
+  }
+
+  let shippingAmount: number;
+  try {
+    shippingAmount = (await quoteShippingForPincode(address.pincode)).price;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not calculate shipping for this pincode.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   // ── Resolve cart items ────────────────────────────────────────────────────
@@ -84,7 +86,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const shippingAmount = SHIPPING[shipping] ?? SHIPPING.standard;
   const total = subtotal - discountAmount + shippingAmount;
 
   // ── Address record ────────────────────────────────────────────────────────
