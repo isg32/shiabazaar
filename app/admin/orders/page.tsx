@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, ExternalLink, ChevronDown, Check, Loader2 } from "lucide-react";
+import { Search, Filter, ExternalLink, ChevronDown, Check, Loader2, Tag } from "lucide-react";
 
 interface Address {
   name: string;
@@ -22,7 +22,152 @@ interface Order {
   trackingUrl?: string | null;
   user?: { name?: string | null; email: string } | null;
   address?: Address | null;
-  items: { qty: number }[];
+  items: { title: string; qty: number }[];
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(test).width > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+// Renders a printable shipping sticker (name, address, phone, items, total)
+// to a PNG and triggers a download — no server round-trip or PDF dependency needed.
+function downloadSticker(order: Order) {
+  const W = 800;
+  const margin = 40;
+  const contentW = W - margin * 2;
+
+  const measure = document.createElement("canvas").getContext("2d")!;
+  measure.font = "18px Arial";
+  const addrText = `${order.address?.line1 ?? ""}${order.address?.line2 ? `, ${order.address.line2}` : ""}`;
+  const addrLines = wrapText(measure, addrText, contentW);
+
+  measure.font = "16px Arial";
+  const itemLines = order.items.map(item => wrapText(measure, `${item.qty} × ${item.title}`, contentW));
+  const itemLineCount = itemLines.reduce((s, l) => s + l.length, 0);
+
+  const hasAddress = !!order.address;
+
+  const H =
+    50 /* top margin + brand */ +
+    40 /* divider */ +
+    40 /* order # / date */ +
+    32 /* "SHIP TO" label */ +
+    (hasAddress ? 30 + addrLines.length * 24 + 24 + 36 : 30) /* name/address/phone, or "no address" line */ +
+    32 /* divider */ +
+    28 /* "ITEMS" label */ +
+    itemLineCount * 22 + order.items.length * 4 +
+    32 /* divider */ +
+    32 /* total */ +
+    (order.trackingNumber ? 32 : 0) +
+    40; /* bottom margin */
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = "#faf9f5";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#141413";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(6, 6, W - 12, H - 12);
+
+  let y = 50;
+  ctx.fillStyle = "#141413";
+  ctx.textAlign = "center";
+  ctx.font = "bold 30px Georgia";
+  ctx.fillText("SHIA BAZAAR", W / 2, y);
+  ctx.textAlign = "left";
+
+  y += 26;
+  ctx.strokeStyle = "#cc785c";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(W - margin, y); ctx.stroke();
+
+  y += 34;
+  ctx.font = "bold 15px Arial";
+  ctx.fillStyle = "#6c6a64";
+  ctx.fillText(`ORDER #${order.id.slice(0, 8).toUpperCase()}`, margin, y);
+  ctx.textAlign = "right";
+  ctx.fillText(new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }), W - margin, y);
+  ctx.textAlign = "left";
+
+  y += 40;
+  ctx.font = "bold 16px Arial";
+  ctx.fillStyle = "#141413";
+  ctx.fillText("SHIP TO", margin, y);
+
+  y += 30;
+  if (order.address) {
+    ctx.font = "bold 20px Arial";
+    ctx.fillText(order.address.name, margin, y);
+
+    y += 26;
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "#3d3d3a";
+    addrLines.forEach(line => { ctx.fillText(line, margin, y); y += 24; });
+    ctx.fillText(`${order.address.city}, ${order.address.state} — ${order.address.pincode}`, margin, y);
+
+    y += 30;
+    ctx.font = "bold 16px Arial";
+    ctx.fillStyle = "#141413";
+    ctx.fillText(`Phone: ${order.address.phone}`, margin, y);
+  } else {
+    ctx.font = "italic 16px Arial";
+    ctx.fillStyle = "#6c6a64";
+    ctx.fillText("No address on file", margin, y);
+  }
+
+  y += 32;
+  ctx.strokeStyle = "#e6dfd8";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(W - margin, y); ctx.stroke();
+
+  y += 28;
+  ctx.font = "bold 16px Arial";
+  ctx.fillText("ITEMS", margin, y);
+
+  y += 26;
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#3d3d3a";
+  itemLines.forEach(lines => {
+    lines.forEach(line => { ctx.fillText(line, margin, y); y += 22; });
+    y += 4;
+  });
+
+  y += 12;
+  ctx.strokeStyle = "#e6dfd8";
+  ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(W - margin, y); ctx.stroke();
+
+  y += 32;
+  ctx.font = "bold 20px Arial";
+  ctx.fillStyle = "#141413";
+  ctx.fillText(`Total: Rs ${(order.total / 100).toFixed(0)}`, margin, y);
+
+  if (order.trackingNumber) {
+    y += 32;
+    ctx.font = "15px Arial";
+    ctx.fillStyle = "#6c6a64";
+    ctx.fillText(`Tracking: ${order.trackingNumber}`, margin, y);
+  }
+
+  const link = document.createElement("a");
+  link.download = `order-${order.id.slice(0, 8)}-sticker.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -126,7 +271,7 @@ export default function AdminOrders() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/8">
-              {["Order ID", "Customer", "Phone", "Address", "Items", "Total", "Status", "Date", "Tracking", "Actions"].map(h => (
+              {["Order ID", "Customer", "Phone", "Address", "Items", "Total", "Status", "Date", "Tracking", "Sticker", "Actions"].map(h => (
                 <th key={h} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -134,7 +279,7 @@ export default function AdminOrders() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-5 py-10 text-center text-sm text-on-dark-soft">
+                <td colSpan={11} className="px-5 py-10 text-center text-sm text-on-dark-soft">
                   {orders.length === 0 ? "No orders yet." : "No orders match your search."}
                 </td>
               </tr>
@@ -197,6 +342,14 @@ export default function AdminOrders() {
                       Add
                     </button>
                   )}
+                </td>
+                <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => downloadSticker(o)}
+                    className="flex items-center gap-1 text-xs text-on-dark-soft bg-white/6 hover:bg-white/10 px-2.5 py-1 rounded transition-colors"
+                  >
+                    <Tag size={11} /> Sticker
+                  </button>
                 </td>
                 <td className="px-5 py-3.5 relative">
                   <button
