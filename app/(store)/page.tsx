@@ -68,6 +68,11 @@ const trustSignals = [
     title: "Careful Packaging",
     description: "Books packed to prevent damage",
   },
+  {
+    icon: "🏷️",
+    title: "₹100 Off",
+    description: "On orders of ₹1,000 or more — auto-applied at checkout",
+  },
 ];
 
 const marqueeItems = [
