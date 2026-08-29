@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, ExternalLink, ChevronDown, Check, Loader2, Tag } from "lucide-react";
+import { Search, ExternalLink, ChevronDown, Check, Loader2, Tag } from "lucide-react";
 
 interface Address {
   name: string;
@@ -16,6 +16,7 @@ interface Address {
 interface Order {
   id: string;
   status: string;
+  channel?: string;
   total: number;
   createdAt: string;
   trackingNumber?: string | null;
@@ -179,10 +180,12 @@ const STATUS_STYLES: Record<string, string> = {
 };
 const STATUS_OPTIONS = ["pending", "processing", "shipped", "delivered", "cancelled"];
 const TABS = ["All", "pending", "processing", "shipped", "delivered", "cancelled"];
+const CHANNELS = ["online", "offline", "school", "all"];
 
 export default function AdminOrders() {
   const [query,      setQuery]      = useState("");
   const [activeTab,  setActiveTab]  = useState("All");
+  const [channel,    setChannel]    = useState("online");
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [openDrop,   setOpenDrop]   = useState<string | null>(null);
@@ -198,12 +201,13 @@ export default function AdminOrders() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return orders.filter(o =>
+      (channel === "all" || (o.channel ?? "online") === channel) &&
       (activeTab === "All" || o.status === activeTab) &&
       (!q || o.id.toLowerCase().includes(q) ||
         o.user?.email.toLowerCase().includes(q) ||
         (o.user?.name ?? "").toLowerCase().includes(q))
     );
-  }, [orders, query, activeTab]);
+  }, [orders, query, activeTab, channel]);
 
   async function setStatus(id: string, status: string) {
     await fetch(`/api/admin/orders/${id}`, {
@@ -233,7 +237,24 @@ export default function AdminOrders() {
           <h1 className="text-2xl font-semibold text-on-dark">Orders</h1>
           <p className="text-sm text-on-dark-soft mt-0.5">{filtered.length} of {orders.length} orders</p>
         </div>
+        <div className="flex items-center gap-1 bg-surface-dark-elevated border border-white/8 rounded-md p-0.5">
+          {CHANNELS.map(c => (
+            <button
+              key={c}
+              onClick={() => setChannel(c)}
+              className={`px-3 h-7 text-xs font-medium rounded capitalize transition-colors ${channel === c ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {channel !== "online" && (
+        <p className="text-xs text-on-dark-soft mb-4 -mt-1">
+          Offline sales and school issues are managed on the <a href="/desk" className="text-primary hover:underline">clerk desk</a>. Status and tracking are read-only here.
+        </p>
+      )}
 
       {/* Status tabs */}
       <div className="flex items-center gap-0 border-b border-white/8 mb-5 overflow-x-auto">
@@ -283,9 +304,16 @@ export default function AdminOrders() {
                   {orders.length === 0 ? "No orders yet." : "No orders match your search."}
                 </td>
               </tr>
-            ) : filtered.map((o, i) => (
+            ) : filtered.map((o, i) => {
+              const isOnline = (o.channel ?? "online") === "online";
+              return (
               <tr key={o.id} className={`hover:bg-white/3 transition-colors ${i < filtered.length - 1 ? "border-b border-white/8" : ""}`}>
-                <td className="px-5 py-3.5 font-mono text-xs text-on-dark-soft">{o.id.slice(0, 8)}</td>
+                <td className="px-5 py-3.5 font-mono text-xs text-on-dark-soft">
+                  {o.id.slice(0, 8)}
+                  {!isOnline && (
+                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/8 text-on-dark-soft capitalize">{o.channel}</span>
+                  )}
+                </td>
                 <td className="px-5 py-3.5">
                   <p className="text-on-dark font-medium">{o.user?.name ?? "Guest"}</p>
                   <p className="text-[11px] text-on-dark-soft">{o.user?.email ?? ""}</p>
@@ -313,7 +341,9 @@ export default function AdminOrders() {
                   {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
                 </td>
                 <td className="px-5 py-3.5">
-                  {editTrack === o.id ? (
+                  {!isOnline ? (
+                    <span className="text-xs text-on-dark-soft">—</span>
+                  ) : editTrack === o.id ? (
                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                       <input
                         autoFocus
@@ -353,12 +383,13 @@ export default function AdminOrders() {
                 </td>
                 <td className="px-5 py-3.5 relative">
                   <button
+                    disabled={!isOnline}
                     onClick={e => { e.stopPropagation(); setOpenDrop(openDrop === o.id ? null : o.id); }}
-                    className="flex items-center gap-1 text-xs text-on-dark-soft bg-white/6 hover:bg-white/10 px-2.5 py-1 rounded transition-colors"
+                    className="flex items-center gap-1 text-xs text-on-dark-soft bg-white/6 hover:bg-white/10 px-2.5 py-1 rounded transition-colors disabled:opacity-40 disabled:hover:bg-white/6"
                   >
                     Status <ChevronDown size={11} />
                   </button>
-                  {openDrop === o.id && (
+                  {isOnline && openDrop === o.id && (
                     <div
                       onClick={e => e.stopPropagation()}
                       className="absolute right-4 top-9 z-20 bg-surface-dark-elevated border border-white/12 rounded-lg shadow-xl py-1 min-w-[140px]"
@@ -377,7 +408,8 @@ export default function AdminOrders() {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         )}

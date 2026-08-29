@@ -376,17 +376,30 @@ Four product types, one unified products table with a `type` discriminator:
 
 ## Key DB tables (evolve as schema is built)
 
-- `products` — catalog with type discriminator
+- `products` — catalog with type discriminator; `stock` = on-hand for variant-less products, `inStock` auto-maintained by `lib/inventory.ts`
 - `product_variants` — per-variant stock + price for non-book products
 - `product_images` — Cloudinary URLs per product
-- `orders` — status, Razorpay payment ID, tracking URL
+- `orders` — status, Razorpay payment ID, tracking URL, **`channel`** (`online` | `offline` | `school`)
 - `order_items` — line items (product + variant + qty + price snapshot)
 - `cart_items` — persistent cart for logged-in users
 - `wishlists` — saved products per user
 - `reviews` — rating + text, gated by completed order
 - `coupons` — code, type (% / flat), value, expiry, usage limit
 - `return_requests` — linked to order, status, reason
-- `users` — Neon Auth user ID, ban status, extended profile
+- `users` — Neon Auth user ID, `isAdmin` / `isClerk`, ban status, extended profile
 - `addresses` — saved addresses per user
 - `shipping_zones` — weight + location rules
+- `schools` — book-credit accounts: `creditLimit`, denormalized `balance` (paise)
+- `school_payments` — payments received against a school's balance
+- `stock_movements` — append-only stock audit ledger (every sale/issue/restock/adjustment)
 - `banners` / `popups` — admin-controlled homepage content
+
+### Sales channels
+
+`orders.channel` splits the storefront from the clerk desk:
+
+- **`online`** — storefront checkout (`/checkout` → `/api/orders`). Decrements stock on payment capture (`/api/orders/verify` + Razorpay webhook, idempotent via `stock_movements.uniq_movement_dedup`).
+- **`offline`** — walk-in sales recorded at `/desk` (clerk role). `status = delivered`, no Razorpay.
+- **`school`** — books issued to a school on credit. `status = delivered`, `schoolId` set; raises `schools.balance`. Payments lower it.
+
+**Convention:** every `db.order.*` query **outside `/desk` and `/api/desk/**`** must filter `channel: "online"` — otherwise offline cash and unrealised school credit leak into storefront/admin metrics. Desk lives at `/desk/*` (pages) + `/api/desk/*` (routes), gated by `middleware.ts` + `requireClerk()` (`lib/staff-guard.ts`) for `isClerk || isAdmin`.

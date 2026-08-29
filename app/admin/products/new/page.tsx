@@ -39,6 +39,7 @@ export default function NewProductPage() {
     price: "",
     originalPrice: "",
     inStock: true,
+    stock: "0",
     badge: "",
     author: "",
     isbn: "",
@@ -161,6 +162,7 @@ export default function NewProductPage() {
             ? parseFloat(form.originalPrice)
             : null,
           inStock: form.inStock,
+          stock: variants.length > 0 ? 0 : (parseInt(form.stock) || 0),
           badge: form.badge || null,
           author: form.author || null,
           isbn: form.isbn || null,
@@ -335,6 +337,19 @@ export default function NewProductPage() {
                 <option>ON SALE</option>
               </select>
             </div>
+            {variants.length === 0 && (
+              <div>
+                <label className={labelCls}>Stock (units on hand)</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  value={form.stock}
+                  onChange={(e) => set("stock", e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            )}
             <div className="flex items-center gap-3 pt-5">
               <button
                 type="button"
@@ -345,7 +360,10 @@ export default function NewProductPage() {
                   className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form.inStock ? "translate-x-0.4" : "-translate-x-4"}`}
                 />
               </button>
-              <label className="text-sm text-on-dark">In Stock</label>
+              <label className="text-sm text-on-dark">
+                In Stock
+                {variants.length > 0 && <span className="text-xs text-on-dark-soft ml-1">(per-variant below)</span>}
+              </label>
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Category</label>

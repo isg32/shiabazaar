@@ -6,16 +6,16 @@ import { Upload, AlertCircle, CheckCircle2, Download, FileDown } from "lucide-re
 
 const REQUIRED = ["title", "type", "price"] as const;
 const COLUMNS = [
-  "title","slug","type","price","original_price","in_stock",
+  "title","slug","type","price","original_price","in_stock","stock",
   "badge","category_name","description","author","publisher",
   "language","genre","isbn","edition","page_count",
 ];
 const EXAMPLE_CSV = [
   COLUMNS.join(","),
-  "Nahjul Balagha,nahjul-balagha,book,499,699,true,BESTSELLER,Islamic Books,Sermons and letters of Imam Ali (AS),Imam Ali (AS),Tazeem Publication,English,Fiqh,978-0000000001,3rd,650",
-  "Tafseer e Namoona Vol 1,,book,350,,true,,Islamic Books,Comprehensive Quranic commentary,Ayatollah Makarem Shirazi,Tazeem Publication,Urdu,Tafsir,,1st,480",
-  "Alam Panja Brass,,gift,1200,1500,true,NEW,Gifts,Hand-crafted brass Alam Panja,,,,,,,",
-  "Mashak Small,,gift,850,,true,,Gifts,Traditional mashak for azadari,,,,,,,",
+  "Nahjul Balagha,nahjul-balagha,book,499,699,true,25,BESTSELLER,Islamic Books,Sermons and letters of Imam Ali (AS),Imam Ali (AS),Tazeem Publication,English,Fiqh,978-0000000001,3rd,650",
+  "Tafseer e Namoona Vol 1,,book,350,,true,10,,Islamic Books,Comprehensive Quranic commentary,Ayatollah Makarem Shirazi,Tazeem Publication,Urdu,Tafsir,,1st,480",
+  "Alam Panja Brass,,gift,1200,1500,true,,NEW,Gifts,Hand-crafted brass Alam Panja,,,,,,,",
+  "Mashak Small,,gift,850,,true,,,Gifts,Traditional mashak for azadari,,,,,,,",
 ].join("\n");
 
 type Row = Record<string, string>;
@@ -45,6 +45,7 @@ export default function ImportPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [skipErrors, setSkipErrors] = useState(true);
   const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
+  const [defaultStock, setDefaultStock] = useState("");
   const [progress, setProgress] = useState(0);
   const [total, setTotal] = useState(0);
   const [result, setResult] = useState<{
@@ -91,7 +92,11 @@ export default function ImportPage() {
       const res = await fetch("/api/admin/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: batch, on_duplicate: duplicateMode }),
+        body: JSON.stringify({
+          rows: batch,
+          on_duplicate: duplicateMode,
+          ...(defaultStock.trim() !== "" ? { default_stock: Number(defaultStock) } : {}),
+        }),
       });
       const data = await res.json();
       allCreated += data.created ?? 0;
@@ -189,8 +194,22 @@ export default function ImportPage() {
               </label>
             )}
 
+            {/* Default stock for rows without a `stock` value */}
+            <label className="flex items-center gap-2 text-on-dark-soft ml-auto">
+              <span className="text-xs whitespace-nowrap">Default stock</span>
+              <input
+                type="number"
+                min={0}
+                value={defaultStock}
+                onChange={(e) => setDefaultStock(e.target.value)}
+                placeholder="0"
+                title="Applied to rows whose 'stock' cell is blank"
+                className="w-20 h-7 px-2 text-xs bg-surface-dark border border-white/10 rounded text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
+              />
+            </label>
+
             {/* Duplicate mode */}
-            <div className="flex items-center gap-2 text-on-dark-soft ml-auto">
+            <div className="flex items-center gap-2 text-on-dark-soft">
               <span className="text-xs">If slug exists:</span>
               <div className="flex rounded-md overflow-hidden border border-hairline text-xs">
                 {(["skip", "update"] as const).map((mode) => (

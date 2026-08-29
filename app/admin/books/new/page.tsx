@@ -30,6 +30,7 @@ export default function NewBookPage() {
     price: "",
     originalPrice: "",
     inStock: true,
+    stock: "0",
     badge: "",
     author: "",
     isbn: "",
@@ -156,6 +157,7 @@ export default function NewBookPage() {
             ? parseFloat(form.originalPrice)
             : null,
           inStock: form.inStock,
+          stock: parseInt(form.stock) || 0,
           badge: form.badge || null,
           author: form.author || null,
           isbn: form.isbn || null,
@@ -295,6 +297,17 @@ export default function NewBookPage() {
                 <option>FEATURED</option>
                 <option>ON SALE</option>
               </select>
+            </div>
+            <div>
+              <label className={labelCls}>Stock (units on hand)</label>
+              <input
+                type="number"
+                min={0}
+                className={inputCls}
+                value={form.stock}
+                onChange={(e) => set("stock", e.target.value)}
+                placeholder="0"
+              />
             </div>
             <div className="flex items-center gap-3 pt-5">
               <button

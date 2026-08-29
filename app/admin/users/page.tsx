@@ -8,10 +8,12 @@ interface User {
   name?: string | null;
   email: string;
   banned: boolean;
+  isAdmin: boolean;
+  isClerk: boolean;
   createdAt: string;
 }
 
-const STATUS_TABS = ["All", "Active", "Banned"];
+const STATUS_TABS = ["All", "Active", "Banned", "Staff"];
 
 export default function AdminUsers() {
   const [query,     setQuery]     = useState("");
@@ -27,30 +29,35 @@ export default function AdminUsers() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return users.filter(u =>
-      (statusTab === "All" || (statusTab === "Banned" ? u.banned : !u.banned)) &&
-      (!q || (u.name ?? "").toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-    );
+    return users.filter(u => {
+      const tabOk =
+        statusTab === "All" ? true :
+        statusTab === "Banned" ? u.banned :
+        statusTab === "Staff" ? (u.isAdmin || u.isClerk) :
+        !u.banned; // Active
+      return tabOk && (!q || (u.name ?? "").toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    });
   }, [users, query, statusTab]);
 
-  async function toggleBan(id: string, banned: boolean) {
+  async function patchUser(id: string, patch: Partial<Pick<User, "banned" | "isAdmin" | "isClerk">>) {
     await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ banned }),
+      body: JSON.stringify(patch),
     });
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, banned } : u));
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u));
   }
 
   const active = users.filter(u => !u.banned).length;
   const banned = users.filter(u => u.banned).length;
+  const staff  = users.filter(u => u.isAdmin || u.isClerk).length;
 
   return (
     <div className="px-8 py-8 text-on-dark">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-on-dark">Users</h1>
-          <p className="text-sm text-on-dark-soft mt-0.5">{users.length} registered · {active} active · {banned} banned</p>
+          <p className="text-sm text-on-dark-soft mt-0.5">{users.length} registered · {active} active · {banned} banned · {staff} staff</p>
         </div>
       </div>
 
@@ -88,7 +95,7 @@ export default function AdminUsers() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/8">
-              {["User", "Status", "Joined", "Actions"].map(h => (
+              {["User", "Status", "Roles", "Joined", "Actions"].map(h => (
                 <th key={h} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -96,7 +103,7 @@ export default function AdminUsers() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-5 py-10 text-center text-sm text-on-dark-soft">
+                <td colSpan={5} className="px-5 py-10 text-center text-sm text-on-dark-soft">
                   {users.length === 0 ? "No registered users yet." : "No users match your search."}
                 </td>
               </tr>
@@ -111,12 +118,32 @@ export default function AdminUsers() {
                     {u.banned ? "Banned" : "Active"}
                   </span>
                 </td>
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => patchUser(u.id, { isAdmin: !u.isAdmin })}
+                      className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                        u.isAdmin ? "bg-primary/15 text-primary hover:bg-primary/25" : "bg-white/5 text-on-dark-soft hover:bg-white/10"
+                      }`}
+                    >
+                      Admin
+                    </button>
+                    <button
+                      onClick={() => patchUser(u.id, { isClerk: !u.isClerk })}
+                      className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                        u.isClerk ? "bg-accent-amber/20 text-accent-amber hover:bg-accent-amber/30" : "bg-white/5 text-on-dark-soft hover:bg-white/10"
+                      }`}
+                    >
+                      Clerk
+                    </button>
+                  </div>
+                </td>
                 <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                   {new Date(u.createdAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
                 </td>
                 <td className="px-5 py-3.5">
                   <button
-                    onClick={() => toggleBan(u.id, !u.banned)}
+                    onClick={() => patchUser(u.id, { banned: !u.banned })}
                     className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded font-medium transition-colors ${
                       u.banned
                         ? "bg-success/10 text-success hover:bg-success/20"

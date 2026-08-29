@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-guard";
 
 const COLUMNS = [
-  "title","slug","type","price","original_price","in_stock",
+  "title","slug","type","price","original_price","in_stock","stock",
   "badge","category_name","description","author","publisher",
   "language","genre","isbn","edition","page_count",
 ];
@@ -31,6 +31,7 @@ export async function GET() {
     esc(p.price / 100),
     esc(p.originalPrice ? p.originalPrice / 100 : ""),
     esc(p.inStock),
+    esc(p.stock),
     esc(p.badge ?? ""),
     esc(p.category?.name ?? ""),
     esc(p.description ?? ""),
