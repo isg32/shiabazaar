@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { AlertTriangle, Search, Check, X, Loader2 } from "lucide-react";
 
 type Variant = { id: string; label: string; stock: number };
-type Product = { id: string; title: string; slug: string; type: string; inStock: boolean; variants: Variant[] };
+type Product = { id: string; title: string; slug: string; type: string; inStock: boolean; stock: number; variants: Variant[] };
 
 export default function AdminInventory() {
   const [products,  setProducts]  = useState<Product[]>([]);
@@ -51,6 +51,17 @@ export default function AdminInventory() {
         ? { ...p, variants: p.variants.map(v => v.id === variantId ? { ...v, stock: parseInt(val, 10) || 0 } : v) }
         : p
     ));
+    setEditVar(null);
+  }
+
+  async function saveProductStock(productId: string) {
+    const n = Math.max(0, parseInt(editVal[productId], 10) || 0);
+    await fetch(`/api/admin/products/${productId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stock: n }),
+    });
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: n, inStock: n > 0 } : p));
     setEditVar(null);
   }
 
@@ -137,10 +148,31 @@ export default function AdminInventory() {
                           )
                         ))}
                       </div>
+                    ) : editVar === p.id ? (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          value={editVal[p.id] ?? ""}
+                          onChange={e => setEditVal(prev => ({ ...prev, [p.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === "Enter") saveProductStock(p.id); if (e.key === "Escape") setEditVar(null); }}
+                          className="w-16 h-6 px-1.5 text-xs bg-surface-dark border border-white/20 rounded text-on-dark focus:outline-none focus:border-primary"
+                        />
+                        <button onClick={() => saveProductStock(p.id)} className="w-5 h-5 flex items-center justify-center rounded bg-success/15 text-success hover:bg-success/25">
+                          <Check size={10} />
+                        </button>
+                        <button onClick={() => setEditVar(null)} className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/8 text-on-dark-soft">
+                          <X size={10} />
+                        </button>
+                      </div>
                     ) : (
-                      <span className={`text-xs font-medium ${p.inStock ? "text-success" : "text-error"}`}>
-                        {p.inStock ? "In stock" : "Out of stock"}
-                      </span>
+                      <button
+                        onClick={() => { setEditVar(p.id); setEditVal(prev => ({ ...prev, [p.id]: String(p.stock) })); }}
+                        className={`text-xs hover:text-on-dark transition-colors ${p.stock === 0 ? "text-error" : p.stock <= 3 ? "text-accent-amber" : "text-on-dark-soft"}`}
+                      >
+                        Stock: <strong className="text-on-dark">{p.stock}</strong>
+                      </button>
                     )}
                   </td>
                   <td className="px-5 py-3.5">

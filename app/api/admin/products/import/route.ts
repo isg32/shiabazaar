@@ -18,6 +18,7 @@ type ProductRow = {
   price: string | number;
   original_price?: string | number;
   in_stock?: string | boolean;
+  stock?: string | number;
   badge?: string;
   category_name?: string;
   description?: string;
@@ -31,12 +32,25 @@ type ProductRow = {
   extra_delivery?: string | number;
 };
 
+function parseStock(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = Math.trunc(Number(v));
+  return Number.isFinite(n) ? Math.max(0, n) : undefined;
+}
+
 export async function POST(req: NextRequest) {
   const guard = await requireAdmin();
   if (guard) return guard.error;
 
-  const { rows, on_duplicate = "skip" }: { rows: ProductRow[]; on_duplicate?: "skip" | "update" } =
+  const {
+    rows,
+    on_duplicate = "skip",
+    default_stock,
+  }: { rows: ProductRow[]; on_duplicate?: "skip" | "update"; default_stock?: string | number } =
     await req.json();
+
+  // Batch-wide fallback for rows that don't carry their own `stock` value.
+  const batchStock = parseStock(default_stock);
 
   const categories = await db.category.findMany({ select: { id: true, name: true } });
   const catMap = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
@@ -64,12 +78,18 @@ export async function POST(req: NextRequest) {
         ? (catMap.get(row.category_name.toLowerCase()) ?? null)
         : null;
 
-      const inStock =
-        row.in_stock === true ||
-        row.in_stock === "true" ||
-        row.in_stock === "1" ||
-        row.in_stock === undefined ||
-        row.in_stock === "";
+      // Resolve the on-hand count: row value → batch default → (undefined).
+      const rowStock = parseStock(row.stock);
+      const stock = rowStock ?? batchStock;
+
+      // Keep inStock consistent with the count. An explicit in_stock column
+      // still wins; otherwise it's derived from stock when we have one.
+      const inStockExplicit = row.in_stock !== undefined && row.in_stock !== "";
+      const inStock = inStockExplicit
+        ? row.in_stock === true || row.in_stock === "true" || row.in_stock === "1"
+        : stock !== undefined
+          ? stock > 0
+          : true;
 
       const data = {
         title: row.title.trim(),
@@ -95,8 +115,11 @@ export async function POST(req: NextRequest) {
           // count as skipped — no error, just omitted from created
           continue;
         }
-        // update
-        await db.product.update({ where: { slug: baseSlug }, data });
+        // update — only touch stock when this import actually carried a value
+        await db.product.update({
+          where: { slug: baseSlug },
+          data: stock !== undefined ? { ...data, stock } : data,
+        });
         updated++;
       } else {
         // new product — resolve slug collision from this batch
@@ -105,7 +128,7 @@ export async function POST(req: NextRequest) {
         while (usedSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`;
         usedSlugs.add(slug);
 
-        await db.product.create({ data: { slug, ...data } });
+        await db.product.create({ data: { slug, ...data, stock: stock ?? 0 } });
         created++;
       }
     } catch (err) {

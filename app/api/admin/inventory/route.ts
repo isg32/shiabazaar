@@ -16,6 +16,7 @@ export async function GET() {
       slug: true,
       type: true,
       inStock: true,
+      stock: true,
       variants: { select: { id: true, label: true, stock: true } },
     },
   });

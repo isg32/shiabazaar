@@ -25,6 +25,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data: Record<string, unknown> = { ...body };
   if (body.price !== undefined) data.price = Math.round(body.price * 100);
   if (body.originalPrice !== undefined) data.originalPrice = body.originalPrice ? Math.round(body.originalPrice * 100) : null;
+  if (body.stock !== undefined) {
+    const n = Math.max(0, Math.trunc(Number(body.stock) || 0));
+    data.stock = n;
+    // keep the availability flag consistent unless the caller set it explicitly
+    if (body.inStock === undefined) data.inStock = n > 0;
+  }
 
   try {
     const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });

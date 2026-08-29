@@ -62,6 +62,7 @@ export default function EditProductPage({
     price: "",
     originalPrice: "",
     inStock: true,
+    stock: "0",
     badge: "",
     author: "",
     isbn: "",
@@ -114,6 +115,7 @@ export default function EditProductPage({
             ? String(product.originalPrice / 100)
             : "",
           inStock: product.inStock ?? true,
+          stock: String(product.stock ?? 0),
           badge: product.badge ?? "",
           author: product.author ?? "",
           isbn: product.isbn ?? "",
@@ -285,6 +287,9 @@ export default function EditProductPage({
             ? parseFloat(form.originalPrice)
             : null,
           inStock: form.inStock,
+          ...(existingVariants.length + newVariants.length === 0
+            ? { stock: parseInt(form.stock) || 0 }
+            : {}),
           badge: form.badge || null,
           author: form.author || null,
           isbn: form.isbn || null,
@@ -493,6 +498,19 @@ export default function EditProductPage({
                 <option>ON SALE</option>
               </select>
             </div>
+            {existingVariants.length + newVariants.length === 0 && (
+              <div>
+                <label className={labelCls}>Stock (units on hand)</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  value={form.stock}
+                  onChange={(e) => set("stock", e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            )}
             <div className="flex items-center gap-3 pt-5">
               <button
                 type="button"
@@ -503,7 +521,10 @@ export default function EditProductPage({
                   className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${form.inStock ? "translate-x-0.4" : "-translate-x-4"}`}
                 />
               </button>
-              <label className="text-sm text-on-dark">In Stock</label>
+              <label className="text-sm text-on-dark">
+                In Stock
+                {existingVariants.length + newVariants.length > 0 && <span className="text-xs text-on-dark-soft ml-1">(per-variant below)</span>}
+              </label>
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Category</label>
