@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyWebhookSignature } from "@/lib/razorpay";
+import { decrementStockForPaidOrder, restockForCancelledOrder } from "@/lib/order-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +23,27 @@ export async function POST(req: NextRequest) {
         where: { razorpayOrderId: payment.order_id, status: "pending" },
         data:  { razorpayPaymentId: payment.id, status: "processing" },
       });
+      const order = await db.order.findFirst({
+        where: { razorpayOrderId: payment.order_id },
+        select: { id: true },
+      });
+      if (order) await decrementStockForPaidOrder(order.id);
     }
   }
 
   if (event.event === "payment.failed") {
     const payment = event.payload?.payment?.entity;
     if (payment?.order_id) {
+      const order = await db.order.findFirst({
+        where: { razorpayOrderId: payment.order_id },
+        select: { id: true, status: true },
+      });
       await db.order.updateMany({
         where: { razorpayOrderId: payment.order_id, status: "pending" },
         data:  { status: "cancelled" },
       });
+      // If a prior capture had already decremented stock, put it back.
+      if (order) await restockForCancelledOrder(order.id);
     }
   }
 

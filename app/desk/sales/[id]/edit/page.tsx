@@ -1,0 +1,86 @@
+"use client";
+
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, Loader2 } from "lucide-react";
+import SaleForm, { type SaleLine } from "../../SaleForm";
+
+type ApiItem = {
+  id: string; title: string; qty: number; price: number;
+  productId: string; variantId: string | null;
+  product: {
+    title: string; slug: string; price: number;
+    variants: { id: string; label: string; stock: number; price: number | null }[];
+  } | null;
+};
+type ApiOrder = {
+  id: string; channel: string; status: string; paymentMethod: string | null; notes: string | null;
+  items: ApiItem[];
+};
+
+export default function EditSalePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [order, setOrder] = useState<ApiOrder | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/desk/sales/${id}`)
+      .then((r) => r.json())
+      .then((d) => (d.order ? setOrder(d.order) : setError(d.error ?? "Not found.")));
+  }, [id]);
+
+  if (error) {
+    return <div className="px-8 py-8 text-sm text-error">{error}</div>;
+  }
+  if (!order) {
+    return (
+      <div className="px-8 py-8 flex items-center gap-2 text-on-dark-soft text-sm">
+        <Loader2 size={15} className="animate-spin" /> Loading…
+      </div>
+    );
+  }
+  if (order.status === "cancelled") {
+    return (
+      <div className="px-8 py-8 text-on-dark">
+        <Link href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
+          <ChevronLeft size={13} /> Back to sales
+        </Link>
+        <p className="text-sm text-on-dark-soft">This sale has been cancelled and can no longer be edited.</p>
+      </div>
+    );
+  }
+
+  const initialLines: SaleLine[] = order.items.map((it, i) => ({
+    key: `e${i}`,
+    productId: it.productId,
+    productTitle: it.product?.title ?? it.title,
+    variantId: it.variantId,
+    variants: (it.product?.variants ?? []).map((v) => ({
+      id: v.id, label: v.label, stock: v.stock,
+      price: v.price != null ? v.price / 100 : undefined,
+    })),
+    qty: it.qty,
+    unitPrice: it.price / 100,
+  }));
+
+  const customerMatch = order.notes?.match(/^Customer:\s*(.+?)(?:\s*·\s*(.+?))?$/m);
+
+  return (
+    <div className="px-8 py-8 text-on-dark">
+      <Link href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
+        <ChevronLeft size={13} /> Back to sales
+      </Link>
+      <h1 className="text-2xl font-semibold text-on-dark mb-6">
+        Edit Sale <span className="font-mono text-base text-on-dark-soft">#{order.id.slice(0, 8).toUpperCase()}</span>
+      </h1>
+      <SaleForm
+        mode="edit"
+        orderId={order.id}
+        initialLines={initialLines}
+        initialPaymentMethod={order.paymentMethod ?? "cash"}
+        initialCustomerName={customerMatch?.[1] ?? ""}
+        initialCustomerPhone={customerMatch?.[2] ?? ""}
+      />
+    </div>
+  );
+}

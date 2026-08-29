@@ -24,6 +24,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/desk")) {
+    const { data: session } = await auth.getSession();
+    if (!session?.user) {
+      return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+    }
+    const user = await db.user.findUnique({
+      where:  { email: session.user.email },
+      select: { isAdmin: true, isClerk: true, banned: true },
+    });
+    if (user?.banned || (!user?.isAdmin && !user?.isClerk)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/account")) {
     return accountMiddleware(request);
   }
@@ -32,5 +47,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*"],
+  matcher: ["/admin/:path*", "/desk/:path*", "/account/:path*"],
 };

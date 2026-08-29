@@ -22,13 +22,17 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  // Storefront metrics only — offline sales and school issues live on the clerk desk.
+  const online = { channel: "online" as const };
+
   const [orderCount, productCount, userCount, revenueAgg, recentOrders, topItemsRaw, outOfStock] =
     await Promise.all([
-      db.order.count(),
+      db.order.count({ where: online }),
       db.product.count(),
       db.user.count(),
-      db.order.aggregate({ _sum: { total: true }, where: { status: { not: "cancelled" } } }),
+      db.order.aggregate({ _sum: { total: true }, where: { ...online, status: { not: "cancelled" } } }),
       db.order.findMany({
+        where: online,
         take: 5,
         orderBy: { createdAt: "desc" },
         include: {
@@ -38,6 +42,7 @@ export default async function AdminDashboard() {
       }),
       db.orderItem.groupBy({
         by:        ["productId"],
+        where:     { order: online },
         _sum:      { qty: true },
         orderBy:   { _sum: { qty: "desc" } },
         take:      5,
