@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (guard) return guard.error;
 
   const body = await req.json();
-  const categoryIds = Array.isArray(body.categoryIds) ? body.categoryIds : [];
+  const categoryIds = Array.isArray(body.categoryIds) ? [...new Set(body.categoryIds as string[])] : [];
 
   const product = await db.product.create({
     data: {

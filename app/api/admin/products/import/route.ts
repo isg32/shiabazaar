@@ -74,11 +74,14 @@ export async function POST(req: NextRequest) {
       const type = row.type?.toLowerCase();
       if (!validTypes.includes(type)) throw new Error(`unknown type "${row.type}"`);
 
-      // Parse comma-separated category names
-      const categoryNames = row.category_names?.split(",").map(s => s.trim()).filter(Boolean) ?? [];
-      const categoryIds = categoryNames
-        .map(name => catMap.get(name.toLowerCase()))
-        .filter((id): id is string => id !== undefined);
+      // Parse comma-separated category names. `undefined` (column absent) means
+      // "leave existing category tags alone" — same convention as `stock` below;
+      // an empty string means "clear all tags", same as an explicit "" stock.
+      const categoryNamesProvided = row.category_names !== undefined;
+      const categoryNames = row.category_names?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+      const categoryIds = [...new Set(
+        categoryNames.map((name) => catMap.get(name.toLowerCase())).filter((id): id is string => id !== undefined)
+      )];
 
       // Resolve the on-hand count: row value → batch default → (undefined).
       const rowStock = parseStock(row.stock);
@@ -116,17 +119,23 @@ export async function POST(req: NextRequest) {
           // count as skipped — no error, just omitted from created
           continue;
         }
-        // update — only touch stock when this import actually carried a value
-        await db.product.update({
-          where: { slug: baseSlug },
-          data: stock !== undefined ? { ...data, stock } : data,
-        });
-        if (categoryIds.length > 0) {
-          await db.productCategory.deleteMany({ where: { productId: baseSlug } });
-          await db.productCategory.createMany({
-            data: categoryIds.map(categoryId => ({ productId: baseSlug, categoryId })),
+        // update — only touch stock/categories when this import actually carried a value
+        await db.$transaction(async (tx) => {
+          const p = await tx.product.update({
+            where: { slug: baseSlug },
+            data: stock !== undefined ? { ...data, stock } : data,
+            select: { id: true },
           });
-        }
+          if (categoryNamesProvided) {
+            // p.id, not baseSlug — product_categories.productId is a FK to products.id
+            await tx.productCategory.deleteMany({ where: { productId: p.id } });
+            if (categoryIds.length > 0) {
+              await tx.productCategory.createMany({
+                data: categoryIds.map((categoryId) => ({ productId: p.id, categoryId })),
+              });
+            }
+          }
+        });
         updated++;
       } else {
         // new product — resolve slug collision from this batch

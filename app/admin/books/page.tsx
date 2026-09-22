@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
 type Book = {
   id: string; title: string; slug: string; author: string | null;
   publisher: string | null; price: number; inStock: boolean;
-  category: { name: string } | null;
+  categories: { category: { name: string } }[];
 };
 
 export default function AdminBooks() {
@@ -93,7 +93,7 @@ export default function AdminBooks() {
                       </span>
                     ) : <span className="text-on-dark-soft/40">—</span>}
                   </td>
-                  <td className="px-5 py-3.5 text-on-dark-soft text-xs">{b.category?.name ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-on-dark-soft text-xs">{b.categories?.map((c) => c.category.name).join(", ") || "—"}</td>
                   <td className="px-5 py-3.5 text-on-dark font-mono text-xs">₹{(b.price / 100).toFixed(0)}</td>
                   <td className="px-5 py-3.5">
                     <span className={`text-xs font-medium ${b.inStock ? "text-success" : "text-error"}`}>

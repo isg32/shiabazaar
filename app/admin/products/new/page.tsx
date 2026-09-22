@@ -153,28 +153,28 @@ export default function NewProductPage() {
       const res = await fetch("/api/admin/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-            title: form.title,
-            slug: form.slug,
-            type: form.type,
-            price: parseFloat(form.price),
-            originalPrice: form.originalPrice
-              ? parseFloat(form.originalPrice)
-              : null,
-            inStock: form.inStock,
-            stock: variants.length > 0 ? 0 : (parseInt(form.stock) || 0),
-            badge: form.badge || null,
-            author: form.author || null,
-            isbn: form.isbn || null,
-            publisher: form.publisher || null,
-            language: form.language || null,
-            genre: form.genre || null,
-            pageCount: form.pageCount ? parseInt(form.pageCount) : null,
-            edition: form.edition || null,
-            description: form.description || null,
-            tableOfContents: form.tableOfContents || null,
-            categoryIds: Array.from(categoryIds),
-          }),
+        body: JSON.stringify({
+          title: form.title,
+          slug: form.slug,
+          type: form.type,
+          price: parseFloat(form.price),
+          originalPrice: form.originalPrice
+            ? parseFloat(form.originalPrice)
+            : null,
+          inStock: form.inStock,
+          stock: variants.length > 0 ? 0 : (parseInt(form.stock) || 0),
+          badge: form.badge || null,
+          author: form.author || null,
+          isbn: form.isbn || null,
+          publisher: form.publisher || null,
+          language: form.language || null,
+          genre: form.genre || null,
+          pageCount: form.pageCount ? parseInt(form.pageCount) : null,
+          edition: form.edition || null,
+          description: form.description || null,
+          tableOfContents: form.tableOfContents || null,
+          categoryIds: Array.from(categoryIds),
+        }),
       });
 
       if (!res.ok) {
