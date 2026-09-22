@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Search, Pencil, Trash2, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Filter, Loader2, AlertTriangle, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -9,14 +9,19 @@ interface Product {
   type: string;
   price: number;     // paise
   inStock: boolean;
+  stock: number;     // on-hand for variant-less products
   _count?: { images: number };
   variants: { stock: number }[];
 }
 
+type DeletePreview = { total: number; deletable: number; protected: number; cartItems: number; wishlists: number };
+
+const DELETE_ALL_PHRASE = "DELETE ALL PRODUCTS";
+
 function stockLabel(p: Product) {
   const total = p.variants.length
     ? p.variants.reduce((s, v) => s + v.stock, 0)
-    : p.inStock ? 99 : 0;
+    : p.stock;
   if (total === 0) return { label: "Out of stock", cls: "text-error" };
   if (total <= 3)  return { label: `${total} units`, cls: "text-accent-amber" };
   return             { label: `${total} units`, cls: "text-success" };
@@ -32,6 +37,41 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
+
+  // delete-all modal
+  const [delOpen,    setDelOpen]    = useState(false);
+  const [preview,    setPreview]    = useState<DeletePreview | null>(null);
+  const [phrase,     setPhrase]     = useState("");
+  const [deleting,   setDeleting]   = useState(false);
+  const [delError,   setDelError]   = useState<string | null>(null);
+  const [delResult,  setDelResult]  = useState<{ deleted: number; kept: number } | null>(null);
+
+  async function openDeleteAll() {
+    setDelOpen(true);
+    setPreview(null);
+    setPhrase("");
+    setDelError(null);
+    setDelResult(null);
+    const res = await fetch("/api/admin/products/delete-all");
+    if (!res.ok) { setDelError("Could not load the delete preview."); return; }
+    setPreview(await res.json());
+  }
+
+  async function confirmDeleteAll() {
+    setDeleting(true);
+    setDelError(null);
+    const res = await fetch("/api/admin/products/delete-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: phrase }),
+    });
+    setDeleting(false);
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { setDelError(d.error ?? "Delete failed — nothing was deleted."); return; }
+    setDelResult({ deleted: d.deleted, kept: d.kept });
+    setSelected(new Set());
+    load();
+  }
 
   async function load() {
     setLoading(true);
@@ -95,6 +135,12 @@ export default function AdminProducts() {
               <Trash2 size={14} /> Delete {selected.size}
             </button>
           )}
+          <button
+            onClick={openDeleteAll}
+            className="h-9 px-4 border border-error/40 text-error text-sm font-medium rounded-md flex items-center gap-2 hover:bg-error/10 transition-colors"
+          >
+            <Trash2 size={14} /> Delete all
+          </button>
           <a
             href="/admin/products/new"
             className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors"
@@ -103,6 +149,97 @@ export default function AdminProducts() {
           </a>
         </div>
       </div>
+
+      {/* Delete-all confirmation modal */}
+      {delOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md bg-surface-dark-elevated border border-white/10 rounded-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2 text-error">
+                <AlertTriangle size={18} />
+                <h2 className="text-lg font-semibold">Delete all products</h2>
+              </div>
+              <button onClick={() => setDelOpen(false)} disabled={deleting} className="text-on-dark-soft hover:text-on-dark">
+                <X size={16} />
+              </button>
+            </div>
+
+            {delResult ? (
+              <>
+                <p className="text-sm text-on-dark mb-1">
+                  Deleted <strong>{delResult.deleted}</strong> products.
+                </p>
+                {delResult.kept > 0 && (
+                  <p className="text-sm text-on-dark-soft mb-4">
+                    {delResult.kept} kept because past orders reference them.
+                  </p>
+                )}
+                <button
+                  onClick={() => setDelOpen(false)}
+                  className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-active transition-colors"
+                >
+                  Done
+                </button>
+              </>
+            ) : !preview ? (
+              <div className="flex items-center gap-2 text-on-dark-soft py-6 text-sm">
+                {delError ? <span className="text-error">{delError}</span> : <><Loader2 size={15} className="animate-spin" /> Checking what would be deleted…</>}
+              </div>
+            ) : (
+              <>
+                <div className="text-sm text-on-dark-soft space-y-2 mb-4">
+                  <p>
+                    This permanently deletes <strong className="text-on-dark">{preview.deletable}</strong> of{" "}
+                    <strong className="text-on-dark">{preview.total}</strong> products, along with their images, variants,
+                    homepage featured entries and stock history. It cannot be undone.
+                  </p>
+                  {preview.protected > 0 && (
+                    <p className="text-accent-amber">
+                      {preview.protected} product{preview.protected === 1 ? "" : "s"} appear in past orders and will be
+                      kept so order history stays intact.
+                    </p>
+                  )}
+                  {(preview.cartItems > 0 || preview.wishlists > 0) && (
+                    <p>
+                      Also removes {preview.cartItems} cart item{preview.cartItems === 1 ? "" : "s"} and{" "}
+                      {preview.wishlists} wishlist entr{preview.wishlists === 1 ? "y" : "ies"} that point at them.
+                    </p>
+                  )}
+                  <p>Images already uploaded to Cloudinary are not deleted.</p>
+                </div>
+
+                <label className="block text-xs text-on-dark-soft mb-1.5">
+                  Type <span className="font-mono text-on-dark">{DELETE_ALL_PHRASE}</span> to confirm
+                </label>
+                <input
+                  value={phrase}
+                  onChange={e => setPhrase(e.target.value)}
+                  autoFocus
+                  className="w-full h-9 px-3 mb-3 text-sm font-mono bg-surface-dark border border-white/15 rounded-md text-on-dark focus:outline-none focus:border-error"
+                />
+                {delError && <p className="text-sm text-error mb-3">{delError}</p>}
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setDelOpen(false)}
+                    disabled={deleting}
+                    className="h-9 px-4 text-sm font-medium rounded-md text-on-dark-soft hover:text-on-dark hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteAll}
+                    disabled={phrase !== DELETE_ALL_PHRASE || deleting || preview.deletable === 0}
+                    className="h-9 px-4 bg-error text-white text-sm font-medium rounded-md flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {deleting ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : <><Trash2 size={14} /> Delete {preview.deletable} products</>}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
