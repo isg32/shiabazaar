@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 import Image from "next/image";
 import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
@@ -527,28 +528,8 @@ export default function EditProductPage({
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Categories (click to select multiple)</label>
-              <div className="flex flex-wrap gap-2 p-3 bg-surface-dark-elevated rounded-md border border-white/10 mb-2 min-h-[60px]">
-                {filteredCategories.map(({ node, depth }) => (
-                  <button
-                    key={node.id}
-                    type="button"
-                    onClick={() => {
-                      const s = new Set(categoryIds);
-                      s.has(node.id) ? s.delete(node.id) : s.add(node.id);
-                      setCategoryIds(s);
-                    }}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      categoryIds.has(node.id)
-                        ? "bg-primary text-white"
-                        : "bg-white/10 text-on-dark-soft hover:bg-white/15"
-                    }`}
-                  >
-                    {depth > 0 ? "-".repeat(depth) + " " : ""}
-                    {node.name}
-                  </button>
-                ))}
-              </div>
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
               <div className="flex gap-2 mt-2">
                 <input
                   className={`${inputCls} flex-1`}

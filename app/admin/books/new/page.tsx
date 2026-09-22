@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2, X, Star } from "lucide-react";
+import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 const inputCls =
   "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
@@ -12,7 +14,7 @@ const sectionCls =
   "bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-5";
 
 type ImgPreview = { file: File; url: string; isCover: boolean };
-type NavCategory = { id: string; name: string; slug: string; group: string };
+type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
 
 function slugify(s: string) {
   return s
@@ -111,6 +113,8 @@ export default function NewBookPage() {
     ).then((r) => r.json());
     return { url: data.secure_url, cloudinaryId: data.public_id };
   }
+
+  const filteredCategories = flattenTreeWithDepth(buildCategoryTree(allCategories, "book"));
 
   async function createCategory() {
     if (!newCatName.trim()) return;
@@ -245,27 +249,8 @@ export default function NewBookPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Categories (click to select multiple)</label>
-              <div className="flex flex-wrap gap-2 p-3 bg-surface-dark-elevated rounded-md border border-white/10 mb-2 min-h-[60px]">
-                {allCategories.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      const s = new Set(categoryIds);
-                      s.has(c.id) ? s.delete(c.id) : s.add(c.id);
-                      setCategoryIds(s);
-                    }}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      categoryIds.has(c.id)
-                        ? "bg-primary text-white"
-                        : "bg-white/10 text-on-dark-soft hover:bg-white/15"
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
             </div>
             <div>
               <label className={labelCls}>Price (₹) *</label>
