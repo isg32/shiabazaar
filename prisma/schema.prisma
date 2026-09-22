@@ -137,11 +137,9 @@ model Product {
   featured       HomepageFeatured[]
   popularBooks   HomepagePopularBook[]
   stockMovements StockMovement[]
-  categoryId     String?
-  category       Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categories     ProductCategory[]
 
   @@index([type])
-  @@index([categoryId])
   @@index([createdAt])
   @@index([inStock])
   @@map("products")
@@ -345,13 +343,27 @@ model Category {
   active   Boolean @default(true)
   position Int     @default(0)
 
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children Category[] @relation("CategoryTree")
-  products Product[]
+  parent   Category?         @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Category[]        @relation("CategoryTree")
+  products ProductCategory[]
 
   @@index([parentId])
   @@index([group])
   @@map("categories")
+}
+
+// A product can carry any number of categories (tag-style). Replaces the old
+// single products.categoryId link.
+model ProductCategory {
+  productId  String
+  categoryId String
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
 }
 
 // ── Homepage Content ─────────────────────────────────

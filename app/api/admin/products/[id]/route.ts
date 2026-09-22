@@ -32,8 +32,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.inStock === undefined) data.inStock = n > 0;
   }
 
+  // Handle categoryIds if provided
+  let categoryIds: string[] | undefined;
+  if (Array.isArray(body.categoryIds)) {
+    categoryIds = body.categoryIds;
+    delete data.categoryIds;
+  }
+
   try {
-    const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });
+    if (categoryIds !== undefined) {
+      // Replace all categories
+      await db.productCategory.deleteMany({ where: { productId: id } });
+      await db.productCategory.createMany({
+        data: categoryIds.map(categoryId => ({ productId: id, categoryId })),
+      });
+    }
+
+    const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true, categories: { include: { category: true } } } });
     revalidateTag("products", "max");
     return NextResponse.json({ product });
   } catch (e) {

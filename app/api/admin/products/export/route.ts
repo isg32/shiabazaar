@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 
 const COLUMNS = [
   "title","slug","type","price","original_price","in_stock","stock",
-  "badge","category_name","description","author","publisher",
+  "badge","category_names","description","author","publisher",
   "language","genre","isbn","edition","page_count",
 ];
 
@@ -21,7 +21,7 @@ export async function GET() {
 
   const products = await db.product.findMany({
     orderBy: { createdAt: "desc" },
-    include: { category: { select: { name: true } } },
+    include: { categories: { include: { category: { select: { name: true } } } } },
   });
 
   const rows = products.map((p) => [
@@ -33,7 +33,7 @@ export async function GET() {
     esc(p.inStock),
     esc(p.stock),
     esc(p.badge ?? ""),
-    esc(p.category?.name ?? ""),
+    esc(p.categories?.map((c) => c.category.name).join(", ") ?? ""),
     esc(p.description ?? ""),
     esc(p.author ?? ""),
     esc(p.publisher ?? ""),

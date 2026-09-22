@@ -1,12 +1,12 @@
 import { db } from "./db";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import type { Product as DBProduct, ProductImage, ProductVariant, Category } from "@prisma/client";
+import type { Product as DBProduct, ProductImage, ProductVariant, ProductCategory, Category } from "@prisma/client";
 
 type DBProductFull = DBProduct & {
   images: ProductImage[];
   variants: ProductVariant[];
-  category?: Category | null;
+  categories?: (ProductCategory & { category: Category })[];
 };
 
 export interface ProductUI {
@@ -32,8 +32,8 @@ export interface ProductUI {
   description?: string;
   tableOfContents?: string;
   variants?: { id: string; label: string; stock: number; price?: number }[];
-  categoryId?: string;
-  categoryName?: string;
+  /** every category this product is tagged with */
+  categories?: { id: string; name: string; slug: string }[];
 }
 
 export function toUI(p: DBProductFull): ProductUI {
@@ -67,12 +67,11 @@ export function toUI(p: DBProductFull): ProductUI {
       stock: v.stock,
       price: v.price ? v.price / 100 : undefined,
     })),
-    categoryId: p.categoryId ?? undefined,
-    categoryName: p.category?.name ?? undefined,
+    categories: p.categories?.map((c) => ({ id: c.category.id, name: c.category.name, slug: c.category.slug })),
   };
 }
 
-export const include = { images: true, variants: true, category: true } as const;
+export const include = { images: true, variants: true, categories: { include: { category: true } } } as const;
 
 export const getFeaturedProducts = unstable_cache(
   async (limit = 8): Promise<ProductUI[]> => {
@@ -131,7 +130,7 @@ export const getProducts = unstable_cache(
     const products = await db.product.findMany({
       where: {
         ...(type ? { type: type as DBProduct["type"] } : {}),
-        ...(categoryId ? { categoryId } : {}),
+        ...(categoryId ? { categories: { some: { categoryId } } } : {}),
         ...(publisherContains ? { publisher: { contains: publisherContains, mode: "insensitive" } } : {}),
         ...(publisherNotContains ? { NOT: { publisher: { contains: publisherNotContains, mode: "insensitive" } } } : {}),
       },
@@ -176,7 +175,7 @@ export const getProductsByCategoryId = unstable_cache(
   async (categoryIds: string | string[]): Promise<ProductUI[]> => {
     const ids = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
     const products = await db.product.findMany({
-      where: { categoryId: { in: ids } },
+      where: { categories: { some: { categoryId: { in: ids } } } },
       orderBy: { createdAt: "desc" },
       include,
     });

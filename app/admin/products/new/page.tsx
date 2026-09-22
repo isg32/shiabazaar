@@ -50,8 +50,8 @@ export default function NewProductPage() {
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [variants, setVariants] = useState<Variant[]>([]);
   const [previews, setPreviews] = useState<ImgPreview[]>([]);
   const [saving, setSaving] = useState(false);
@@ -153,28 +153,28 @@ export default function NewProductPage() {
       const res = await fetch("/api/admin/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title,
-          slug: form.slug,
-          type: form.type,
-          price: parseFloat(form.price),
-          originalPrice: form.originalPrice
-            ? parseFloat(form.originalPrice)
-            : null,
-          inStock: form.inStock,
-          stock: variants.length > 0 ? 0 : (parseInt(form.stock) || 0),
-          badge: form.badge || null,
-          author: form.author || null,
-          isbn: form.isbn || null,
-          publisher: form.publisher || null,
-          language: form.language || null,
-          genre: form.genre || null,
-          pageCount: form.pageCount ? parseInt(form.pageCount) : null,
-          edition: form.edition || null,
-          description: form.description || null,
-          tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
-        }),
+body: JSON.stringify({
+            title: form.title,
+            slug: form.slug,
+            type: form.type,
+            price: parseFloat(form.price),
+            originalPrice: form.originalPrice
+              ? parseFloat(form.originalPrice)
+              : null,
+            inStock: form.inStock,
+            stock: variants.length > 0 ? 0 : (parseInt(form.stock) || 0),
+            badge: form.badge || null,
+            author: form.author || null,
+            isbn: form.isbn || null,
+            publisher: form.publisher || null,
+            language: form.language || null,
+            genre: form.genre || null,
+            pageCount: form.pageCount ? parseInt(form.pageCount) : null,
+            edition: form.edition || null,
+            description: form.description || null,
+            tableOfContents: form.tableOfContents || null,
+            categoryIds: Array.from(categoryIds),
+          }),
       });
 
       if (!res.ok) {
@@ -242,7 +242,7 @@ export default function NewProductPage() {
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -366,21 +366,27 @@ export default function NewProductPage() {
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Category</label>
-              <div className="flex gap-2">
-                <select
-                  className={inputCls}
-                  value={form.categoryId}
-                  onChange={(e) => set("categoryId", e.target.value)}
-                >
-                  <option value="">— No category —</option>
-                  {filteredCategories.map(({ node, depth }) => (
-                    <option key={node.id} value={node.id}>
-                      {depth > 0 ? "-".repeat(depth) + " " : ""}
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
+              <label className={labelCls}>Categories (click to select multiple)</label>
+              <div className="flex flex-wrap gap-2 p-3 bg-surface-dark-elevated rounded-md border border-white/10 mb-2 min-h-[60px]">
+                {filteredCategories.map(({ node, depth }) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    onClick={() => {
+                      const s = new Set(categoryIds);
+                      s.has(node.id) ? s.delete(node.id) : s.add(node.id);
+                      setCategoryIds(s);
+                    }}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      categoryIds.has(node.id)
+                        ? "bg-primary text-white"
+                        : "bg-white/10 text-on-dark-soft hover:bg-white/15"
+                    }`}
+                  >
+                    {depth > 0 ? "-".repeat(depth) + " " : ""}
+                    {node.name}
+                  </button>
+                ))}
               </div>
               <div className="flex gap-2 mt-2">
                 <input

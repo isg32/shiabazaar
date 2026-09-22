@@ -57,8 +57,8 @@ export default function EditBookPage({
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [newImages, setNewImages] = useState<NewImage[]>([]);
@@ -108,8 +108,8 @@ export default function EditBookPage({
           edition: product.edition ?? "",
           description: product.description ?? "",
           tableOfContents: product.tableOfContents ?? "",
-          categoryId: product.categoryId ?? "",
         });
+        setCategoryIds(new Set(product.categories?.map((c: { category: { id: string } }) => c.category.id) ?? []));
         setExistingImages(product.images ?? []);
         // Check popular status in parallel
         fetch("/api/admin/popular-books")
@@ -235,7 +235,7 @@ export default function EditBookPage({
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -275,7 +275,7 @@ export default function EditBookPage({
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
       for (const imgId of deletedImages) {
@@ -350,20 +350,28 @@ export default function EditBookPage({
                 required
               />
             </div>
-            <div>
-              <label className={labelCls}>Category</label>
-              <select
-                className={inputCls}
-                value={form.categoryId}
-                onChange={(e) => set("categoryId", e.target.value)}
-              >
-                <option value="">— No category —</option>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Categories (click to select multiple)</label>
+              <div className="flex flex-wrap gap-2 p-3 bg-surface-dark-elevated rounded-md border border-white/10 mb-2 min-h-[60px]">
                 {allCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      const s = new Set(categoryIds);
+                      s.has(c.id) ? s.delete(c.id) : s.add(c.id);
+                      setCategoryIds(s);
+                    }}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      categoryIds.has(c.id)
+                        ? "bg-primary text-white"
+                        : "bg-white/10 text-on-dark-soft hover:bg-white/15"
+                    }`}
+                  >
                     {c.name}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             <div>
               <label className={labelCls}>Price (₹) *</label>

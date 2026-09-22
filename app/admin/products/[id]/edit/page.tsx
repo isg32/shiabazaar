@@ -73,8 +73,8 @@ export default function EditProductPage({
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
   const [newCatName, setNewCatName] = useState("");
   const [creatingCat, setCreatingCat] = useState(false);
@@ -126,8 +126,8 @@ export default function EditProductPage({
           edition: product.edition ?? "",
           description: product.description ?? "",
           tableOfContents: product.tableOfContents ?? "",
-          categoryId: product.categoryId ?? "",
         });
+        setCategoryIds(new Set(product.categories?.map((c: { category: { id: string } }) => c.category.id) ?? []));
         setExistingImages(product.images ?? []);
         setExistingVariants(
           product.variants?.map((v: ExistingVariant) => ({
@@ -300,7 +300,7 @@ export default function EditProductPage({
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
 
@@ -399,7 +399,7 @@ export default function EditProductPage({
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -527,21 +527,27 @@ export default function EditProductPage({
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Category</label>
-              <div className="flex gap-2">
-                <select
-                  className={inputCls}
-                  value={form.categoryId}
-                  onChange={(e) => set("categoryId", e.target.value)}
-                >
-                  <option value="">— No category —</option>
-                  {filteredCategories.map(({ node, depth }) => (
-                    <option key={node.id} value={node.id}>
-                      {depth > 0 ? "-".repeat(depth) + " " : ""}
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
+              <label className={labelCls}>Categories (click to select multiple)</label>
+              <div className="flex flex-wrap gap-2 p-3 bg-surface-dark-elevated rounded-md border border-white/10 mb-2 min-h-[60px]">
+                {filteredCategories.map(({ node, depth }) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    onClick={() => {
+                      const s = new Set(categoryIds);
+                      s.has(node.id) ? s.delete(node.id) : s.add(node.id);
+                      setCategoryIds(s);
+                    }}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      categoryIds.has(node.id)
+                        ? "bg-primary text-white"
+                        : "bg-white/10 text-on-dark-soft hover:bg-white/15"
+                    }`}
+                  >
+                    {depth > 0 ? "-".repeat(depth) + " " : ""}
+                    {node.name}
+                  </button>
+                ))}
               </div>
               <div className="flex gap-2 mt-2">
                 <input

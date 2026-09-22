@@ -20,7 +20,7 @@ type ProductRow = {
   in_stock?: string | boolean;
   stock?: string | number;
   badge?: string;
-  category_name?: string;
+  category_names?: string; // comma-separated category names
   description?: string;
   author?: string;
   publisher?: string;
@@ -74,9 +74,11 @@ export async function POST(req: NextRequest) {
       const type = row.type?.toLowerCase();
       if (!validTypes.includes(type)) throw new Error(`unknown type "${row.type}"`);
 
-      const categoryId = row.category_name
-        ? (catMap.get(row.category_name.toLowerCase()) ?? null)
-        : null;
+      // Parse comma-separated category names
+      const categoryNames = row.category_names?.split(",").map(s => s.trim()).filter(Boolean) ?? [];
+      const categoryIds = categoryNames
+        .map(name => catMap.get(name.toLowerCase()))
+        .filter((id): id is string => id !== undefined);
 
       // Resolve the on-hand count: row value → batch default → (undefined).
       const rowStock = parseStock(row.stock);
@@ -107,7 +109,6 @@ export async function POST(req: NextRequest) {
         edition: row.edition || null,
         pageCount:     row.page_count ? Number(row.page_count) : null,
         extraDelivery: row.extra_delivery ? Math.round(Number(row.extra_delivery) * 100) : 0,
-        categoryId,
       };
 
       if (usedSlugs.has(baseSlug)) {
@@ -120,6 +121,12 @@ export async function POST(req: NextRequest) {
           where: { slug: baseSlug },
           data: stock !== undefined ? { ...data, stock } : data,
         });
+        if (categoryIds.length > 0) {
+          await db.productCategory.deleteMany({ where: { productId: baseSlug } });
+          await db.productCategory.createMany({
+            data: categoryIds.map(categoryId => ({ productId: baseSlug, categoryId })),
+          });
+        }
         updated++;
       } else {
         // new product — resolve slug collision from this batch
@@ -128,7 +135,7 @@ export async function POST(req: NextRequest) {
         while (usedSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`;
         usedSlugs.add(slug);
 
-        await db.product.create({ data: { slug, ...data, stock: stock ?? 0 } });
+        await db.product.create({ data: { slug, ...data, stock: stock ?? 0, categories: { create: categoryIds.map(categoryId => ({ categoryId })) } } });
         created++;
       }
     } catch (err) {
