@@ -7,14 +7,17 @@ import { Upload, AlertCircle, CheckCircle2, Download, FileDown } from "lucide-re
 const REQUIRED = ["title", "type", "price"] as const;
 const COLUMNS = [
   "title","slug","type","price","original_price","in_stock","stock",
-  "badge","category_name","description","author","publisher",
+  "badge","category_names","description","author","publisher",
   "language","genre","isbn","edition","page_count",
 ];
+// category_names accepts more than one tag — quote the cell and separate with
+// commas, e.g. "Islamic Books,Fiqh". Leaving the column blank on an update
+// row leaves that product's existing category tags untouched.
 const EXAMPLE_CSV = [
   COLUMNS.join(","),
-  "Nahjul Balagha,nahjul-balagha,book,499,699,true,25,BESTSELLER,Islamic Books,Sermons and letters of Imam Ali (AS),Imam Ali (AS),Tazeem Publication,English,Fiqh,978-0000000001,3rd,650",
+  'Nahjul Balagha,nahjul-balagha,book,499,699,true,25,BESTSELLER,"Islamic Books,Fiqh",Sermons and letters of Imam Ali (AS),Imam Ali (AS),Tazeem Publication,English,Fiqh,978-0000000001,3rd,650',
   "Tafseer e Namoona Vol 1,,book,350,,true,10,,Islamic Books,Comprehensive Quranic commentary,Ayatollah Makarem Shirazi,Tazeem Publication,Urdu,Tafsir,,1st,480",
-  "Alam Panja Brass,,gift,1200,1500,true,,NEW,Gifts,Hand-crafted brass Alam Panja,,,,,,,",
+  'Alam Panja Brass,,gift,1200,1500,true,,NEW,"Gifts,Brass Items",Hand-crafted brass Alam Panja,,,,,,,',
   "Mashak Small,,gift,850,,true,,,Gifts,Traditional mashak for azadari,,,,,,,",
 ].join("\n");
 
@@ -238,7 +241,7 @@ export default function ImportPage() {
                   <th className="text-left px-3 py-2 font-medium">Title</th>
                   <th className="text-left px-3 py-2 font-medium">Type</th>
                   <th className="text-left px-3 py-2 font-medium">Price</th>
-                  <th className="text-left px-3 py-2 font-medium">Category</th>
+                  <th className="text-left px-3 py-2 font-medium">Categories</th>
                   <th className="text-left px-3 py-2 font-medium">Issues</th>
                 </tr>
               </thead>
@@ -251,7 +254,7 @@ export default function ImportPage() {
                       <td className="px-3 py-2 text-on-dark max-w-[180px] truncate">{row.title}</td>
                       <td className="px-3 py-2 text-on-dark-soft">{row.type}</td>
                       <td className="px-3 py-2 text-on-dark-soft">{row.price}</td>
-                      <td className="px-3 py-2 text-on-dark-soft max-w-[120px] truncate">{row.category_name}</td>
+                      <td className="px-3 py-2 text-on-dark-soft max-w-[120px] truncate">{row.category_names}</td>
                       <td className="px-3 py-2 text-error">{errs.join(", ")}</td>
                     </tr>
                   );

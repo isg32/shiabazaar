@@ -21,6 +21,8 @@ type ProductRow = {
   stock?: string | number;
   badge?: string;
   category_names?: string; // comma-separated category names
+  category_name?: string;  // deprecated alias — the old singular column name, kept so a CSV
+                            // built before the column was renamed still tags correctly on re-import
   description?: string;
   author?: string;
   publisher?: string;
@@ -74,11 +76,15 @@ export async function POST(req: NextRequest) {
       const type = row.type?.toLowerCase();
       if (!validTypes.includes(type)) throw new Error(`unknown type "${row.type}"`);
 
-      // Parse comma-separated category names. `undefined` (column absent) means
-      // "leave existing category tags alone" — same convention as `stock` below;
-      // an empty string means "clear all tags", same as an explicit "" stock.
-      const categoryNamesProvided = row.category_names !== undefined;
-      const categoryNames = row.category_names?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+      // Parse comma-separated category names. `category_name` (singular) is the
+      // deprecated pre-rename column name — accepted so a CSV built before the
+      // rename still tags correctly without having to edit the file first.
+      // `undefined` (both columns absent) means "leave existing category tags
+      // alone" — same convention as `stock` below; an empty string means "clear
+      // all tags", same as an explicit "" stock.
+      const categoryNamesRaw = row.category_names ?? row.category_name;
+      const categoryNamesProvided = categoryNamesRaw !== undefined;
+      const categoryNames = categoryNamesRaw?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
       const categoryIds = [...new Set(
         categoryNames.map((name) => catMap.get(name.toLowerCase())).filter((id): id is string => id !== undefined)
       )];
