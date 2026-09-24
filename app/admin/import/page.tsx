@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import Papa from "papaparse";
 import { Upload, AlertCircle, CheckCircle2, Download, FileDown } from "lucide-react";
+import { buildCategoryTree, flattenTreeWithDepth, type FlatCategory } from "@/lib/category-tree";
 
 const REQUIRED = ["title", "type", "price"] as const;
 const COLUMNS = [
@@ -23,6 +24,20 @@ const EXAMPLE_CSV = [
 
 type Row = Record<string, string>;
 type DuplicateMode = "skip" | "update";
+type CatAction = "auto" | "adjust" | "skip";
+type UnmatchedCat = { name: string; count: number; types: string[] };
+type CatDecision = { action: CatAction; group: string; parentId: string | null };
+
+// A category name in the CSV that isn't type-scoped maps to a group by the
+// product type(s) that reference it — categories only have 3 buckets
+// (book/gift/other) while products have 5 types, so ladies/gents default to
+// "other", matching how the storefront already groups them together there.
+function defaultGroupForType(type: string): string {
+  const t = type.toLowerCase();
+  if (t === "book") return "book";
+  if (t === "gift") return "gift";
+  return "other";
+}
 
 function rowErrors(row: Row): string[] {
   const errs: string[] = [];
@@ -58,6 +73,15 @@ export default function ImportPage() {
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Unmatched-category resolution: null = not checked yet, [] = checked and
+  // clear to import, non-empty = resolution panel is showing.
+  const [allCategories, setAllCategories] = useState<FlatCategory[]>([]);
+  const [unmatched, setUnmatched] = useState<UnmatchedCat[] | null>(null);
+  const [decisions, setDecisions] = useState<Record<string, CatDecision>>({});
+  const [checking, setChecking] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
   const parseFile = useCallback((file: File) => {
     Papa.parse<Row>(file, {
       header: true,
@@ -65,6 +89,9 @@ export default function ImportPage() {
       complete: ({ data }) => {
         setRows(data);
         setStep(2);
+        setUnmatched(null);
+        setDecisions({});
+        setResolveError(null);
       },
     });
   }, []);
@@ -78,6 +105,86 @@ export default function ImportPage() {
   const validRows = rows.filter((r) => rowErrors(r).length === 0);
   const badRows = rows.filter((r) => rowErrors(r).length > 0);
   const rowsToImport = skipErrors ? validRows : rows;
+
+  // Triggered by the "Import" button. First pass: fetch the current category
+  // list and check every category_names/category_name cell against it. If
+  // anything doesn't match, show the resolution panel instead of importing —
+  // nothing is created or imported until the admin decides on each name.
+  async function handleImportClick() {
+    if (unmatched === null) {
+      setChecking(true);
+      setResolveError(null);
+      try {
+        const res = await fetch("/api/admin/categories");
+        const data = await res.json();
+        const cats: FlatCategory[] = data.categories ?? [];
+        setAllCategories(cats);
+
+        const known = new Set(cats.map((c) => c.name.toLowerCase()));
+        const tally = new Map<string, { name: string; count: number; types: Set<string> }>();
+        for (const row of rowsToImport) {
+          const raw = row.category_names ?? row.category_name;
+          if (!raw) continue;
+          for (const name of raw.split(",").map((s) => s.trim()).filter(Boolean)) {
+            const lower = name.toLowerCase();
+            if (known.has(lower)) continue;
+            const entry = tally.get(lower);
+            if (entry) { entry.count++; entry.types.add((row.type || "").toLowerCase()); }
+            else tally.set(lower, { name, count: 1, types: new Set([(row.type || "").toLowerCase()]) });
+          }
+        }
+        const um: UnmatchedCat[] = [...tally.values()].map((v) => ({ name: v.name, count: v.count, types: [...v.types].filter(Boolean) }));
+
+        if (um.length > 0) {
+          const initial: Record<string, CatDecision> = {};
+          for (const u of um) initial[u.name] = { action: "auto", group: defaultGroupForType(u.types[0] ?? "other"), parentId: null };
+          setDecisions(initial);
+          setUnmatched(um);
+          setChecking(false);
+          return;
+        }
+        setUnmatched([]);
+      } finally {
+        setChecking(false);
+      }
+    }
+    await runImport();
+  }
+
+  // Called from the resolution panel's "Continue Import" — creates every
+  // category marked auto/adjust (via the same bulk category importer used on
+  // /admin/categories), then proceeds to the normal product import. Skipped
+  // names are left unmatched for this run, same as today but a deliberate
+  // choice instead of a silent one.
+  async function applyDecisionsAndImport() {
+    setResolving(true);
+    setResolveError(null);
+    const toCreate = (unmatched ?? []).filter((u) => decisions[u.name]?.action !== "skip");
+    if (toCreate.length > 0) {
+      const rows = toCreate.map((u) => {
+        const d = decisions[u.name];
+        const parent = d.parentId ? allCategories.find((c) => c.id === d.parentId) : undefined;
+        return { name: u.name, group: d.group, parent_name: parent?.name };
+      });
+      const res = await fetch("/api/admin/categories/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || (data.errors?.length ?? 0) > 0) {
+        const detail = data.errors?.length
+          ? data.errors.map((e: { name: string; error: string }) => `${e.name} (${e.error})`).join("; ")
+          : "request failed";
+        setResolveError(`Could not create ${data.errors?.length ?? "some"} categor${data.errors?.length === 1 ? "y" : "ies"}: ${detail}`);
+        setResolving(false);
+        return;
+      }
+    }
+    setResolving(false);
+    setUnmatched([]);
+    await runImport();
+  }
 
   async function runImport() {
     setStep(3);
@@ -268,20 +375,122 @@ export default function ImportPage() {
             )}
           </div>
 
+          {/* Unmatched-category resolution — only shown once handleImportClick has
+              found names that don't exist yet. Nothing is created until "Continue Import". */}
+          {unmatched && unmatched.length > 0 && (
+            <div className="border border-accent-amber/40 rounded-lg overflow-hidden">
+              <div className="bg-accent-amber/10 px-4 py-3">
+                <p className="text-sm font-medium text-on-dark flex items-center gap-2">
+                  <AlertCircle size={14} className="text-accent-amber" />
+                  {unmatched.length} categor{unmatched.length === 1 ? "y" : "ies"} in this file{" "}
+                  {unmatched.length === 1 ? "doesn't" : "don't"} exist yet
+                </p>
+                <p className="text-xs text-on-dark-soft mt-1">
+                  Choose what to do with each before importing.
+                </p>
+              </div>
+              <div className="divide-y divide-hairline">
+                {unmatched.map((u) => {
+                  const d = decisions[u.name];
+                  if (!d) return null;
+                  const parentOptions = flattenTreeWithDepth(buildCategoryTree(allCategories, d.group));
+                  return (
+                    <div key={u.name} className="px-4 py-3 flex flex-wrap items-center gap-3">
+                      <div className="min-w-[140px]">
+                        <p className="text-sm text-on-dark font-medium">{u.name}</p>
+                        <p className="text-xs text-on-dark-soft">
+                          {u.count} row{u.count === 1 ? "" : "s"}
+                          {u.types.length > 0 ? ` · ${u.types.join(", ")}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex rounded-md overflow-hidden border border-hairline text-xs shrink-0">
+                        {(["auto", "adjust", "skip"] as const).map((action) => (
+                          <button
+                            key={action}
+                            type="button"
+                            onClick={() => setDecisions((prev) => ({ ...prev, [u.name]: { ...prev[u.name], action } }))}
+                            className={`px-3 py-1.5 font-medium capitalize transition-colors ${
+                              d.action === action ? "bg-primary text-white" : "text-on-dark-soft hover:text-on-dark"
+                            }`}
+                          >
+                            {action === "auto" ? "Auto-create" : action}
+                          </button>
+                        ))}
+                      </div>
+                      {d.action !== "skip" && (
+                        <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                          <select
+                            value={d.group}
+                            onChange={(e) =>
+                              setDecisions((prev) => ({ ...prev, [u.name]: { ...prev[u.name], group: e.target.value, parentId: null } }))
+                            }
+                            className="h-7 px-2 text-xs bg-surface-dark border border-white/10 rounded text-on-dark focus:outline-none focus:border-primary"
+                          >
+                            <option value="book">Books</option>
+                            <option value="gift">Gifts</option>
+                            <option value="other">Other Products</option>
+                          </select>
+                          {d.action === "adjust" && (
+                            <select
+                              value={d.parentId ?? ""}
+                              onChange={(e) =>
+                                setDecisions((prev) => ({ ...prev, [u.name]: { ...prev[u.name], parentId: e.target.value || null } }))
+                              }
+                              className="h-7 px-2 text-xs bg-surface-dark border border-white/10 rounded text-on-dark flex-1 min-w-0 focus:outline-none focus:border-primary"
+                            >
+                              <option value="">— top-level —</option>
+                              {parentOptions.map(({ node, depth }) => (
+                                <option key={node.id} value={node.id}>
+                                  {depth > 0 ? "-".repeat(depth) + " " : ""}
+                                  {node.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {resolveError && <p className="px-4 py-2 text-xs text-error border-t border-hairline">{resolveError}</p>}
+              <div className="px-4 py-3 flex items-center gap-3 bg-surface-dark-elevated">
+                <button
+                  type="button"
+                  onClick={() => { setUnmatched(null); setDecisions({}); setResolveError(null); }}
+                  disabled={resolving}
+                  className="px-3 py-1.5 text-xs border border-hairline rounded-md text-on-dark-soft hover:text-on-dark disabled:opacity-40"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={applyDecisionsAndImport}
+                  disabled={resolving}
+                  className="px-4 py-1.5 text-xs bg-primary text-white rounded-md hover:bg-primary-active disabled:opacity-50"
+                >
+                  {resolving ? "Creating categories…" : "Continue Import"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <button
-              onClick={() => { setRows([]); setStep(1); }}
+              onClick={() => { setRows([]); setStep(1); setUnmatched(null); setDecisions({}); }}
               className="px-4 py-2 text-sm border border-hairline rounded-md text-on-dark-soft hover:text-on-dark"
             >
               Back
             </button>
-            <button
-              onClick={runImport}
-              disabled={rowsToImport.length === 0}
-              className="px-5 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary-active disabled:opacity-40"
-            >
-              Import {rowsToImport.length} rows
-            </button>
+            {!(unmatched && unmatched.length > 0) && (
+              <button
+                onClick={handleImportClick}
+                disabled={rowsToImport.length === 0 || checking}
+                className="px-5 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary-active disabled:opacity-40"
+              >
+                {checking ? "Checking categories…" : `Import ${rowsToImport.length} rows`}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -333,7 +542,7 @@ export default function ImportPage() {
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { setStep(1); setRows([]); setResult(null); }}
+                  onClick={() => { setStep(1); setRows([]); setResult(null); setUnmatched(null); setDecisions({}); }}
                   className="px-4 py-2 text-sm border border-hairline rounded-md text-on-dark-soft hover:text-on-dark"
                 >
                   Import another file
