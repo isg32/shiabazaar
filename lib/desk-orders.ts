@@ -1,7 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { applyStockMovements, movementsFromLines } from "@/lib/inventory";
-import type { SalesChannel } from "@prisma/client";
+import type { BuyerType } from "@prisma/client";
 
 /** User-facing validation failure — routes turn this into a 400. */
 export class DeskOrderError extends Error {}
@@ -22,9 +22,10 @@ export type ResolvedLine = {
   price: number; // paise, snapshot
 };
 
-const REASON_FOR_CHANNEL = {
-  offline: "offline_sale",
+const REASON_FOR_BUYER_TYPE = {
+  individual: "offline_sale",
   school: "school_issue",
+  vendor: "vendor_issue",
 } as const;
 
 /** Validate raw line input against the catalogue and snapshot title + price. */
@@ -75,25 +76,28 @@ export function linesTotal(lines: ResolvedLine[]): number {
 }
 
 type CreateInput = {
-  channel: Extract<SalesChannel, "offline" | "school">;
+  buyerType: BuyerType;
   lines: ResolvedLine[];
   paymentMethod?: string | null;
   schoolId?: string | null;
+  vendorId?: string | null;
   notes?: string | null;
   staffId?: string | null;
 };
 
-/** Create an offline sale or school issue: order + items + stock draw-down (+ school balance). */
+/** Create an offline sale / school issue / vendor issue: order + items + stock draw-down (+ school/vendor balance). */
 export async function createDeskOrder(input: CreateInput): Promise<{ id: string }> {
   const total = linesTotal(input.lines);
 
   const order = await db.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
-        channel: input.channel,
+        channel: "offline",
+        buyerType: input.buyerType,
         status: "delivered",
         userId: null,
-        schoolId: input.schoolId ?? null,
+        schoolId: input.buyerType === "school" ? input.schoolId ?? null : null,
+        vendorId: input.buyerType === "vendor" ? input.vendorId ?? null : null,
         paymentMethod: input.paymentMethod ?? null,
         recordedById: input.staffId ?? null,
         notes: input.notes ?? null,
@@ -118,15 +122,21 @@ export async function createDeskOrder(input: CreateInput): Promise<{ id: string 
       tx,
       movementsFromLines(input.lines, {
         direction: -1,
-        reason: REASON_FOR_CHANNEL[input.channel],
+        reason: REASON_FOR_BUYER_TYPE[input.buyerType],
         refId: created.id,
         userId: input.staffId ?? null,
       }),
     );
 
-    if (input.channel === "school" && input.schoolId) {
+    if (input.buyerType === "school" && input.schoolId) {
       await tx.school.update({
         where: { id: input.schoolId },
+        data: { balance: { increment: total } },
+      });
+    }
+    if (input.buyerType === "vendor" && input.vendorId) {
+      await tx.vendor.update({
+        where: { id: input.vendorId },
         data: { balance: { increment: total } },
       });
     }
@@ -154,7 +164,7 @@ export async function updateDeskOrder(input: UpdateInput): Promise<void> {
     const existing = await tx.order.findUnique({
       where: { id: input.id },
       select: {
-        channel: true, status: true, total: true, schoolId: true,
+        channel: true, buyerType: true, status: true, total: true, schoolId: true, vendorId: true,
         items: { select: { productId: true, variantId: true, qty: true } },
       },
     });
@@ -199,11 +209,17 @@ export async function updateDeskOrder(input: UpdateInput): Promise<void> {
       },
     });
 
-    if (existing.channel === "school" && existing.schoolId) {
-      const delta = newTotal - existing.total;
-      if (delta !== 0) {
+    const delta = newTotal - existing.total;
+    if (delta !== 0) {
+      if (existing.buyerType === "school" && existing.schoolId) {
         await tx.school.update({
           where: { id: existing.schoolId },
+          data: { balance: { increment: delta } },
+        });
+      }
+      if (existing.buyerType === "vendor" && existing.vendorId) {
+        await tx.vendor.update({
+          where: { id: existing.vendorId },
           data: { balance: { increment: delta } },
         });
       }
@@ -219,7 +235,7 @@ export async function cancelDeskOrder(id: string, staffId?: string | null): Prom
     const existing = await tx.order.findUnique({
       where: { id },
       select: {
-        channel: true, status: true, total: true, schoolId: true,
+        channel: true, buyerType: true, status: true, total: true, schoolId: true, vendorId: true,
         items: { select: { productId: true, variantId: true, qty: true } },
       },
     });
@@ -237,9 +253,15 @@ export async function cancelDeskOrder(id: string, staffId?: string | null): Prom
 
     await tx.order.update({ where: { id }, data: { status: "cancelled" } });
 
-    if (existing.channel === "school" && existing.schoolId) {
+    if (existing.buyerType === "school" && existing.schoolId) {
       await tx.school.update({
         where: { id: existing.schoolId },
+        data: { balance: { decrement: existing.total } },
+      });
+    }
+    if (existing.buyerType === "vendor" && existing.vendorId) {
+      await tx.vendor.update({
+        where: { id: existing.vendorId },
         data: { balance: { decrement: existing.total } },
       });
     }

@@ -32,9 +32,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         },
       },
       school: { select: { id: true, name: true } },
+      vendor: { select: { id: true, name: true } },
     },
   });
-  if (!order || (order.channel !== "offline" && order.channel !== "school")) {
+  if (!order || order.channel !== "offline") {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   return NextResponse.json({ order });

@@ -15,7 +15,7 @@ export async function GET() {
   if (guard) return guard.error;
 
   const orders = await db.order.findMany({
-    where: { channel: "offline" },
+    where: { channel: "offline", buyerType: "individual" },
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       .join("\n") || null;
 
     const order = await createDeskOrder({
-      channel: "offline",
+      buyerType: "individual",
       lines,
       paymentMethod: optionalString(body.paymentMethod),
       notes,

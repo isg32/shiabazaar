@@ -17,9 +17,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const staff = await getStaffUser();
   const { id } = await params;
 
-  const school = await db.school.findUnique({ where: { id } });
-  if (!school) return NextResponse.json({ error: "School not found." }, { status: 404 });
-  if (!school.active) return NextResponse.json({ error: "This school is inactive." }, { status: 400 });
+  const vendor = await db.vendor.findUnique({ where: { id } });
+  if (!vendor) return NextResponse.json({ error: "Vendor not found." }, { status: 404 });
+  if (!vendor.active) return NextResponse.json({ error: "This vendor is inactive." }, { status: 400 });
 
   try {
     const body = await req.json();
@@ -27,16 +27,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const total = linesTotal(lines);
 
     if (
-      school.creditLimit > 0 &&
-      school.balance + total > school.creditLimit &&
+      vendor.creditLimit > 0 &&
+      vendor.balance + total > vendor.creditLimit &&
       body.override !== true
     ) {
       return NextResponse.json(
         {
           error: "Credit limit exceeded",
           code: "CREDIT_LIMIT",
-          balance: school.balance,
-          creditLimit: school.creditLimit,
+          balance: vendor.balance,
+          creditLimit: vendor.creditLimit,
           issueTotal: total,
         },
         { status: 400 },
@@ -44,9 +44,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const order = await createDeskOrder({
-      buyerType: "school",
+      buyerType: "vendor",
       lines,
-      schoolId: id,
+      vendorId: id,
       notes: optionalString(body.note),
       staffId: staff?.id ?? null,
     });

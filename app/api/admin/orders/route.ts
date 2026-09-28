@@ -8,7 +8,13 @@ export async function GET() {
 
   const orders = await db.order.findMany({
     orderBy: { createdAt: "desc" },
-    include: { items: { include: { product: true } }, user: true, address: true },
+    include: {
+      items: { include: { product: true } },
+      user: true,
+      address: true,
+      school: { select: { name: true } },
+      vendor: { select: { name: true } },
+    },
   });
   return NextResponse.json({ orders });
 }

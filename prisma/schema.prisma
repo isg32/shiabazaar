@@ -41,6 +41,14 @@ enum ReturnStatus {
 enum SalesChannel {
   online
   offline
+}
+
+// Who the buyer was — independent of `channel` (which is purely Website vs
+// Physical Store). Today online orders are always `individual`; vendor/school
+// transactions are always recorded offline via the clerk desk.
+enum BuyerType {
+  individual
+  vendor
   school
 }
 
@@ -48,6 +56,7 @@ enum StockReason {
   online_sale
   offline_sale
   school_issue
+  vendor_issue
   restock
   adjustment
   cancellation
@@ -73,6 +82,7 @@ model User {
   reviews        Review[]
   stockMovements StockMovement[]
   schoolPayments SchoolPayment[]
+  vendorPayments VendorPayment[]
 
   @@map("users")
 }
@@ -186,10 +196,12 @@ model Order {
   id                String       @id @default(cuid())
   userId            String? // null = guest
   addressId         String?
-  channel           SalesChannel @default(online) // online = storefront; offline/school = clerk desk
-  paymentMethod     String? // offline/school only: cash | upi | card | bank_transfer | cheque | split
-  schoolId          String? // set when channel = school
-  recordedById      String? // staff User.id who logged an offline/school entry — audit stamp, no FK
+  channel           SalesChannel @default(online) // online = storefront; offline = clerk desk (walk-in, school, or vendor)
+  buyerType         BuyerType    @default(individual) // who bought — independent of channel
+  paymentMethod     String? // offline only: cash | upi | card | bank_transfer | cheque | split
+  schoolId          String? // set when buyerType = school
+  vendorId          String? // set when buyerType = vendor
+  recordedById      String? // staff User.id who logged an offline entry — audit stamp, no FK
   status            OrderStatus  @default(pending)
   subtotal          Int // paise
   discountAmount    Int          @default(0)
@@ -207,12 +219,15 @@ model Order {
   user           User?           @relation(fields: [userId], references: [id])
   address        Address?        @relation(fields: [addressId], references: [id])
   school         School?         @relation(fields: [schoolId], references: [id])
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id])
   items          OrderItem[]
   returnRequests ReturnRequest[]
 
   @@index([userId])
   @@index([channel])
+  @@index([buyerType])
   @@index([schoolId])
+  @@index([vendorId])
   @@map("orders")
 }
 
@@ -457,6 +472,49 @@ model SchoolPayment {
 
   @@index([schoolId])
   @@map("school_payments")
+}
+
+// ── Vendor Book-Credit (clerk desk) ───────────────────
+// Mirrors School exactly — a second, independent credit-based buyer type.
+
+model Vendor {
+  id          String   @id @default(cuid())
+  name        String
+  code        String?  @unique
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  creditLimit Int      @default(0) // paise; 0 = no limit
+  balance     Int      @default(0) // paise; denormalized outstanding = Σ(issues) − Σ(payments)
+  active      Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders   Order[]
+  payments VendorPayment[]
+
+  @@index([active])
+  @@map("vendors")
+}
+
+model VendorPayment {
+  id           String   @id @default(cuid())
+  vendorId     String
+  amount       Int // paise, positive
+  method       String // cash | upi | card | bank_transfer | cheque
+  reference    String?
+  note         String?
+  receivedAt   DateTime @default(now())
+  recordedById String?
+  createdAt    DateTime @default(now())
+
+  vendor     Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  recordedBy User?  @relation(fields: [recordedById], references: [id])
+
+  @@index([vendorId])
+  @@map("vendor_payments")
 }
 
 // ── Stock Movement ledger (append-only) ──────────────
