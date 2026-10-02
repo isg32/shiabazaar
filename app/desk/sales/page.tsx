@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Loader2, Plus, Pencil, Ban } from "lucide-react";
+import { Search, Loader2, Plus, Pencil, Ban, Undo2 } from "lucide-react";
 
 type Item = { id: string; title: string; qty: number; price: number };
 type Sale = {
@@ -13,6 +13,8 @@ type Sale = {
   notes: string | null;
   createdAt: string;
   items: Item[];
+  payments: { method: string; amount: number }[];
+  returns: { amount: number }[];
 };
 
 export default function DeskSales() {
@@ -96,6 +98,10 @@ export default function DeskSales() {
               ) : filtered.map((s, i) => {
                 const cancelled = s.status === "cancelled";
                 const count = s.items.reduce((n, it) => n + it.qty, 0);
+                const returned = s.returns.reduce((n, r) => n + r.amount, 0);
+                const payment = s.payments.length > 1
+                  ? s.payments.map((p) => `${p.method.replace(/_/g, " ")} ₹${(p.amount / 100).toFixed(0)}`).join(" + ")
+                  : (s.paymentMethod ?? "—").replace(/_/g, " ");
                 return (
                   <tr key={s.id} className={`hover:bg-white/3 transition-colors ${i < filtered.length - 1 ? "border-b border-white/8" : ""} ${cancelled ? "opacity-50" : ""}`}>
                     <td className="px-5 py-3.5 font-mono text-xs text-on-dark-soft">#{s.id.slice(0, 8).toUpperCase()}</td>
@@ -103,8 +109,11 @@ export default function DeskSales() {
                       <span className="text-on-dark">{count}</span>
                       <span className="text-on-dark-soft/70"> · {s.items[0]?.title ?? "—"}{s.items.length > 1 ? ` +${s.items.length - 1}` : ""}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-on-dark-soft capitalize">{(s.paymentMethod ?? "—").replace(/_/g, " ")}</td>
-                    <td className={`px-5 py-3.5 font-medium ${cancelled ? "line-through text-on-dark-soft" : "text-on-dark"}`}>₹{(s.total / 100).toFixed(0)}</td>
+                    <td className="px-5 py-3.5 text-xs text-on-dark-soft capitalize">{payment}</td>
+                    <td className={`px-5 py-3.5 font-medium ${cancelled ? "line-through text-on-dark-soft" : "text-on-dark"}`}>
+                      ₹{(s.total / 100).toFixed(0)}
+                      {returned > 0 && <span className="block text-[11px] font-normal text-accent-amber">₹{(returned / 100).toFixed(0)} returned</span>}
+                    </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                       {new Date(s.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
@@ -113,14 +122,22 @@ export default function DeskSales() {
                         <span className="text-[11px] text-error font-medium">Cancelled</span>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <Link href={`/desk/sales/${s.id}/edit`}
-                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-white/5 text-on-dark-soft hover:bg-white/10 transition-colors">
-                            <Pencil size={11} /> Edit
+                          {s.returns.length === 0 && (
+                            <Link href={`/desk/sales/${s.id}/edit`}
+                              className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-white/5 text-on-dark-soft hover:bg-white/10 transition-colors">
+                              <Pencil size={11} /> Edit
+                            </Link>
+                          )}
+                          <Link href={`/desk/sales/${s.id}/return`}
+                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                            <Undo2 size={11} /> Return
                           </Link>
-                          <button onClick={() => cancel(s.id)} disabled={busy === s.id}
-                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors disabled:opacity-50">
-                            <Ban size={11} /> Cancel
-                          </button>
+                          {s.returns.length === 0 && (
+                            <button onClick={() => cancel(s.id)} disabled={busy === s.id}
+                              className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-error/10 text-error hover:bg-error/20 transition-colors disabled:opacity-50">
+                              <Ban size={11} /> Cancel
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireClerk } from "@/lib/staff-guard";
+import { requireClerk, getStaffUser } from "@/lib/staff-guard";
 import { optionalString, paymentTerms } from "@/lib/desk-orders";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       where: { vendorId: id, buyerType: "vendor" },
       orderBy: { createdAt: "desc" },
       include: {
-        items: { select: { id: true, title: true, qty: true, price: true } },
-        returns: { select: { amount: true } },
+        items: { select: { id: true, title: true, qty: true, price: true, mrp: true, returnLines: { select: { qty: true } } } },
+        payments: { select: { method: true, amount: true } },
+        returns: { select: { id: true, amount: true, note: true, createdAt: true } },
       },
     }),
     db.vendor.findUnique({ where: { id } }).payments({ orderBy: { receivedAt: "desc" } }),
@@ -37,7 +38,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     vendor.balance = balance;
   }
 
-  return NextResponse.json({ vendor, orders, payments: payments ?? [] });
+  const [staff, settings] = await Promise.all([getStaffUser(), db.businessSettings.findUnique({ where: { id: 1 } })]);
+  return NextResponse.json({
+    vendor,
+    orders,
+    payments: payments ?? [],
+    viewer: { isAdmin: !!staff?.isAdmin },
+    defaultPaymentTermsDays: settings?.paymentTermsDays ?? 30,
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

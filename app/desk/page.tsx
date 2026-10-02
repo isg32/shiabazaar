@@ -33,8 +33,9 @@ export default async function DeskDashboard() {
       db.order.aggregate({ _sum: { total: true }, _count: true, where: { channel: "online", ...notCancelled, createdAt: { gte: start } } }),
       db.order.aggregate({ _sum: { total: true }, _count: true, where: { buyerType: "school", ...notCancelled, createdAt: { gte: start } } }),
       db.order.aggregate({ _sum: { total: true }, _count: true, where: { buyerType: "vendor", ...notCancelled, createdAt: { gte: start } } }),
-      db.school.aggregate({ _sum: { balance: true }, where: { active: true } }),
-      db.vendor.aggregate({ _sum: { balance: true }, where: { active: true } }),
+      // Only money owed counts as outstanding; advance credit (negative balance) is a liability, not a receivable.
+      db.school.aggregate({ _sum: { balance: true }, where: { active: true, balance: { gt: 0 } } }),
+      db.vendor.aggregate({ _sum: { balance: true }, where: { active: true, balance: { gt: 0 } } }),
       db.product.findMany({
         where: {
           OR: [

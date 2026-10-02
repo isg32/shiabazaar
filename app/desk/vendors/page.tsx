@@ -48,7 +48,7 @@ export default function DeskVendors() {
     );
   }, [vendors, query]);
 
-  const totalOutstanding = vendors.filter((v) => v.active).reduce((sum, v) => sum + v.balance, 0);
+  const totalOutstanding = vendors.filter((v) => v.active).reduce((sum, v) => sum + Math.max(v.balance, 0), 0);
 
   async function create() {
     setError(null);
@@ -169,8 +169,8 @@ export default function DeskVendors() {
                       {v.contactName ?? "—"}{v.phone ? ` · ${v.phone}` : ""}
                       {(v.city || v.state) && <p className="text-[11px] text-on-dark-soft/70">{[v.city, v.state].filter(Boolean).join(", ")}</p>}
                     </td>
-                    <td className={`px-5 py-3.5 font-medium ${v.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
-                      ₹{(v.balance / 100).toFixed(0)}
+                    <td className={`px-5 py-3.5 font-medium ${v.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : v.balance < 0 ? "text-success" : "text-on-dark-soft"}`}>
+                      {v.balance < 0 ? `₹${(-v.balance / 100).toFixed(0)} advance` : `₹${(v.balance / 100).toFixed(0)}`}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                       {v.creditLimit > 0 ? `₹${(v.creditLimit / 100).toFixed(0)}` : "none"}
