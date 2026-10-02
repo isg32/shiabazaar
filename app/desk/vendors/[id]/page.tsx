@@ -8,7 +8,7 @@ import LineEditor, { type SaleLine } from "../../sales/LineEditor";
 type OrderItem = { id: string; title: string; qty: number; price: number };
 type Order = { id: string; status: string; total: number; createdAt: string; notes: string | null; items: OrderItem[] };
 type Payment = { id: string; amount: number; method: string; reference: string | null; note: string | null; receivedAt: string };
-type School = {
+type Vendor = {
   id: string; name: string; code: string | null; contactName: string | null;
   phone: string | null; email: string | null; address: string | null;
   city: string | null; state: string | null; paymentTermsDays: number | null;
@@ -22,16 +22,16 @@ type LedgerRow =
 const PAYMENT_METHODS = ["cash", "upi", "card", "bank_transfer", "cheque"];
 const rupees = (paise: number) => `₹${(paise / 100).toFixed(0)}`;
 
-export default function SchoolDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [data, setData] = useState<{ school: School; orders: Order[]; payments: Payment[] } | null>(null);
+  const [data, setData] = useState<{ vendor: Vendor; orders: Order[]; payments: Payment[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<"issue" | "payment" | "details" | null>(null);
 
   const load = useCallback(() => {
-    fetch(`/api/desk/schools/${id}`)
+    fetch(`/api/desk/vendors/${id}`)
       .then((r) => r.json())
-      .then((d) => (d.school ? setData(d) : setErr(d.error ?? "Not found.")));
+      .then((d) => (d.vendor ? setData(d) : setErr(d.error ?? "Not found.")));
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
@@ -40,7 +40,7 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
     const raw = [
       ...data.orders.map((o) => ({
         kind: "issue" as const, id: o.id, date: o.createdAt, cancelled: o.status === "cancelled",
-        label: `Books issued — ${o.items[0]?.title ?? "—"}${o.items.length > 1 ? ` +${o.items.length - 1}` : ""}`,
+        label: `Goods issued — ${o.items[0]?.title ?? "—"}${o.items.length > 1 ? ` +${o.items.length - 1}` : ""}`,
         amount: o.total,
       })),
       ...data.payments.map((p) => ({
@@ -63,23 +63,23 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
   }, [data]);
 
   async function cancelIssue(orderId: string) {
-    if (!confirm("Cancel this issue? Books go back to stock and the balance is reduced.")) return;
+    if (!confirm("Cancel this issue? Stock goes back and the balance is reduced.")) return;
     const res = await fetch(`/api/desk/sales/${orderId}`, { method: "DELETE" });
     if (!res.ok) { alert((await res.json().catch(() => ({}))).error ?? "Failed."); return; }
     load();
   }
   async function deletePayment(paymentId: string) {
     if (!confirm("Delete this payment? The balance will go back up.")) return;
-    const res = await fetch(`/api/desk/schools/${id}/payments/${paymentId}`, { method: "DELETE" });
+    const res = await fetch(`/api/desk/vendors/${id}/payments/${paymentId}`, { method: "DELETE" });
     if (!res.ok) { alert((await res.json().catch(() => ({}))).error ?? "Failed."); return; }
     load();
   }
   async function toggleActive() {
     if (!data) return;
-    await fetch(`/api/desk/schools/${id}`, {
+    await fetch(`/api/desk/vendors/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ active: !data.school.active }),
+      body: JSON.stringify({ active: !data.vendor.active }),
     });
     load();
   }
@@ -89,42 +89,42 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
     return <div className="px-8 py-8 flex items-center gap-2 text-on-dark-soft text-sm"><Loader2 size={15} className="animate-spin" /> Loading…</div>;
   }
 
-  const { school } = data;
-  const overLimit = school.creditLimit > 0 && school.balance >= school.creditLimit;
+  const { vendor } = data;
+  const overLimit = vendor.creditLimit > 0 && vendor.balance >= vendor.creditLimit;
 
   return (
     <div className="px-8 py-8 text-on-dark">
-      <Link href="/desk/schools" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
-        <ChevronLeft size={13} /> Back to schools
+      <Link href="/desk/vendors" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
+        <ChevronLeft size={13} /> Back to vendors
       </Link>
 
       {/* Header */}
       <div className="bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-6">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-semibold text-on-dark">{school.name}</h1>
+            <h1 className="text-2xl font-semibold text-on-dark">{vendor.name}</h1>
             <p className="text-sm text-on-dark-soft mt-1">
-              {[school.code, school.contactName, school.phone, school.email].filter(Boolean).join(" · ") || "No contact details"}
+              {[vendor.code, vendor.contactName, vendor.phone, vendor.email].filter(Boolean).join(" · ") || "No contact details"}
             </p>
-            {(school.address || school.city || school.state) && (
+            {(vendor.address || vendor.city || vendor.state) && (
               <p className="text-xs text-on-dark-soft/70 mt-1">
-                {[school.address, school.city, school.state].filter(Boolean).join(", ")}
+                {[vendor.address, vendor.city, vendor.state].filter(Boolean).join(", ")}
               </p>
             )}
             <p className="text-xs text-on-dark-soft/70 mt-1">
-              Payment terms: {school.paymentTermsDays != null ? `${school.paymentTermsDays} days` : "default"}
+              Payment terms: {vendor.paymentTermsDays != null ? `${vendor.paymentTermsDays} days` : "default"}
             </p>
           </div>
           <div className="text-right shrink-0">
             <p className="text-[11px] uppercase tracking-wide text-on-dark-soft">Outstanding</p>
-            <p className={`text-3xl font-semibold ${school.balance > 0 ? (overLimit ? "text-error" : "text-accent-amber") : "text-success"}`}>
-              {rupees(school.balance)}
+            <p className={`text-3xl font-semibold ${vendor.balance > 0 ? (overLimit ? "text-error" : "text-accent-amber") : "text-success"}`}>
+              {rupees(vendor.balance)}
             </p>
             <p className="text-xs text-on-dark-soft mt-0.5">
-              {school.creditLimit > 0 ? `Limit ${rupees(school.creditLimit)}` : "No credit limit"}
+              {vendor.creditLimit > 0 ? `Limit ${rupees(vendor.creditLimit)}` : "No credit limit"}
             </p>
             <button onClick={toggleActive} className="text-[11px] text-primary hover:text-primary-active mt-2">
-              {school.active ? "Deactivate" : "Reactivate"}
+              {vendor.active ? "Deactivate" : "Reactivate"}
             </button>
           </div>
         </div>
@@ -150,9 +150,9 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
           </button>
         </div>
 
-        {tab === "issue" && <IssueForm schoolId={id} onDone={() => { setTab(null); load(); }} />}
-        {tab === "payment" && <PaymentForm schoolId={id} onDone={() => { setTab(null); load(); }} />}
-        {tab === "details" && <DetailsForm school={school} onDone={() => { setTab(null); load(); }} />}
+        {tab === "issue" && <IssueForm vendorId={id} onDone={() => { setTab(null); load(); }} />}
+        {tab === "payment" && <PaymentForm vendorId={id} onDone={() => { setTab(null); load(); }} />}
+        {tab === "details" && <DetailsForm vendor={vendor} onDone={() => { setTab(null); load(); }} />}
       </div>
 
       {/* Ledger */}
@@ -205,7 +205,7 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
   );
 }
 
-function IssueForm({ schoolId, onDone }: { schoolId: string; onDone: () => void }) {
+function IssueForm({ vendorId, onDone }: { vendorId: string; onDone: () => void }) {
   const [lines, setLines] = useState<SaleLine[]>([]);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -215,7 +215,7 @@ function IssueForm({ schoolId, onDone }: { schoolId: string; onDone: () => void 
     setError(null);
     if (lines.length === 0) { setError("Add at least one item."); return; }
     setSaving(true);
-    const res = await fetch(`/api/desk/schools/${schoolId}/issues`, {
+    const res = await fetch(`/api/desk/vendors/${vendorId}/issues`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -260,7 +260,7 @@ function IssueForm({ schoolId, onDone }: { schoolId: string; onDone: () => void 
   );
 }
 
-function PaymentForm({ schoolId, onDone }: { schoolId: string; onDone: () => void }) {
+function PaymentForm({ vendorId, onDone }: { vendorId: string; onDone: () => void }) {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [reference, setReference] = useState("");
@@ -273,7 +273,7 @@ function PaymentForm({ schoolId, onDone }: { schoolId: string; onDone: () => voi
     setError(null);
     if (!amount || Number(amount) <= 0) { setError("Enter an amount greater than zero."); return; }
     setSaving(true);
-    const res = await fetch(`/api/desk/schools/${schoolId}/payments`, {
+    const res = await fetch(`/api/desk/vendors/${vendorId}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount: Number(amount), method, reference, note, receivedAt }),
@@ -339,18 +339,18 @@ const DETAIL_FIELDS = [
   ["notes", "Notes", "text"],
 ] as const;
 
-function DetailsForm({ school, onDone }: { school: School; onDone: () => void }) {
+function DetailsForm({ vendor, onDone }: { vendor: Vendor; onDone: () => void }) {
   const [form, setForm] = useState<Record<string, string>>(() => ({
-    name: school.name,
-    contactName: school.contactName ?? "",
-    phone: school.phone ?? "",
-    email: school.email ?? "",
-    address: school.address ?? "",
-    city: school.city ?? "",
-    state: school.state ?? "",
-    creditLimit: school.creditLimit ? String(school.creditLimit / 100) : "0",
-    paymentTermsDays: school.paymentTermsDays != null ? String(school.paymentTermsDays) : "",
-    notes: school.notes ?? "",
+    name: vendor.name,
+    contactName: vendor.contactName ?? "",
+    phone: vendor.phone ?? "",
+    email: vendor.email ?? "",
+    address: vendor.address ?? "",
+    city: vendor.city ?? "",
+    state: vendor.state ?? "",
+    creditLimit: vendor.creditLimit ? String(vendor.creditLimit / 100) : "0",
+    paymentTermsDays: vendor.paymentTermsDays != null ? String(vendor.paymentTermsDays) : "",
+    notes: vendor.notes ?? "",
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -359,7 +359,7 @@ function DetailsForm({ school, onDone }: { school: School; onDone: () => void })
     setError(null);
     if (!form.name.trim()) { setError("Name is required."); return; }
     setSaving(true);
-    const res = await fetch(`/api/desk/schools/${school.id}`, {
+    const res = await fetch(`/api/desk/vendors/${vendor.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
@@ -372,7 +372,7 @@ function DetailsForm({ school, onDone }: { school: School; onDone: () => void })
   return (
     <div className="mt-5 pt-5 border-t border-white/8">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-on-dark-soft mb-3">
-        Edit details <span className="normal-case tracking-normal font-normal">· code {school.code ?? "—"} (fixed)</span>
+        Edit details <span className="normal-case tracking-normal font-normal">· code {vendor.code ?? "—"} (fixed)</span>
       </h3>
       <div className="grid sm:grid-cols-3 gap-3 mb-4">
         {DETAIL_FIELDS.map(([field, label, type]) => (

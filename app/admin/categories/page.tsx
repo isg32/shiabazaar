@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Trash2, Loader2, Plus, ChevronRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import Papa from "papaparse";
+import { Trash2, Loader2, Plus, ChevronRight, Upload, Download } from "lucide-react";
 import { buildCategoryTree, getDescendantIds, countDescendants, type CategoryNode } from "@/lib/category-tree";
 
 interface Category {
@@ -268,18 +269,65 @@ function AddCategoryRow({
   );
 }
 
+const IMPORT_COLUMNS = ["name", "group", "parent_name", "slug", "position", "active"];
+const IMPORT_TEMPLATE = [
+  IMPORT_COLUMNS.join(","),
+  "Islamic Books,book,,islamic-books,0,true",
+  "Fiqh,book,Islamic Books,fiqh,0,true",
+  "Tafsir,book,Islamic Books,tafsir,1,true",
+  "Gifts,gift,,,0,true",
+  "Brass Items,gift,Gifts,brass-items,0,true",
+].join("\n");
+
+function downloadImportTemplate() {
+  const blob = new Blob([IMPORT_TEMPLATE], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "shiabazaar-categories-template.csv";
+  a.click();
+}
+
+type ImportResult = { created: number; skipped: number; errors: { row: number; name: string; error: string }[] };
+
 export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function loadCategories() {
+    return fetch("/api/admin/categories")
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories ?? []));
+  }
 
   useEffect(() => {
-    fetch("/api/admin/categories")
-      .then((r) => r.json())
-      .then((d) => {
-        setCategories(d.categories ?? []);
-        setLoading(false);
-      });
+    loadCategories().then(() => setLoading(false));
   }, []);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportResult(null);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        setImporting(true);
+        const res = await fetch("/api/admin/categories/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: results.data }),
+        });
+        const data = await res.json();
+        setImportResult(data);
+        if (data.created > 0) await loadCategories();
+        setImporting(false);
+        if (fileRef.current) fileRef.current.value = "";
+      },
+    });
+  }
 
   async function handleUpdate(id: string, data: Partial<Category>) {
     const res = await fetch(`/api/admin/categories/${id}`, {
@@ -334,6 +382,43 @@ export default function AdminCategories() {
           and Other Products. Click + on any category to add a subcategory
           beneath it — nesting is unlimited.
         </p>
+        <div className="flex items-center gap-2 mt-4">
+          <button
+            type="button"
+            onClick={downloadImportTemplate}
+            className="h-8 px-3 flex items-center gap-1.5 text-xs font-medium bg-white/8 hover:bg-white/12 text-on-dark rounded-md transition-colors"
+          >
+            <Download size={13} /> Download CSV template
+          </button>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="h-8 px-3 flex items-center gap-1.5 text-xs font-medium bg-white/8 hover:bg-white/12 text-on-dark rounded-md transition-colors disabled:opacity-50"
+          >
+            {importing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            {importing ? "Importing…" : "Import CSV"}
+          </button>
+          <input ref={fileRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+        </div>
+        {importResult && (
+          <div className="mt-3 p-3 rounded-md border border-white/10 bg-surface-dark-elevated text-xs max-w-xl">
+            <p className="text-on-dark">
+              Created <strong>{importResult.created}</strong>
+              {importResult.skipped > 0 && <> · skipped <strong>{importResult.skipped}</strong> (slug already existed)</>}
+              {importResult.errors.length > 0 && (
+                <> · <strong className="text-error">{importResult.errors.length} error{importResult.errors.length === 1 ? "" : "s"}</strong></>
+              )}
+            </p>
+            {importResult.errors.length > 0 && (
+              <ul className="mt-2 space-y-1 text-on-dark-soft">
+                {importResult.errors.map((e, i) => (
+                  <li key={i}>Row {e.row} ({e.name}): {e.error}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (

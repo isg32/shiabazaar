@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Search, Pencil, Trash2, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 
 interface Product {
   id: string;
+  sku: string | null;
   title: string;
   type: string;
   price: number;     // paise
   inStock: boolean;
+  stock: number;     // on-hand for variant-less products
   _count?: { images: number };
   variants: { stock: number }[];
 }
@@ -16,7 +18,7 @@ interface Product {
 function stockLabel(p: Product) {
   const total = p.variants.length
     ? p.variants.reduce((s, v) => s + v.stock, 0)
-    : p.inStock ? 99 : 0;
+    : p.stock;
   if (total === 0) return { label: "Out of stock", cls: "text-error" };
   if (total <= 3)  return { label: `${total} units`, cls: "text-accent-amber" };
   return             { label: `${total} units`, cls: "text-success" };
@@ -33,6 +35,23 @@ export default function AdminProducts() {
   const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
 
+  async function openDeleteAll() {
+    if (!confirm("This will permanently delete all products except those in past orders.\n\nContinue?")) return;
+    const res = await fetch("/api/admin/products/delete-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: "DELETE ALL PRODUCTS" }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error ?? "Delete failed");
+      return;
+    }
+    const data = await res.json();
+    alert(`Deleted ${data.deleted} products (kept ${data.kept} from order history)`);
+    load();
+  }
+
   async function load() {
     setLoading(true);
     const res = await fetch("/api/admin/products");
@@ -46,7 +65,7 @@ export default function AdminProducts() {
     const q = query.trim().toLowerCase();
     return products.filter(p =>
       (typeTab === "All" || p.type === typeTab) &&
-      (!q || p.title.toLowerCase().includes(q) || p.type.toLowerCase().includes(q))
+      (!q || p.title.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q))
     );
   }, [products, query, typeTab]);
 
@@ -95,6 +114,12 @@ export default function AdminProducts() {
               <Trash2 size={14} /> Delete {selected.size}
             </button>
           )}
+          <button
+            onClick={openDeleteAll}
+            className="h-9 px-4 border border-error/40 text-error text-sm font-medium rounded-md flex items-center gap-2 hover:bg-error/10 transition-colors"
+          >
+            <Trash2 size={14} /> Delete all
+          </button>
           <a
             href="/admin/products/new"
             className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors"
@@ -112,7 +137,7 @@ export default function AdminProducts() {
             type="text"
             value={query}
             onChange={e => handleQuery(e.target.value)}
-            placeholder="Search products…"
+            placeholder="Search by title, type or SKU…"
             className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
           />
         </div>
@@ -166,6 +191,7 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="text-on-dark font-medium">{p.title}</span>
+                    {p.sku && <span className="block text-[11px] font-mono text-on-dark-soft">{p.sku}</span>}
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-on-dark-soft font-medium capitalize">{p.type}</span>

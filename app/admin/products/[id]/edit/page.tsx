@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 import Image from "next/image";
 import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
@@ -52,6 +53,7 @@ export default function EditProductPage({
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [sku, setSku] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -73,8 +75,8 @@ export default function EditProductPage({
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
   const [newCatName, setNewCatName] = useState("");
   const [creatingCat, setCreatingCat] = useState(false);
@@ -106,6 +108,7 @@ export default function EditProductPage({
           setLoading(false);
           return;
         }
+        setSku(product.sku ?? null);
         setForm({
           title: product.title ?? "",
           slug: product.slug ?? "",
@@ -126,8 +129,8 @@ export default function EditProductPage({
           edition: product.edition ?? "",
           description: product.description ?? "",
           tableOfContents: product.tableOfContents ?? "",
-          categoryId: product.categoryId ?? "",
         });
+        setCategoryIds(new Set(product.categories?.map((c: { category: { id: string } }) => c.category.id) ?? []));
         setExistingImages(product.images ?? []);
         setExistingVariants(
           product.variants?.map((v: ExistingVariant) => ({
@@ -300,7 +303,7 @@ export default function EditProductPage({
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
 
@@ -399,7 +402,7 @@ export default function EditProductPage({
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -419,7 +422,7 @@ export default function EditProductPage({
     <div className="px-8 py-8 text-on-dark max-w-3xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-on-dark">Edit Product</h1>
-        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{id}</p>
+        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{sku ? `SKU ${sku} · ` : ""}{id}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -527,22 +530,8 @@ export default function EditProductPage({
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Category</label>
-              <div className="flex gap-2">
-                <select
-                  className={inputCls}
-                  value={form.categoryId}
-                  onChange={(e) => set("categoryId", e.target.value)}
-                >
-                  <option value="">— No category —</option>
-                  {filteredCategories.map(({ node, depth }) => (
-                    <option key={node.id} value={node.id}>
-                      {depth > 0 ? "-".repeat(depth) + " " : ""}
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
               <div className="flex gap-2 mt-2">
                 <input
                   className={`${inputCls} flex-1`}

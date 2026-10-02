@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2, X, Star } from "lucide-react";
+import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 const inputCls =
   "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
@@ -12,7 +14,7 @@ const sectionCls =
   "bg-surface-dark-elevated rounded-xl border border-white/8 p-6 mb-5";
 
 type ImgPreview = { file: File; url: string; isCover: boolean };
-type NavCategory = { id: string; name: string; slug: string; group: string };
+type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
 
 function slugify(s: string) {
   return s
@@ -41,8 +43,8 @@ export default function NewBookPage() {
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [previews, setPreviews] = useState<ImgPreview[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -112,6 +114,8 @@ export default function NewBookPage() {
     return { url: data.secure_url, cloudinaryId: data.public_id };
   }
 
+  const filteredCategories = flattenTreeWithDepth(buildCategoryTree(allCategories, "book"));
+
   async function createCategory() {
     if (!newCatName.trim()) return;
     setCreatingCat(true);
@@ -128,7 +132,7 @@ export default function NewBookPage() {
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -168,7 +172,7 @@ export default function NewBookPage() {
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
       if (!res.ok) {
@@ -244,20 +248,9 @@ export default function NewBookPage() {
                 required
               />
             </div>
-            <div>
-              <label className={labelCls}>Category</label>
-              <select
-                className={inputCls}
-                value={form.categoryId}
-                onChange={(e) => set("categoryId", e.target.value)}
-              >
-                <option value="">— No category —</option>
-                {allCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
             </div>
             <div>
               <label className={labelCls}>Price (₹) *</label>

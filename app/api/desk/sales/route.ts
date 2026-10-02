@@ -7,6 +7,7 @@ import {
   optionalString,
   resolveLines,
 } from "@/lib/desk-orders";
+import { deskSaleNotes } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET() {
   if (guard) return guard.error;
 
   const orders = await db.order.findMany({
-    where: { channel: "offline" },
+    where: { channel: "offline", buyerType: "individual" },
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {
@@ -34,18 +35,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const lines = await resolveLines(body.lines ?? []);
 
-    const customerBits = [optionalString(body.customerName), optionalString(body.customerPhone)]
-      .filter(Boolean)
-      .join(" · ");
-    const notes = [customerBits && `Customer: ${customerBits}`, optionalString(body.note)]
-      .filter(Boolean)
-      .join("\n") || null;
+    const customer = { name: optionalString(body.customerName), phone: optionalString(body.customerPhone) };
 
     const order = await createDeskOrder({
-      channel: "offline",
+      buyerType: "individual",
       lines,
       paymentMethod: optionalString(body.paymentMethod),
-      notes,
+      notes: deskSaleNotes(customer.name, customer.phone, optionalString(body.note)),
+      customer,
       staffId: staff?.id ?? null,
     });
     return NextResponse.json({ orderId: order.id }, { status: 201 });

@@ -391,15 +391,24 @@ Four product types, one unified products table with a `type` discriminator:
 - `shipping_zones` — weight + location rules
 - `schools` — book-credit accounts: `creditLimit`, denormalized `balance` (paise)
 - `school_payments` — payments received against a school's balance
+- `vendors` / `vendor_payments` — mirrors `schools` / `school_payments` exactly, for the vendor buyer type
 - `stock_movements` — append-only stock audit ledger (every sale/issue/restock/adjustment)
 - `banners` / `popups` — admin-controlled homepage content
 
-### Sales channels
+### Sales channels & buyer types
 
-`orders.channel` splits the storefront from the clerk desk:
+`orders.channel` and `orders.buyerType` are two **independent** dimensions — don't conflate them:
 
-- **`online`** — storefront checkout (`/checkout` → `/api/orders`). Decrements stock on payment capture (`/api/orders/verify` + Razorpay webhook, idempotent via `stock_movements.uniq_movement_dedup`).
-- **`offline`** — walk-in sales recorded at `/desk` (clerk role). `status = delivered`, no Razorpay.
-- **`school`** — books issued to a school on credit. `status = delivered`, `schoolId` set; raises `schools.balance`. Payments lower it.
+- **`channel`** — Website vs Physical Store: `online` (storefront checkout) | `offline` (recorded at `/desk`). This is the *only* thing `channel` means; it carries no information about who bought.
+- **`buyerType`** — who bought: `individual` | `school` | `vendor`. Online orders are always `individual` today (checkout has no vendor/school flow). Offline orders can be any of the three.
 
-**Convention:** every `db.order.*` query **outside `/desk` and `/api/desk/**`** must filter `channel: "online"` — otherwise offline cash and unrealised school credit leak into storefront/admin metrics. Desk lives at `/desk/*` (pages) + `/api/desk/*` (routes), gated by `middleware.ts` + `requireClerk()` (`lib/staff-guard.ts`) for `isClerk || isAdmin`.
+Channel behavior:
+- **`online`** — `/checkout` → `/api/orders`. Decrements stock on payment capture (`/api/orders/verify` + Razorpay webhook, idempotent via `stock_movements.uniq_movement_dedup`).
+- **`offline`** — recorded at `/desk` (clerk role), `status = delivered`, no Razorpay. Split by `buyerType`:
+  - **`individual`** — walk-in sale. No persistent buyer record (name/phone are a free-text snapshot).
+  - **`school`** — books issued to a school on credit. `schoolId` set; raises `schools.balance`. `SchoolPayment` rows lower it.
+  - **`vendor`** — goods issued to a vendor on credit. `vendorId` set; raises `vendors.balance`. `VendorPayment` rows lower it. `Vendor`/`VendorPayment` mirror `School`/`SchoolPayment` exactly (same credit-limit check, same ledger shape, same soft-cancel reversal) — see `app/desk/vendors/**`, `app/api/desk/vendors/**`.
+
+`lib/desk-orders.ts` (`createDeskOrder`/`updateDeskOrder`/`cancelDeskOrder`) is generic over `buyerType` — always sets `channel: "offline"`, branches only on `buyerType` for which balance (school vs vendor) to adjust and which `StockReason` to record (`offline_sale` | `school_issue` | `vendor_issue`).
+
+**Convention:** every `db.order.*` query **outside `/desk` and `/api/desk/**`** must filter `channel: "online"` — otherwise offline cash and unrealised school/vendor credit leak into storefront/admin metrics. Desk lives at `/desk/*` (pages) + `/api/desk/*` (routes), gated by `middleware.ts` + `requireClerk()` (`lib/staff-guard.ts`) for `isClerk || isAdmin`.

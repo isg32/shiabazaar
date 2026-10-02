@@ -17,11 +17,14 @@ interface Order {
   id: string;
   status: string;
   channel?: string;
+  buyerType?: string;
   total: number;
   createdAt: string;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
   user?: { name?: string | null; email: string } | null;
+  school?: { name: string } | null;
+  vendor?: { name: string } | null;
   address?: Address | null;
   items: { title: string; qty: number }[];
 }
@@ -180,7 +183,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 const STATUS_OPTIONS = ["pending", "processing", "shipped", "delivered", "cancelled"];
 const TABS = ["All", "pending", "processing", "shipped", "delivered", "cancelled"];
-const CHANNELS = ["online", "offline", "school", "all"];
+const CHANNELS = ["online", "offline", "all"];
 
 export default function AdminOrders() {
   const [query,      setQuery]      = useState("");
@@ -205,7 +208,9 @@ export default function AdminOrders() {
       (activeTab === "All" || o.status === activeTab) &&
       (!q || o.id.toLowerCase().includes(q) ||
         o.user?.email.toLowerCase().includes(q) ||
-        (o.user?.name ?? "").toLowerCase().includes(q))
+        (o.user?.name ?? "").toLowerCase().includes(q) ||
+        (o.school?.name ?? "").toLowerCase().includes(q) ||
+        (o.vendor?.name ?? "").toLowerCase().includes(q))
     );
   }, [orders, query, activeTab, channel]);
 
@@ -252,7 +257,7 @@ export default function AdminOrders() {
 
       {channel !== "online" && (
         <p className="text-xs text-on-dark-soft mb-4 -mt-1">
-          Offline sales and school issues are managed on the <a href="/desk" className="text-primary hover:underline">clerk desk</a>. Status and tracking are read-only here.
+          Offline sales, school issues and vendor issues are managed on the <a href="/desk" className="text-primary hover:underline">clerk desk</a>. Status and tracking are read-only here.
         </p>
       )}
 
@@ -311,12 +316,20 @@ export default function AdminOrders() {
                 <td className="px-5 py-3.5 font-mono text-xs text-on-dark-soft">
                   {o.id.slice(0, 8)}
                   {!isOnline && (
-                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/8 text-on-dark-soft capitalize">{o.channel}</span>
+                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/8 text-on-dark-soft capitalize">{o.buyerType ?? "individual"}</span>
                   )}
                 </td>
                 <td className="px-5 py-3.5">
-                  <p className="text-on-dark font-medium">{o.user?.name ?? "Guest"}</p>
-                  <p className="text-[11px] text-on-dark-soft">{o.user?.email ?? ""}</p>
+                  {isOnline ? (
+                    <>
+                      <p className="text-on-dark font-medium">{o.user?.name ?? "Guest"}</p>
+                      <p className="text-[11px] text-on-dark-soft">{o.user?.email ?? ""}</p>
+                    </>
+                  ) : (
+                    <p className="text-on-dark font-medium">
+                      {o.school?.name ?? o.vendor?.name ?? "Walk-in customer"}
+                    </p>
+                  )}
                 </td>
                 <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                   {o.address ? <span className="font-mono">{o.address.phone}</span> : "—"}

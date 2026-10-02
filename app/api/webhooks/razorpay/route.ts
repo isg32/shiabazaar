@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyWebhookSignature } from "@/lib/razorpay";
-import { decrementStockForPaidOrder, restockForCancelledOrder } from "@/lib/order-stock";
+import { decrementStockForPaidOrder, recordOnlinePayment, restockForCancelledOrder } from "@/lib/order-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
         where: { razorpayOrderId: payment.order_id },
         select: { id: true },
       });
-      if (order) await decrementStockForPaidOrder(order.id);
+      if (order) {
+        await recordOnlinePayment(order.id);
+        await decrementStockForPaidOrder(order.id);
+      }
     }
   }
 

@@ -47,6 +47,25 @@ export async function decrementStockForPaidOrder(orderId: string): Promise<void>
 }
 
 /**
+ * Mark a captured online order as fully paid (`amountPaid` + one `online`
+ * OrderPayment). Idempotent across `/api/orders/verify`, the webhook and replays.
+ */
+export async function recordOnlinePayment(orderId: string): Promise<void> {
+  await db.$transaction(async (tx) => {
+    if (!(await lockOrder(tx, orderId))) return;
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: { total: true, amountPaid: true, channel: true },
+    });
+    if (!order || order.channel !== "online" || order.amountPaid > 0) return;
+    await tx.order.update({
+      where: { id: orderId },
+      data: { amountPaid: order.total, payments: { create: { method: "online", amount: order.total } } },
+    });
+  });
+}
+
+/**
  * Restore stock for an online order cancelled / failed after payment already
  * decremented it. Idempotent — only reverses when an `online_sale` movement
  * exists and no `cancellation` reversal has been recorded yet.

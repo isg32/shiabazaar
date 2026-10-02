@@ -10,19 +10,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (guard) return guard.error;
   const { id } = await params;
 
-  const school = await db.school.findUnique({ where: { id } });
-  if (!school) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  const vendor = await db.vendor.findUnique({ where: { id } });
+  if (!vendor) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const [orders, payments] = await Promise.all([
     db.order.findMany({
-      where: { schoolId: id, buyerType: "school" },
+      where: { vendorId: id, buyerType: "vendor" },
       orderBy: { createdAt: "desc" },
       include: {
         items: { select: { id: true, title: true, qty: true, price: true } },
         returns: { select: { amount: true } },
       },
     }),
-    db.school.findUnique({ where: { id } }).payments({ orderBy: { receivedAt: "desc" } }),
+    db.vendor.findUnique({ where: { id } }).payments({ orderBy: { receivedAt: "desc" } }),
   ]);
 
   // Recompute the authoritative balance and reconcile the stored value if it drifted.
@@ -32,12 +32,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .reduce((s, o) => s + o.total - o.amountPaid - o.returns.reduce((r, x) => r + x.amount, 0), 0);
   const paid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const balance = issued - paid;
-  if (balance !== school.balance) {
-    await db.school.update({ where: { id }, data: { balance } });
-    school.balance = balance;
+  if (balance !== vendor.balance) {
+    await db.vendor.update({ where: { id }, data: { balance } });
+    vendor.balance = balance;
   }
 
-  return NextResponse.json({ school, orders, payments: payments ?? [] });
+  return NextResponse.json({ vendor, orders, payments: payments ?? [] });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -67,11 +67,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   try {
-    const school = await db.school.update({ where: { id }, data });
-    return NextResponse.json({ school });
+    const vendor = await db.vendor.update({ where: { id }, data });
+    return NextResponse.json({ vendor });
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
-      return NextResponse.json({ error: "A school with that code already exists." }, { status: 409 });
+      return NextResponse.json({ error: "A vendor with that code already exists." }, { status: 409 });
     }
     throw err;
   }
@@ -82,19 +82,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (guard) return guard.error;
   const { id } = await params;
 
-  const [orderCount, paymentCount, school] = await Promise.all([
-    db.order.count({ where: { schoolId: id } }),
-    db.schoolPayment.count({ where: { schoolId: id } }),
-    db.school.findUnique({ where: { id }, select: { balance: true } }),
+  const [orderCount, paymentCount, vendor] = await Promise.all([
+    db.order.count({ where: { vendorId: id } }),
+    db.vendorPayment.count({ where: { vendorId: id } }),
+    db.vendor.findUnique({ where: { id }, select: { balance: true } }),
   ]);
-  if (!school) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  if (orderCount > 0 || paymentCount > 0 || school.balance !== 0) {
+  if (!vendor) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (orderCount > 0 || paymentCount > 0 || vendor.balance !== 0) {
     return NextResponse.json(
-      { error: "This school has ledger history and cannot be deleted. Deactivate it instead." },
+      { error: "This vendor has ledger history and cannot be deleted. Deactivate it instead." },
       { status: 409 },
     );
   }
 
-  await db.school.delete({ where: { id } });
+  await db.vendor.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

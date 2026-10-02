@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2, X, Star, Trash2 } from "lucide-react";
 import Image from "next/image";
+import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 const inputCls =
   "w-full h-9 px-3 text-sm bg-surface-dark border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary";
@@ -19,7 +21,7 @@ type ExistingImage = {
   cloudinaryId: string;
 };
 type NewImage = { file: File; url: string; isCover: boolean };
-type NavCategory = { id: string; name: string; slug: string; group: string };
+type NavCategory = { id: string; name: string; slug: string; group: string; parentId: string | null };
 
 function slugify(s: string) {
   return s
@@ -37,6 +39,7 @@ export default function EditBookPage({
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [sku, setSku] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,8 +60,8 @@ export default function EditBookPage({
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [allCategories, setAllCategories] = useState<NavCategory[]>([]);
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [newImages, setNewImages] = useState<NewImage[]>([]);
@@ -89,6 +92,7 @@ export default function EditBookPage({
           setLoading(false);
           return;
         }
+        setSku(product.sku ?? null);
         setForm({
           title: product.title ?? "",
           slug: product.slug ?? "",
@@ -108,8 +112,8 @@ export default function EditBookPage({
           edition: product.edition ?? "",
           description: product.description ?? "",
           tableOfContents: product.tableOfContents ?? "",
-          categoryId: product.categoryId ?? "",
         });
+        setCategoryIds(new Set(product.categories?.map((c: { category: { id: string } }) => c.category.id) ?? []));
         setExistingImages(product.images ?? []);
         // Check popular status in parallel
         fetch("/api/admin/popular-books")
@@ -219,6 +223,8 @@ export default function EditBookPage({
     return { url: data.secure_url, cloudinaryId: data.public_id };
   }
 
+  const filteredCategories = flattenTreeWithDepth(buildCategoryTree(allCategories, "book"));
+
   async function createCategory() {
     if (!newCatName.trim()) return;
     setCreatingCat(true);
@@ -235,7 +241,7 @@ export default function EditBookPage({
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -275,7 +281,7 @@ export default function EditBookPage({
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
       for (const imgId of deletedImages) {
@@ -323,7 +329,7 @@ export default function EditBookPage({
         >
           Edit Book
         </h1>
-        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{id}</p>
+        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{sku ? `SKU ${sku} · ` : ""}{id}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -350,20 +356,9 @@ export default function EditBookPage({
                 required
               />
             </div>
-            <div>
-              <label className={labelCls}>Category</label>
-              <select
-                className={inputCls}
-                value={form.categoryId}
-                onChange={(e) => set("categoryId", e.target.value)}
-              >
-                <option value="">— No category —</option>
-                {allCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
             </div>
             <div>
               <label className={labelCls}>Price (₹) *</label>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Upload, Loader2, X, Star } from "lucide-react";
 import { buildCategoryTree, flattenTreeWithDepth } from "@/lib/category-tree";
+import { CategoryPicker } from "@/components/admin/CategoryPicker";
 
 type ProductType = "book" | "gift" | "ladies" | "gents" | "other";
 
@@ -50,8 +51,8 @@ export default function NewProductPage() {
     edition: "",
     description: "",
     tableOfContents: "",
-    categoryId: "",
   });
+  const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set());
   const [variants, setVariants] = useState<Variant[]>([]);
   const [previews, setPreviews] = useState<ImgPreview[]>([]);
   const [saving, setSaving] = useState(false);
@@ -173,7 +174,7 @@ export default function NewProductPage() {
           edition: form.edition || null,
           description: form.description || null,
           tableOfContents: form.tableOfContents || null,
-          categoryId: form.categoryId || null,
+          categoryIds: Array.from(categoryIds),
         }),
       });
 
@@ -242,7 +243,7 @@ export default function NewProductPage() {
       const { category } = await res.json();
       if (category) {
         setAllCategories((prev) => [...prev, category]);
-        set("categoryId", category.id);
+        setCategoryIds((prev) => new Set([...prev, category.id]));
         setNewCatName("");
       }
     } finally {
@@ -366,22 +367,8 @@ export default function NewProductPage() {
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Category</label>
-              <div className="flex gap-2">
-                <select
-                  className={inputCls}
-                  value={form.categoryId}
-                  onChange={(e) => set("categoryId", e.target.value)}
-                >
-                  <option value="">— No category —</option>
-                  {filteredCategories.map(({ node, depth }) => (
-                    <option key={node.id} value={node.id}>
-                      {depth > 0 ? "-".repeat(depth) + " " : ""}
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <label className={labelCls}>Categories</label>
+              <CategoryPicker items={filteredCategories} selected={categoryIds} onChange={setCategoryIds} />
               <div className="flex gap-2 mt-2">
                 <input
                   className={`${inputCls} flex-1`}

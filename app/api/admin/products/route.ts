@@ -9,7 +9,7 @@ export async function GET() {
 
   const products = await db.product.findMany({
     orderBy: { createdAt: "desc" },
-    include: { images: true, variants: true },
+    include: { images: true, variants: true, categories: { include: { category: true } } },
   });
   return NextResponse.json({ products });
 }
@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
   if (guard) return guard.error;
 
   const body = await req.json();
+  const categoryIds = Array.isArray(body.categoryIds) ? [...new Set(body.categoryIds as string[])] : [];
+
   const product = await db.product.create({
     data: {
       slug:          body.slug,
@@ -38,9 +40,11 @@ export async function POST(req: NextRequest) {
       edition:       body.edition ?? null,
       description:   body.description ?? null,
       tableOfContents: body.tableOfContents ?? null,
-      categoryId:    body.categoryId ?? null,
+      categories: {
+        create: categoryIds.map((categoryId: string) => ({ categoryId })),
+      },
     },
-    include: { images: true, variants: true },
+    include: { images: true, variants: true, categories: { include: { category: true } } },
   });
   revalidateTag("products", "max");
   return NextResponse.json({ product }, { status: 201 });

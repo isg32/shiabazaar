@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, Plus, X } from "lucide-react";
 
-type School = {
+type Vendor = {
   id: string;
   name: string;
   code: string | null;
@@ -20,9 +20,9 @@ type School = {
 
 const EMPTY = { name: "", contactName: "", phone: "", email: "", city: "", state: "", creditLimit: "", paymentTermsDays: "" };
 
-export default function DeskSchools() {
+export default function DeskVendors() {
   const router = useRouter();
-  const [schools, setSchools] = useState<School[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [query,   setQuery]   = useState("");
   const [adding,  setAdding]  = useState(false);
@@ -31,30 +31,30 @@ export default function DeskSchools() {
   const [error,   setError]   = useState<string | null>(null);
 
   const load = useCallback(() => {
-    fetch("/api/desk/schools")
+    fetch("/api/desk/vendors")
       .then((r) => r.json())
-      .then((d) => { setSchools(d.schools ?? []); setLoading(false); });
+      .then((d) => { setVendors(d.vendors ?? []); setLoading(false); });
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return schools;
-    return schools.filter((s) =>
-      s.name.toLowerCase().includes(q) ||
-      (s.code ?? "").toLowerCase().includes(q) ||
-      (s.city ?? "").toLowerCase().includes(q) ||
-      (s.contactName ?? "").toLowerCase().includes(q)
+    if (!q) return vendors;
+    return vendors.filter((v) =>
+      v.name.toLowerCase().includes(q) ||
+      (v.code ?? "").toLowerCase().includes(q) ||
+      (v.city ?? "").toLowerCase().includes(q) ||
+      (v.contactName ?? "").toLowerCase().includes(q)
     );
-  }, [schools, query]);
+  }, [vendors, query]);
 
-  const totalOutstanding = schools.filter((s) => s.active).reduce((sum, s) => sum + s.balance, 0);
+  const totalOutstanding = vendors.filter((v) => v.active).reduce((sum, v) => sum + v.balance, 0);
 
   async function create() {
     setError(null);
-    if (!form.name.trim()) { setError("School name is required."); return; }
+    if (!form.name.trim()) { setError("Vendor name is required."); return; }
     setSaving(true);
-    const res = await fetch("/api/desk/schools", {
+    const res = await fetch("/api/desk/vendors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
@@ -62,7 +62,7 @@ export default function DeskSchools() {
     setSaving(false);
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      setError(d.error ?? "Could not create the school.");
+      setError(d.error ?? "Could not create the vendor.");
       return;
     }
     setForm({ ...EMPTY });
@@ -74,16 +74,16 @@ export default function DeskSchools() {
     <div className="px-8 py-8 text-on-dark">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-on-dark">Schools</h1>
+          <h1 className="text-2xl font-semibold text-on-dark">Vendors</h1>
           <p className="text-sm text-on-dark-soft mt-0.5">
-            Book-credit accounts · ₹{(totalOutstanding / 100).toFixed(0)} outstanding across active schools
+            Book-credit accounts · ₹{(totalOutstanding / 100).toFixed(0)} outstanding across active vendors
           </p>
         </div>
         <button
           onClick={() => setAdding((v) => !v)}
           className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors"
         >
-          {adding ? <X size={14} /> : <Plus size={14} />} {adding ? "Close" : "Add School"}
+          {adding ? <X size={14} /> : <Plus size={14} />} {adding ? "Close" : "Add Vendor"}
         </button>
       </div>
 
@@ -91,7 +91,7 @@ export default function DeskSchools() {
         <div className="bg-surface-dark-elevated rounded-xl border border-white/8 p-5 mb-5">
           <div className="grid sm:grid-cols-3 gap-3">
             {([
-              ["name", "School name *"],
+              ["name", "Vendor name *"],
               ["contactName", "Contact person"],
               ["phone", "Phone"],
               ["email", "Email"],
@@ -111,14 +111,14 @@ export default function DeskSchools() {
               </label>
             ))}
           </div>
-          <p className="text-xs text-on-dark-soft mt-3">A school code (SCH-0001, …) is assigned automatically.</p>
+          <p className="text-xs text-on-dark-soft mt-3">A vendor code (VEN-0001, …) is assigned automatically.</p>
           {error && <p className="text-sm text-error mt-3">{error}</p>}
           <div className="flex justify-end mt-4">
             <button
               onClick={create} disabled={saving}
               className="h-9 px-5 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-active transition-colors disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Create school"}
+              {saving ? "Saving…" : "Create vendor"}
             </button>
           </div>
         </div>
@@ -143,7 +143,7 @@ export default function DeskSchools() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8">
-                {["School", "Contact", "Outstanding", "Credit limit", "Status"].map((h) => (
+                {["Vendor", "Contact", "Outstanding", "Credit limit", "Status"].map((h) => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -151,33 +151,33 @@ export default function DeskSchools() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-on-dark-soft">
-                  {schools.length === 0 ? "No schools yet." : "No schools match your search."}
+                  {vendors.length === 0 ? "No vendors yet." : "No vendors match your search."}
                 </td></tr>
-              ) : filtered.map((s, i) => {
-                const nearLimit = s.creditLimit > 0 && s.balance >= s.creditLimit * 0.9;
+              ) : filtered.map((v, i) => {
+                const nearLimit = v.creditLimit > 0 && v.balance >= v.creditLimit * 0.9;
                 return (
                   <tr
-                    key={s.id}
-                    onClick={() => router.push(`/desk/schools/${s.id}`)}
+                    key={v.id}
+                    onClick={() => router.push(`/desk/vendors/${v.id}`)}
                     className={`hover:bg-white/3 transition-colors cursor-pointer ${i < filtered.length - 1 ? "border-b border-white/8" : ""}`}
                   >
                     <td className="px-5 py-3.5">
-                      <p className="text-on-dark font-medium">{s.name}</p>
-                      {s.code && <p className="text-[11px] font-mono text-on-dark-soft">{s.code}</p>}
+                      <p className="text-on-dark font-medium">{v.name}</p>
+                      {v.code && <p className="text-[11px] font-mono text-on-dark-soft">{v.code}</p>}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
-                      {s.contactName ?? "—"}{s.phone ? ` · ${s.phone}` : ""}
-                      {(s.city || s.state) && <p className="text-[11px] text-on-dark-soft/70">{[s.city, s.state].filter(Boolean).join(", ")}</p>}
+                      {v.contactName ?? "—"}{v.phone ? ` · ${v.phone}` : ""}
+                      {(v.city || v.state) && <p className="text-[11px] text-on-dark-soft/70">{[v.city, v.state].filter(Boolean).join(", ")}</p>}
                     </td>
-                    <td className={`px-5 py-3.5 font-medium ${s.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
-                      ₹{(s.balance / 100).toFixed(0)}
+                    <td className={`px-5 py-3.5 font-medium ${v.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
+                      ₹{(v.balance / 100).toFixed(0)}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
-                      {s.creditLimit > 0 ? `₹${(s.creditLimit / 100).toFixed(0)}` : "none"}
+                      {v.creditLimit > 0 ? `₹${(v.creditLimit / 100).toFixed(0)}` : "none"}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${s.active ? "bg-success/10 text-success" : "bg-white/5 text-on-dark-soft"}`}>
-                        {s.active ? "Active" : "Inactive"}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${v.active ? "bg-success/10 text-success" : "bg-white/5 text-on-dark-soft"}`}>
+                        {v.active ? "Active" : "Inactive"}
                       </span>
                     </td>
                   </tr>
@@ -187,7 +187,7 @@ export default function DeskSchools() {
           </table>
         )}
         <div className="px-5 py-3 border-t border-white/8">
-          <span className="text-xs text-on-dark-soft">Showing {filtered.length} of {schools.length} schools</span>
+          <span className="text-xs text-on-dark-soft">Showing {filtered.length} of {vendors.length} vendors</span>
         </div>
       </div>
     </div>

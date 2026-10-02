@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, School, Warehouse, Globe } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, School, Truck, Warehouse, Globe } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import DashboardShell, { type NavGroup } from "@/components/layout/DashboardShell";
 
@@ -22,6 +22,12 @@ const groups: NavGroup[] = [
     label: "Schools",
     items: [
       { href: "/desk/schools", label: "Schools", Icon: School },
+    ],
+  },
+  {
+    label: "Vendors",
+    items: [
+      { href: "/desk/vendors", label: "Vendors", Icon: Truck },
     ],
   },
   {

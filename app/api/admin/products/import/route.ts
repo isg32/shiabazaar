@@ -20,7 +20,9 @@ type ProductRow = {
   in_stock?: string | boolean;
   stock?: string | number;
   badge?: string;
-  category_name?: string;
+  category_names?: string; // comma-separated category names
+  category_name?: string;  // deprecated alias — the old singular column name, kept so a CSV
+                            // built before the column was renamed still tags correctly on re-import
   description?: string;
   author?: string;
   publisher?: string;
@@ -74,9 +76,18 @@ export async function POST(req: NextRequest) {
       const type = row.type?.toLowerCase();
       if (!validTypes.includes(type)) throw new Error(`unknown type "${row.type}"`);
 
-      const categoryId = row.category_name
-        ? (catMap.get(row.category_name.toLowerCase()) ?? null)
-        : null;
+      // Parse comma-separated category names. `category_name` (singular) is the
+      // deprecated pre-rename column name — accepted so a CSV built before the
+      // rename still tags correctly without having to edit the file first.
+      // `undefined` (both columns absent) means "leave existing category tags
+      // alone" — same convention as `stock` below; an empty string means "clear
+      // all tags", same as an explicit "" stock.
+      const categoryNamesRaw = row.category_names ?? row.category_name;
+      const categoryNamesProvided = categoryNamesRaw !== undefined;
+      const categoryNames = categoryNamesRaw?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+      const categoryIds = [...new Set(
+        categoryNames.map((name) => catMap.get(name.toLowerCase())).filter((id): id is string => id !== undefined)
+      )];
 
       // Resolve the on-hand count: row value → batch default → (undefined).
       const rowStock = parseStock(row.stock);
@@ -107,7 +118,6 @@ export async function POST(req: NextRequest) {
         edition: row.edition || null,
         pageCount:     row.page_count ? Number(row.page_count) : null,
         extraDelivery: row.extra_delivery ? Math.round(Number(row.extra_delivery) * 100) : 0,
-        categoryId,
       };
 
       if (usedSlugs.has(baseSlug)) {
@@ -115,10 +125,22 @@ export async function POST(req: NextRequest) {
           // count as skipped — no error, just omitted from created
           continue;
         }
-        // update — only touch stock when this import actually carried a value
-        await db.product.update({
-          where: { slug: baseSlug },
-          data: stock !== undefined ? { ...data, stock } : data,
+        // update — only touch stock/categories when this import actually carried a value
+        await db.$transaction(async (tx) => {
+          const p = await tx.product.update({
+            where: { slug: baseSlug },
+            data: stock !== undefined ? { ...data, stock } : data,
+            select: { id: true },
+          });
+          if (categoryNamesProvided) {
+            // p.id, not baseSlug — product_categories.productId is a FK to products.id
+            await tx.productCategory.deleteMany({ where: { productId: p.id } });
+            if (categoryIds.length > 0) {
+              await tx.productCategory.createMany({
+                data: categoryIds.map((categoryId) => ({ productId: p.id, categoryId })),
+              });
+            }
+          }
         });
         updated++;
       } else {
@@ -128,7 +150,7 @@ export async function POST(req: NextRequest) {
         while (usedSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`;
         usedSlugs.add(slug);
 
-        await db.product.create({ data: { slug, ...data, stock: stock ?? 0 } });
+        await db.product.create({ data: { slug, ...data, stock: stock ?? 0, categories: { create: categoryIds.map(categoryId => ({ categoryId })) } } });
         created++;
       }
     } catch (err) {

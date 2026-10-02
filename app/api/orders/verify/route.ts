@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyPaymentSignature } from "@/lib/razorpay";
-import { decrementStockForPaidOrder } from "@/lib/order-stock";
+import { decrementStockForPaidOrder, recordOnlinePayment } from "@/lib/order-stock";
 
 export async function POST(req: NextRequest) {
   const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = await req.json();
@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
 
   // Draw down the shared stock pool now that payment is confirmed. Idempotent —
   // the webhook may also run this for the same order.
-  if (order) await decrementStockForPaidOrder(order.id);
+  if (order) {
+    await recordOnlinePayment(order.id);
+    await decrementStockForPaidOrder(order.id);
+  }
 
   return NextResponse.json({ orderId: order?.id });
 }

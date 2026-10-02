@@ -15,6 +15,7 @@ type ApiItem = {
 };
 type ApiOrder = {
   id: string; channel: string; status: string; paymentMethod: string | null; notes: string | null;
+  customer: { name: string | null; phone: string } | null;
   items: ApiItem[];
 };
 
@@ -64,6 +65,7 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
   }));
 
   const customerMatch = order.notes?.match(/^Customer:\s*(.+?)(?:\s*·\s*(.+?))?$/m);
+  const freeNote = (order.notes ?? "").split("\n").filter((l) => !l.startsWith("Customer:")).join("\n");
 
   return (
     <div className="px-8 py-8 text-on-dark">
@@ -78,8 +80,9 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
         orderId={order.id}
         initialLines={initialLines}
         initialPaymentMethod={order.paymentMethod ?? "cash"}
-        initialCustomerName={customerMatch?.[1] ?? ""}
-        initialCustomerPhone={customerMatch?.[2] ?? ""}
+        initialCustomerName={order.customer ? order.customer.name ?? "" : customerMatch?.[1] ?? ""}
+        initialCustomerPhone={order.customer ? order.customer.phone : customerMatch?.[2] ?? ""}
+        initialNote={freeNote}
       />
     </div>
   );

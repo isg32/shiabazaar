@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const product = await db.product.findUnique({
     where: { id },
-    include: { images: true, variants: true },
+    include: { images: true, variants: true, categories: { include: { category: true } } },
   });
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ product });
@@ -32,8 +32,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.inStock === undefined) data.inStock = n > 0;
   }
 
+  // categoryIds isn't a Product column — never let it reach db.product.update()
+  const categoryIds: string[] | undefined = Array.isArray(body.categoryIds)
+    ? [...new Set(body.categoryIds as string[])]
+    : undefined;
+  delete data.categoryIds;
+
   try {
-    const product = await db.product.update({ where: { id }, data, include: { images: true, variants: true } });
+    const product = await db.$transaction(async (tx) => {
+      if (categoryIds !== undefined) {
+        // Replace all categories — same transaction as the product write so a
+        // failure on either side leaves both untouched instead of half-applied.
+        await tx.productCategory.deleteMany({ where: { productId: id } });
+        if (categoryIds.length > 0) {
+          await tx.productCategory.createMany({
+            data: categoryIds.map((categoryId) => ({ productId: id, categoryId })),
+          });
+        }
+      }
+      return tx.product.update({ where: { id }, data, include: { images: true, variants: true, categories: { include: { category: true } } } });
+    });
     revalidateTag("products", "max");
     return NextResponse.json({ product });
   } catch (e) {

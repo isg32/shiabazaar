@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const productIds = [...new Set(cartRows.map(r => r.productId))];
   const products = await db.product.findMany({
     where: { id: { in: productIds } },
-    select: { id: true, title: true, price: true, variants: { select: { id: true, price: true } } },
+    select: { id: true, title: true, price: true, originalPrice: true, variants: { select: { id: true, price: true } } },
   });
   const productMap = new Map(products.map(p => [p.id, p]));
 
@@ -66,7 +66,9 @@ export async function POST(req: NextRequest) {
       ? p.variants.find(v => v.id === row.variantId)?.price ?? null
       : null;
     const unitPrice = variantPrice ?? p.price;
-    return { productId: row.productId, variantId: row.variantId, qty: row.qty, title: p.title, price: unitPrice };
+    // A struck-through "original price" on the storefront is the MRP; variants have no MRP of their own.
+    const mrp = variantPrice === null && p.originalPrice && p.originalPrice > unitPrice ? p.originalPrice : unitPrice;
+    return { productId: row.productId, variantId: row.variantId, qty: row.qty, title: p.title, mrp, price: unitPrice };
   });
 
   const subtotal = lineItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -131,6 +133,7 @@ export async function POST(req: NextRequest) {
           productId: i.productId,
           variantId: i.variantId,
           title:     i.title,
+          mrp:       i.mrp,
           price:     i.price,
           qty:       i.qty,
         })),
