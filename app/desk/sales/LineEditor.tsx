@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, Trash2, Loader2, Plus } from "lucide-react";
 
 export type CatalogVariant = { id: string; label: string; stock: number; price?: number };
@@ -16,13 +16,19 @@ export type SaleLine = {
   variantId: string | null;
   variants: CatalogVariant[];
   qty: number;
-  unitPrice: number; // rupees
+  mrp: number; // rupees, catalogue price
+  unitPrice: number; // rupees, selling price after line discount
 };
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Line discount as a % of MRP, for display. */
+export const lineDiscountPct = (l: Pick<SaleLine, "mrp" | "unitPrice">) =>
+  l.mrp > 0 ? round2((1 - l.unitPrice / l.mrp) * 100) : 0;
 
 let seq = 0;
 export const nextLineKey = () => `l${++seq}`;
 
-/** Product search + editable line-items table + running subtotal. */
+/** Product search + editable line-items table (MRP, line discount, unit price). */
 export default function LineEditor({
   lines,
   onChange,
@@ -74,6 +80,7 @@ export default function LineEditor({
         variantId: firstVariant?.id ?? null,
         variants,
         qty: 1,
+        mrp: firstVariant?.price ?? p.price,
         unitPrice: firstVariant?.price ?? p.price,
       },
     ]);
@@ -93,12 +100,11 @@ export default function LineEditor({
       lines.map((l) => {
         if (l.key !== key) return l;
         const v = l.variants.find((v) => v.id === variantId);
-        return { ...l, variantId, unitPrice: v?.price ?? l.unitPrice };
+        const price = v?.price ?? l.mrp;
+        return { ...l, variantId, mrp: price, unitPrice: price };
       }),
     );
   }
-
-  const subtotal = useMemo(() => lines.reduce((s, l) => s + l.unitPrice * l.qty, 0), [lines]);
 
   return (
     <>
@@ -138,7 +144,7 @@ export default function LineEditor({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8">
-                {["Item", "Qty", "Unit ₹", "Total", ""].map((h) => (
+                {["Item", "Qty", "MRP ₹", "Disc %", "Unit ₹", "Total", ""].map((h) => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -167,9 +173,21 @@ export default function LineEditor({
                       className="w-16 h-8 px-1.5 text-sm bg-surface-dark border border-white/20 rounded text-on-dark focus:outline-none focus:border-primary"
                     />
                   </td>
+                  <td className="px-4 py-2.5 text-on-dark-soft">{l.mrp.toFixed(2)}</td>
                   <td className="px-4 py-2.5">
                     <input
-                      type="number" min={0} step="0.01" value={l.unitPrice}
+                      type="number" min={0} max={100} step="0.01" value={lineDiscountPct(l)}
+                      aria-label="Line discount percent"
+                      onChange={(e) => {
+                        const pct = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                        updateLine(l.key, { unitPrice: round2(l.mrp * (1 - pct / 100)) });
+                      }}
+                      className="w-16 h-8 px-1.5 text-sm bg-surface-dark border border-white/20 rounded text-on-dark focus:outline-none focus:border-primary"
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="number" min={0} step="0.01" value={l.unitPrice} aria-label="Unit price"
                       onChange={(e) => updateLine(l.key, { unitPrice: Math.max(0, Number(e.target.value) || 0) })}
                       className="w-24 h-8 px-1.5 text-sm bg-surface-dark border border-white/20 rounded text-on-dark focus:outline-none focus:border-primary"
                     />
@@ -187,9 +205,6 @@ export default function LineEditor({
         )}
       </div>
 
-      <p className="text-sm text-on-dark-soft mb-5">
-        Subtotal <span className="text-on-dark font-semibold text-lg ml-2">₹{subtotal.toFixed(2)}</span>
-      </p>
     </>
   );
 }

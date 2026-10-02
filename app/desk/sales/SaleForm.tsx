@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LineEditor, { type SaleLine } from "./LineEditor";
+import PaymentPanel, {
+  type BillDiscount,
+  type PaymentRow,
+  billDiscountRupees,
+  effectivePayments,
+  newPaymentRow,
+  paymentsPayload,
+} from "./PaymentPanel";
 
 export type { SaleLine };
 
-const PAYMENT_METHODS = ["cash", "upi", "card", "bank_transfer", "cheque"];
+const inputCls = "h-9 px-2 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary";
 
 export default function SaleForm({
   mode,
   orderId,
   initialLines = [],
-  initialPaymentMethod = "cash",
+  initialPayments,
+  initialDiscount = 0,
   initialCustomerName = "",
   initialCustomerPhone = "",
   initialNote = "",
@@ -20,7 +29,8 @@ export default function SaleForm({
   mode: "new" | "edit";
   orderId?: string;
   initialLines?: SaleLine[];
-  initialPaymentMethod?: string;
+  initialPayments?: PaymentRow[];
+  initialDiscount?: number; // rupees
   initialCustomerName?: string;
   initialCustomerPhone?: string;
   initialNote?: string;
@@ -28,12 +38,29 @@ export default function SaleForm({
   const router = useRouter();
 
   const [lines, setLines] = useState<SaleLine[]>(initialLines);
-  const [paymentMethod, setPaymentMethod] = useState(initialPaymentMethod);
+  const [discount, setDiscount] = useState<BillDiscount>({ kind: "flat", value: initialDiscount ? String(initialDiscount) : "" });
+  const [payments, setPayments] = useState<PaymentRow[]>(() =>
+    initialPayments?.length ? (initialPayments.length === 1 ? [{ ...initialPayments[0], amount: "" }] : initialPayments) : [newPaymentRow("cash")],
+  );
   const [customerName, setCustomerName] = useState(initialCustomerName);
   const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
+  const [knownCustomer, setKnownCustomer] = useState<string | null>(null);
   const [note, setNote] = useState(initialNote);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const subtotal = useMemo(() => lines.reduce((s, l) => s + l.unitPrice * l.qty, 0), [lines]);
+  const total = subtotal - billDiscountRupees(subtotal, discount);
+
+  async function lookupCustomer() {
+    setKnownCustomer(null);
+    if (customerPhone.replace(/\D/g, "").length < 6) return;
+    const d = await fetch(`/api/desk/customers?phone=${encodeURIComponent(customerPhone)}`).then((r) => r.json()).catch(() => null);
+    const c = d?.customer;
+    if (!c) return;
+    setKnownCustomer(`Returning customer · ${c._count.orders} previous ${c._count.orders === 1 ? "bill" : "bills"}`);
+    if (!customerName.trim() && c.name) setCustomerName(c.name);
+  }
 
   async function submit() {
     setError(null);
@@ -51,7 +78,8 @@ export default function SaleForm({
             qty: l.qty,
             unitPrice: l.unitPrice,
           })),
-          paymentMethod,
+          billDiscount: billDiscountRupees(subtotal, discount),
+          payments: paymentsPayload(effectivePayments(payments, "full", total)),
           customerName,
           customerPhone,
           note,
@@ -72,39 +100,31 @@ export default function SaleForm({
     <div className="max-w-3xl">
       <LineEditor lines={lines} onChange={setLines} />
 
+      <PaymentPanel
+        mode="full"
+        subtotal={subtotal}
+        discount={discount}
+        onDiscountChange={setDiscount}
+        payments={payments}
+        onPaymentsChange={setPayments}
+      />
+
       <div className="grid sm:grid-cols-2 gap-4 mb-5">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-on-dark-soft">Payment method</span>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="h-9 px-2 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary capitalize"
-          >
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-on-dark-soft">Customer name (optional)</span>
-          <input
-            value={customerName} onChange={(e) => setCustomerName(e.target.value)}
-            className="h-9 px-2 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary"
-          />
-        </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-on-dark-soft">Customer phone (optional)</span>
           <input
-            value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
-            className="h-9 px-2 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary"
+            value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} onBlur={lookupCustomer}
+            className={inputCls}
           />
+          {knownCustomer && <span className="text-[11px] text-success" data-testid="known-customer">{knownCustomer}</span>}
         </label>
         <label className="flex flex-col gap-1.5">
+          <span className="text-xs text-on-dark-soft">Customer name (optional)</span>
+          <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputCls} />
+        </label>
+        <label className="flex flex-col gap-1.5 sm:col-span-2">
           <span className="text-xs text-on-dark-soft">Note (optional)</span>
-          <input
-            value={note} onChange={(e) => setNote(e.target.value)}
-            className="h-9 px-2 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark focus:outline-none focus:border-primary"
-          />
+          <input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
         </label>
       </div>
 

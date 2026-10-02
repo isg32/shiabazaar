@@ -48,7 +48,7 @@ export default function DeskSchools() {
     );
   }, [schools, query]);
 
-  const totalOutstanding = schools.filter((s) => s.active).reduce((sum, s) => sum + s.balance, 0);
+  const totalOutstanding = schools.filter((s) => s.active).reduce((sum, s) => sum + Math.max(s.balance, 0), 0);
 
   async function create() {
     setError(null);
@@ -169,8 +169,8 @@ export default function DeskSchools() {
                       {s.contactName ?? "—"}{s.phone ? ` · ${s.phone}` : ""}
                       {(s.city || s.state) && <p className="text-[11px] text-on-dark-soft/70">{[s.city, s.state].filter(Boolean).join(", ")}</p>}
                     </td>
-                    <td className={`px-5 py-3.5 font-medium ${s.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
-                      ₹{(s.balance / 100).toFixed(0)}
+                    <td className={`px-5 py-3.5 font-medium ${s.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : s.balance < 0 ? "text-success" : "text-on-dark-soft"}`}>
+                      {s.balance < 0 ? `₹${(-s.balance / 100).toFixed(0)} advance` : `₹${(s.balance / 100).toFixed(0)}`}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                       {s.creditLimit > 0 ? `₹${(s.creditLimit / 100).toFixed(0)}` : "none"}

@@ -5,7 +5,9 @@ import {
   DeskOrderError,
   createDeskOrder,
   optionalString,
+  resolveBillDiscount,
   resolveLines,
+  resolvePayments,
 } from "@/lib/desk-orders";
 import { deskSaleNotes } from "@/lib/customers";
 
@@ -20,7 +22,9 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {
-      items: { select: { id: true, title: true, qty: true, price: true } },
+      items: { select: { id: true, title: true, qty: true, price: true, mrp: true } },
+      payments: { select: { method: true, amount: true } },
+      returns: { select: { amount: true } },
     },
   });
   return NextResponse.json({ orders });
@@ -40,6 +44,8 @@ export async function POST(req: NextRequest) {
     const order = await createDeskOrder({
       buyerType: "individual",
       lines,
+      billDiscount: resolveBillDiscount(body.billDiscount),
+      payments: resolvePayments(body.payments),
       paymentMethod: optionalString(body.paymentMethod),
       notes: deskSaleNotes(customer.name, customer.phone, optionalString(body.note)),
       customer,

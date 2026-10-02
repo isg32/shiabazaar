@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireClerk, getStaffUser } from "@/lib/staff-guard";
 import {
+  CreditLimitError,
   DeskOrderError,
   cancelDeskOrder,
   optionalString,
+  resolveBillDiscount,
   resolveLines,
+  resolvePayments,
   updateDeskOrder,
 } from "@/lib/desk-orders";
 import { deskSaleNotes } from "@/lib/customers";
@@ -22,7 +25,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     include: {
       items: {
         select: {
-          id: true, title: true, qty: true, price: true, productId: true, variantId: true,
+          id: true, title: true, qty: true, price: true, mrp: true, productId: true, variantId: true,
+          returnLines: { select: { qty: true } },
           product: {
             select: {
               title: true, slug: true, price: true,
@@ -35,6 +39,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       school: { select: { id: true, name: true } },
       vendor: { select: { id: true, name: true } },
       customer: { select: { name: true, phone: true } },
+      payments: { select: { method: true, amount: true } },
+      returns: { select: { id: true, amount: true, createdAt: true, note: true } },
     },
   });
   if (!order || order.channel !== "offline") {
@@ -58,15 +64,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await updateDeskOrder({
       id,
       lines,
+      billDiscount: body.billDiscount === undefined ? undefined : resolveBillDiscount(body.billDiscount),
+      payments: resolvePayments(body.payments),
       paymentMethod: optionalString(body.paymentMethod),
       notes: hasCustomer
         ? deskSaleNotes(customer.name, customer.phone, optionalString(body.note))
         : optionalString(body.note),
       customer: hasCustomer ? customer : null,
       staffId: staff?.id ?? null,
+      override: { requested: body.override === true, allowed: !!staff?.isAdmin, staffId: staff?.id ?? null },
     });
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err instanceof CreditLimitError) {
+      return NextResponse.json({ error: err.message, code: "CREDIT_LIMIT", ...err.details }, { status: 409 });
+    }
     if (err instanceof DeskOrderError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
