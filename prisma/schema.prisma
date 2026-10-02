@@ -71,6 +71,7 @@ model User {
   name      String?
   isAdmin   Boolean  @default(false)
   isClerk   Boolean  @default(false)
+  isReader  Boolean  @default(false) // read-only access to /dashboard (BI)
   banned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -113,6 +114,7 @@ model Address {
 model Product {
   id            String      @id @default(cuid())
   slug          String      @unique
+  sku           String?     @unique @default(dbgenerated("next_entity_code('SB-'::text, 'product_sku_seq'::regclass, 6)")) // auto-assigned SB-000001
   title         String
   type          ProductType
   price         Int // in paise (₹ × 100)
@@ -193,34 +195,40 @@ model ProductVariant {
 // ── Orders ───────────────────────────────────────────
 
 model Order {
-  id                String       @id @default(cuid())
-  userId            String? // null = guest
-  addressId         String?
-  channel           SalesChannel @default(online) // online = storefront; offline = clerk desk (walk-in, school, or vendor)
-  buyerType         BuyerType    @default(individual) // who bought — independent of channel
-  paymentMethod     String? // offline only: cash | upi | card | bank_transfer | cheque | split
-  schoolId          String? // set when buyerType = school
-  vendorId          String? // set when buyerType = vendor
-  recordedById      String? // staff User.id who logged an offline entry — audit stamp, no FK
-  status            OrderStatus  @default(pending)
-  subtotal          Int // paise
-  discountAmount    Int          @default(0)
-  shippingAmount    Int          @default(0)
-  total             Int
-  couponCode        String?
-  razorpayOrderId   String?      @unique
-  razorpayPaymentId String?
-  trackingNumber    String?
-  trackingUrl       String?
-  notes             String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  userId             String? // null = guest
+  addressId          String?
+  channel            SalesChannel @default(online) // online = storefront; offline = clerk desk (walk-in, school, or vendor)
+  buyerType          BuyerType    @default(individual) // who bought — independent of channel
+  paymentMethod      String? // offline only: cash | upi | card | bank_transfer | cheque | split
+  schoolId           String? // set when buyerType = school
+  vendorId           String? // set when buyerType = vendor
+  customerId         String? // walk-in customer (offline individual sales), keyed by phone
+  amountPaid         Int          @default(0) // paise received at the time of sale; total − amountPaid is credit generated
+  creditOverrideById String? // admin User.id who approved exceeding the credit limit — audit stamp, no FK
+  recordedById       String? // staff User.id who logged an offline entry — audit stamp, no FK
+  status             OrderStatus  @default(pending)
+  subtotal           Int // paise
+  discountAmount     Int          @default(0)
+  shippingAmount     Int          @default(0)
+  total              Int
+  couponCode         String?
+  razorpayOrderId    String?      @unique
+  razorpayPaymentId  String?
+  trackingNumber     String?
+  trackingUrl        String?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   user           User?           @relation(fields: [userId], references: [id])
   address        Address?        @relation(fields: [addressId], references: [id])
   school         School?         @relation(fields: [schoolId], references: [id])
   vendor         Vendor?         @relation(fields: [vendorId], references: [id])
+  customer       Customer?       @relation(fields: [customerId], references: [id])
   items          OrderItem[]
+  payments       OrderPayment[]
+  returns        OrderReturn[]
   returnRequests ReturnRequest[]
 
   @@index([userId])
@@ -228,6 +236,8 @@ model Order {
   @@index([buyerType])
   @@index([schoolId])
   @@index([vendorId])
+  @@index([customerId])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -239,14 +249,96 @@ model OrderItem {
   productId String
   variantId String?
   title     String // snapshot at time of order
-  price     Int // snapshot in paise
+  mrp       Int? // unit MRP snapshot in paise; null on legacy rows = same as price. Line discount = (mrp − price) × qty
+  price     Int // unit selling price snapshot in paise (after line discount)
   qty       Int
 
-  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product         @relation(fields: [productId], references: [id])
-  variant ProductVariant? @relation(fields: [variantId], references: [id])
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product           @relation(fields: [productId], references: [id])
+  variant     ProductVariant?   @relation(fields: [variantId], references: [id])
+  returnLines OrderReturnLine[]
 
+  @@index([orderId])
   @@map("order_items")
+}
+
+// One row per payment mode used at the time of sale (split payments = several rows).
+// Later school/vendor settlements live in SchoolPayment / VendorPayment instead.
+model OrderPayment {
+  id        String   @id @default(cuid())
+  orderId   String
+  method    String // cash | upi | card | bank_transfer | cheque | online | other
+  amount    Int // paise, positive
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([method])
+  @@map("order_payments")
+}
+
+// A (partial) return against an offline order. Stock comes back via a
+// `return_restock` StockMovement; school/vendor outstanding drops by `amount`.
+model OrderReturn {
+  id           String   @id @default(cuid())
+  orderId      String
+  amount       Int // paise, net value returned = Σ lines.amount
+  note         String?
+  recordedById String? // staff User.id — audit stamp, no FK
+  createdAt    DateTime @default(now())
+
+  order Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  lines OrderReturnLine[]
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_returns")
+}
+
+model OrderReturnLine {
+  id          String @id @default(cuid())
+  returnId    String
+  orderItemId String
+  qty         Int
+  amount      Int // paise = unit price × qty
+
+  return    OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItem OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([returnId])
+  @@index([orderItemId])
+  @@map("order_return_lines")
+}
+
+// Walk-in (offline, individual) customer identity, looked up by phone at the desk.
+model Customer {
+  id        String   @id @default(cuid())
+  phone     String   @unique // digits only, normalised
+  name      String?
+  email     String?
+  city      String?
+  state     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("customers")
+}
+
+// Single-row table (id = 1) of business-rule settings used by credit monitoring
+// and the BI dashboard.
+model BusinessSettings {
+  id               Int      @id @default(1)
+  paymentTermsDays Int      @default(30) // credit becomes overdue after this many days unless the school/vendor overrides it
+  creditWatchPct   Int      @default(70) // utilisation ≥ this → "Watch"
+  creditNearPct    Int      @default(90) // utilisation ≥ this → "Near limit"
+  inactiveDays     Int      @default(90) // no purchase for this long → inactive customer/school/vendor
+  updatedAt        DateTime @updatedAt
+
+  @@map("business_settings")
 }
 
 // ── Cart ─────────────────────────────────────────────
@@ -435,19 +527,22 @@ model Popup {
 // ── School Book-Credit (clerk desk) ──────────────────
 
 model School {
-  id          String   @id @default(cuid())
-  name        String
-  code        String?  @unique
-  contactName String?
-  phone       String?
-  email       String?
-  address     String?
-  creditLimit Int      @default(0) // paise; 0 = no limit
-  balance     Int      @default(0) // paise; denormalized outstanding = Σ(issues) − Σ(payments)
-  active      Boolean  @default(true)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  code             String?  @unique @default(dbgenerated("next_entity_code('SCH-'::text, 'school_code_seq'::regclass, 4)")) // auto-assigned, not editable
+  contactName      String?
+  phone            String?
+  email            String?
+  address          String?
+  city             String?
+  state            String?
+  paymentTermsDays Int? // overrides BusinessSettings.paymentTermsDays when set
+  creditLimit      Int      @default(0) // paise; 0 = no limit
+  balance          Int      @default(0) // paise; denormalized outstanding = Σ(issues) − Σ(payments)
+  active           Boolean  @default(true)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   orders   Order[]
   payments SchoolPayment[]
@@ -478,19 +573,22 @@ model SchoolPayment {
 // Mirrors School exactly — a second, independent credit-based buyer type.
 
 model Vendor {
-  id          String   @id @default(cuid())
-  name        String
-  code        String?  @unique
-  contactName String?
-  phone       String?
-  email       String?
-  address     String?
-  creditLimit Int      @default(0) // paise; 0 = no limit
-  balance     Int      @default(0) // paise; denormalized outstanding = Σ(issues) − Σ(payments)
-  active      Boolean  @default(true)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  code             String?  @unique @default(dbgenerated("next_entity_code('VEN-'::text, 'vendor_code_seq'::regclass, 4)")) // auto-assigned, not editable
+  contactName      String?
+  phone            String?
+  email            String?
+  address          String?
+  city             String?
+  state            String?
+  paymentTermsDays Int? // overrides BusinessSettings.paymentTermsDays when set
+  creditLimit      Int      @default(0) // paise; 0 = no limit
+  balance          Int      @default(0) // paise; denormalized outstanding = Σ(issues) − Σ(payments)
+  active           Boolean  @default(true)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   orders   Order[]
   payments VendorPayment[]

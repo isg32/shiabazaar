@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireClerk } from "@/lib/staff-guard";
-import { optionalString } from "@/lib/desk-orders";
+import { optionalString, paymentTerms } from "@/lib/desk-orders";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +17,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     db.order.findMany({
       where: { schoolId: id, buyerType: "school" },
       orderBy: { createdAt: "desc" },
-      include: { items: { select: { id: true, title: true, qty: true, price: true } } },
+      include: {
+        items: { select: { id: true, title: true, qty: true, price: true } },
+        returns: { select: { amount: true } },
+      },
     }),
     db.school.findUnique({ where: { id } }).payments({ orderBy: { receivedAt: "desc" } }),
   ]);
 
   // Recompute the authoritative balance and reconcile the stored value if it drifted.
-  const issued = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
+  // Credit generated per issue = total − paid at sale − returned value.
+  const issued = orders
+    .filter((o) => o.status !== "cancelled")
+    .reduce((s, o) => s + o.total - o.amountPaid - o.returns.reduce((r, x) => r + x.amount, 0), 0);
   const paid = (payments ?? []).reduce((s, p) => s + p.amount, 0);
   const balance = issued - paid;
   if (balance !== school.balance) {
@@ -46,9 +52,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!name) return NextResponse.json({ error: "Name cannot be empty." }, { status: 400 });
     data.name = name;
   }
-  for (const f of ["code", "contactName", "phone", "email", "address", "notes"] as const) {
+  for (const f of ["contactName", "phone", "email", "address", "city", "state", "notes"] as const) {
     if (f in body) data[f] = optionalString(body[f]);
   }
+  if ("paymentTermsDays" in body) data.paymentTermsDays = paymentTerms(body.paymentTermsDays);
   if ("creditLimit" in body) {
     const r = Number(body.creditLimit);
     data.creditLimit = Number.isFinite(r) && r > 0 ? Math.round(r * 100) : 0;

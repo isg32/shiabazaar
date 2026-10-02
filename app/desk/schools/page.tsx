@@ -10,13 +10,15 @@ type School = {
   code: string | null;
   contactName: string | null;
   phone: string | null;
+  city: string | null;
+  state: string | null;
   creditLimit: number;
   balance: number;
   active: boolean;
   _count: { orders: number; payments: number };
 };
 
-const EMPTY = { name: "", code: "", contactName: "", phone: "", email: "", creditLimit: "" };
+const EMPTY = { name: "", contactName: "", phone: "", email: "", city: "", state: "", creditLimit: "", paymentTermsDays: "" };
 
 export default function DeskSchools() {
   const router = useRouter();
@@ -41,6 +43,7 @@ export default function DeskSchools() {
     return schools.filter((s) =>
       s.name.toLowerCase().includes(q) ||
       (s.code ?? "").toLowerCase().includes(q) ||
+      (s.city ?? "").toLowerCase().includes(q) ||
       (s.contactName ?? "").toLowerCase().includes(q)
     );
   }, [schools, query]);
@@ -89,23 +92,26 @@ export default function DeskSchools() {
           <div className="grid sm:grid-cols-3 gap-3">
             {([
               ["name", "School name *"],
-              ["code", "Code"],
               ["contactName", "Contact person"],
               ["phone", "Phone"],
               ["email", "Email"],
+              ["city", "City"],
+              ["state", "State"],
               ["creditLimit", "Credit limit (₹, 0 = none)"],
+              ["paymentTermsDays", "Payment terms (days, blank = default)"],
             ] as const).map(([field, label]) => (
               <label key={field} className="flex flex-col gap-1.5">
                 <span className="text-xs text-on-dark-soft">{label}</span>
                 <input
                   value={form[field]}
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  type={field === "creditLimit" ? "number" : "text"}
+                  type={field === "creditLimit" || field === "paymentTermsDays" ? "number" : "text"}
                   className="h-9 px-2 text-sm bg-surface-dark border border-white/20 rounded-md text-on-dark focus:outline-none focus:border-primary"
                 />
               </label>
             ))}
           </div>
+          <p className="text-xs text-on-dark-soft mt-3">A school code (SCH-0001, …) is assigned automatically.</p>
           {error && <p className="text-sm text-error mt-3">{error}</p>}
           <div className="flex justify-end mt-4">
             <button
@@ -123,7 +129,7 @@ export default function DeskSchools() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name, code or contact…"
+          placeholder="Search by name, code, city or contact…"
           className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
         />
       </div>
@@ -157,10 +163,11 @@ export default function DeskSchools() {
                   >
                     <td className="px-5 py-3.5">
                       <p className="text-on-dark font-medium">{s.name}</p>
-                      {s.code && <p className="text-[11px] text-on-dark-soft">{s.code}</p>}
+                      {s.code && <p className="text-[11px] font-mono text-on-dark-soft">{s.code}</p>}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                       {s.contactName ?? "—"}{s.phone ? ` · ${s.phone}` : ""}
+                      {(s.city || s.state) && <p className="text-[11px] text-on-dark-soft/70">{[s.city, s.state].filter(Boolean).join(", ")}</p>}
                     </td>
                     <td className={`px-5 py-3.5 font-medium ${s.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
                       ₹{(s.balance / 100).toFixed(0)}

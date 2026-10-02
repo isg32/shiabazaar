@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireClerk } from "@/lib/staff-guard";
-import { optionalString } from "@/lib/desk-orders";
+import { optionalString, paymentTerms } from "@/lib/desk-orders";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
     const school = await db.school.create({
       data: {
         name,
-        code: optionalString(body.code),
         contactName: optionalString(body.contactName),
         phone: optionalString(body.phone),
         email: optionalString(body.email),
         address: optionalString(body.address),
+        city: optionalString(body.city),
+        state: optionalString(body.state),
+        paymentTermsDays: paymentTerms(body.paymentTermsDays),
         creditLimit,
       },
     });

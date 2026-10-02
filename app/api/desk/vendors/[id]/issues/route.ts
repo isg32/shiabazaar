@@ -43,12 +43,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       );
     }
 
+    const overLimit = vendor.creditLimit > 0 && vendor.balance + total > vendor.creditLimit;
     const order = await createDeskOrder({
       buyerType: "vendor",
       lines,
       vendorId: id,
       notes: optionalString(body.note),
       staffId: staff?.id ?? null,
+      creditOverrideById: overLimit ? staff?.id ?? null : null,
     });
     return NextResponse.json({ orderId: order.id }, { status: 201 });
   } catch (err) {

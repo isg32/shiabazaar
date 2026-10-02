@@ -39,6 +39,7 @@ export default function EditBookPage({
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [sku, setSku] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -91,6 +92,7 @@ export default function EditBookPage({
           setLoading(false);
           return;
         }
+        setSku(product.sku ?? null);
         setForm({
           title: product.title ?? "",
           slug: product.slug ?? "",
@@ -327,7 +329,7 @@ export default function EditBookPage({
         >
           Edit Book
         </h1>
-        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{id}</p>
+        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{sku ? `SKU ${sku} · ` : ""}{id}</p>
       </div>
 
       <form onSubmit={handleSubmit}>

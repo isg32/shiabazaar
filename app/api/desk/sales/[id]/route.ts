@@ -8,6 +8,7 @@ import {
   resolveLines,
   updateDeskOrder,
 } from "@/lib/desk-orders";
+import { deskSaleNotes } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
       school: { select: { id: true, name: true } },
       vendor: { select: { id: true, name: true } },
+      customer: { select: { name: true, phone: true } },
     },
   });
   if (!order || order.channel !== "offline") {
@@ -50,11 +52,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const body = await req.json();
     const lines = await resolveLines(body.lines ?? []);
+    // Only the walk-in sale form sends customer fields; school/vendor edits keep their notes as-is.
+    const hasCustomer = "customerName" in body || "customerPhone" in body;
+    const customer = { name: optionalString(body.customerName), phone: optionalString(body.customerPhone) };
     await updateDeskOrder({
       id,
       lines,
       paymentMethod: optionalString(body.paymentMethod),
-      notes: optionalString(body.note),
+      notes: hasCustomer
+        ? deskSaleNotes(customer.name, customer.phone, optionalString(body.note))
+        : optionalString(body.note),
+      customer: hasCustomer ? customer : null,
       staffId: staff?.id ?? null,
     });
     return NextResponse.json({ ok: true });

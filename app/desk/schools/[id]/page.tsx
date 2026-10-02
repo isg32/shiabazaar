@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Loader2, Plus, X, Ban, Trash2 } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, X, Ban, Trash2, Pencil } from "lucide-react";
 import LineEditor, { type SaleLine } from "../../sales/LineEditor";
 
 type OrderItem = { id: string; title: string; qty: number; price: number };
@@ -11,6 +11,7 @@ type Payment = { id: string; amount: number; method: string; reference: string |
 type School = {
   id: string; name: string; code: string | null; contactName: string | null;
   phone: string | null; email: string | null; address: string | null;
+  city: string | null; state: string | null; paymentTermsDays: number | null;
   creditLimit: number; balance: number; active: boolean; notes: string | null;
 };
 
@@ -25,7 +26,7 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const [data, setData] = useState<{ school: School; orders: Order[]; payments: Payment[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [tab, setTab] = useState<"issue" | "payment" | null>(null);
+  const [tab, setTab] = useState<"issue" | "payment" | "details" | null>(null);
 
   const load = useCallback(() => {
     fetch(`/api/desk/schools/${id}`)
@@ -105,7 +106,14 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
             <p className="text-sm text-on-dark-soft mt-1">
               {[school.code, school.contactName, school.phone, school.email].filter(Boolean).join(" · ") || "No contact details"}
             </p>
-            {school.address && <p className="text-xs text-on-dark-soft/70 mt-1">{school.address}</p>}
+            {(school.address || school.city || school.state) && (
+              <p className="text-xs text-on-dark-soft/70 mt-1">
+                {[school.address, school.city, school.state].filter(Boolean).join(", ")}
+              </p>
+            )}
+            <p className="text-xs text-on-dark-soft/70 mt-1">
+              Payment terms: {school.paymentTermsDays != null ? `${school.paymentTermsDays} days` : "default"}
+            </p>
           </div>
           <div className="text-right shrink-0">
             <p className="text-[11px] uppercase tracking-wide text-on-dark-soft">Outstanding</p>
@@ -134,10 +142,17 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
           >
             {tab === "payment" ? <X size={12} /> : <Plus size={12} />} Record Payment
           </button>
+          <button
+            onClick={() => setTab(tab === "details" ? null : "details")}
+            className="h-8 px-3 bg-white/5 text-on-dark text-xs font-medium rounded-md flex items-center gap-1.5 hover:bg-white/10 transition-colors"
+          >
+            {tab === "details" ? <X size={12} /> : <Pencil size={12} />} Edit details
+          </button>
         </div>
 
         {tab === "issue" && <IssueForm schoolId={id} onDone={() => { setTab(null); load(); }} />}
         {tab === "payment" && <PaymentForm schoolId={id} onDone={() => { setTab(null); load(); }} />}
+        {tab === "details" && <DetailsForm school={school} onDone={() => { setTab(null); load(); }} />}
       </div>
 
       {/* Ledger */}
@@ -306,6 +321,77 @@ function PaymentForm({ schoolId, onDone }: { schoolId: string; onDone: () => voi
         className="h-9 px-5 bg-success text-white text-sm font-medium rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
       >
         {saving ? "Saving…" : "Record payment"}
+      </button>
+    </div>
+  );
+}
+
+const DETAIL_FIELDS = [
+  ["name", "Name *", "text"],
+  ["contactName", "Contact person", "text"],
+  ["phone", "Phone", "text"],
+  ["email", "Email", "text"],
+  ["address", "Address", "text"],
+  ["city", "City", "text"],
+  ["state", "State", "text"],
+  ["creditLimit", "Credit limit (₹, 0 = none)", "number"],
+  ["paymentTermsDays", "Payment terms (days, blank = default)", "number"],
+  ["notes", "Notes", "text"],
+] as const;
+
+function DetailsForm({ school, onDone }: { school: School; onDone: () => void }) {
+  const [form, setForm] = useState<Record<string, string>>(() => ({
+    name: school.name,
+    contactName: school.contactName ?? "",
+    phone: school.phone ?? "",
+    email: school.email ?? "",
+    address: school.address ?? "",
+    city: school.city ?? "",
+    state: school.state ?? "",
+    creditLimit: school.creditLimit ? String(school.creditLimit / 100) : "0",
+    paymentTermsDays: school.paymentTermsDays != null ? String(school.paymentTermsDays) : "",
+    notes: school.notes ?? "",
+  }));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setError(null);
+    if (!form.name.trim()) { setError("Name is required."); return; }
+    setSaving(true);
+    const res = await fetch(`/api/desk/schools/${school.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setSaving(false);
+    if (res.ok) { onDone(); return; }
+    setError((await res.json().catch(() => ({}))).error ?? "Could not save.");
+  }
+
+  return (
+    <div className="mt-5 pt-5 border-t border-white/8">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-on-dark-soft mb-3">
+        Edit details <span className="normal-case tracking-normal font-normal">· code {school.code ?? "—"} (fixed)</span>
+      </h3>
+      <div className="grid sm:grid-cols-3 gap-3 mb-4">
+        {DETAIL_FIELDS.map(([field, label, type]) => (
+          <label key={field} className="flex flex-col gap-1.5">
+            <span className="text-xs text-on-dark-soft">{label}</span>
+            <input
+              type={type} value={form[field]}
+              onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+              className="h-9 px-2 text-sm bg-surface-dark border border-white/20 rounded-md text-on-dark focus:outline-none focus:border-primary"
+            />
+          </label>
+        ))}
+      </div>
+      {error && <p className="text-sm text-error mb-3">{error}</p>}
+      <button
+        onClick={submit} disabled={saving}
+        className="h-9 px-5 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-active transition-colors disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save details"}
       </button>
     </div>
   );

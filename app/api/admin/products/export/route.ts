@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 const COLUMNS = [
   "title","slug","type","price","original_price","in_stock","stock",
   "badge","category_names","description","author","publisher",
-  "language","genre","isbn","edition","page_count",
+  "language","genre","isbn","edition","page_count","sku",
 ];
 
 function esc(v: unknown) {
@@ -42,6 +42,7 @@ export async function GET() {
     esc(p.isbn ?? ""),
     esc(p.edition ?? ""),
     esc(p.pageCount ?? ""),
+    esc(p.sku ?? ""),
   ].join(","));
 
   const csv = [COLUMNS.join(","), ...rows].join("\n");

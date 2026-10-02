@@ -53,6 +53,7 @@ export default function EditProductPage({
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [sku, setSku] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -107,6 +108,7 @@ export default function EditProductPage({
           setLoading(false);
           return;
         }
+        setSku(product.sku ?? null);
         setForm({
           title: product.title ?? "",
           slug: product.slug ?? "",
@@ -420,7 +422,7 @@ export default function EditProductPage({
     <div className="px-8 py-8 text-on-dark max-w-3xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-on-dark">Edit Product</h1>
-        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{id}</p>
+        <p className="text-sm text-on-dark-soft mt-0.5 font-mono">{sku ? `SKU ${sku} · ` : ""}{id}</p>
       </div>
 
       <form onSubmit={handleSubmit}>

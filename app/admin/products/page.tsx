@@ -5,6 +5,7 @@ import { Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 
 interface Product {
   id: string;
+  sku: string | null;
   title: string;
   type: string;
   price: number;     // paise
@@ -64,7 +65,7 @@ export default function AdminProducts() {
     const q = query.trim().toLowerCase();
     return products.filter(p =>
       (typeTab === "All" || p.type === typeTab) &&
-      (!q || p.title.toLowerCase().includes(q) || p.type.toLowerCase().includes(q))
+      (!q || p.title.toLowerCase().includes(q) || p.type.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q))
     );
   }, [products, query, typeTab]);
 
@@ -136,7 +137,7 @@ export default function AdminProducts() {
             type="text"
             value={query}
             onChange={e => handleQuery(e.target.value)}
-            placeholder="Search products…"
+            placeholder="Search by title, type or SKU…"
             className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
           />
         </div>
@@ -190,6 +191,7 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="text-on-dark font-medium">{p.title}</span>
+                    {p.sku && <span className="block text-[11px] font-mono text-on-dark-soft">{p.sku}</span>}
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-on-dark-soft font-medium capitalize">{p.type}</span>

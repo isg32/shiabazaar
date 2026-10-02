@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
 
 type Book = {
-  id: string; title: string; slug: string; author: string | null;
+  id: string; sku: string | null; title: string; slug: string; author: string | null;
   publisher: string | null; price: number; inStock: boolean;
   categories: { category: { name: string } }[];
 };
@@ -27,7 +27,8 @@ export default function AdminBooks() {
 
   const filtered = books.filter(b =>
     !query || b.title.toLowerCase().includes(query.toLowerCase()) ||
-    (b.author ?? "").toLowerCase().includes(query.toLowerCase())
+    (b.author ?? "").toLowerCase().includes(query.toLowerCase()) ||
+    (b.sku ?? "").toLowerCase().includes(query.toLowerCase())
   );
 
   async function remove(id: string, title: string) {
@@ -58,7 +59,7 @@ export default function AdminBooks() {
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search by title or author…"
+          placeholder="Search by title, author or SKU…"
           className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
         />
       </div>
@@ -84,7 +85,10 @@ export default function AdminBooks() {
                 </td></tr>
               ) : filtered.map((b, i) => (
                 <tr key={b.id} className={`hover:bg-white/3 transition-colors ${i < filtered.length - 1 ? "border-b border-white/8" : ""}`}>
-                  <td className="px-5 py-3.5 font-medium text-on-dark max-w-[200px] truncate">{b.title}</td>
+                  <td className="px-5 py-3.5 font-medium text-on-dark max-w-[200px] truncate">
+                    {b.title}
+                    {b.sku && <span className="block text-[11px] font-mono font-normal text-on-dark-soft">{b.sku}</span>}
+                  </td>
                   <td className="px-5 py-3.5 text-on-dark-soft max-w-[140px] truncate">{b.author ?? "—"}</td>
                   <td className="px-5 py-3.5">
                     {b.publisher ? (

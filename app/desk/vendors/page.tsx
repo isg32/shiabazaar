@@ -10,13 +10,15 @@ type Vendor = {
   code: string | null;
   contactName: string | null;
   phone: string | null;
+  city: string | null;
+  state: string | null;
   creditLimit: number;
   balance: number;
   active: boolean;
   _count: { orders: number; payments: number };
 };
 
-const EMPTY = { name: "", code: "", contactName: "", phone: "", email: "", creditLimit: "" };
+const EMPTY = { name: "", contactName: "", phone: "", email: "", city: "", state: "", creditLimit: "", paymentTermsDays: "" };
 
 export default function DeskVendors() {
   const router = useRouter();
@@ -41,6 +43,7 @@ export default function DeskVendors() {
     return vendors.filter((v) =>
       v.name.toLowerCase().includes(q) ||
       (v.code ?? "").toLowerCase().includes(q) ||
+      (v.city ?? "").toLowerCase().includes(q) ||
       (v.contactName ?? "").toLowerCase().includes(q)
     );
   }, [vendors, query]);
@@ -89,23 +92,26 @@ export default function DeskVendors() {
           <div className="grid sm:grid-cols-3 gap-3">
             {([
               ["name", "Vendor name *"],
-              ["code", "Code"],
               ["contactName", "Contact person"],
               ["phone", "Phone"],
               ["email", "Email"],
+              ["city", "City"],
+              ["state", "State"],
               ["creditLimit", "Credit limit (₹, 0 = none)"],
+              ["paymentTermsDays", "Payment terms (days, blank = default)"],
             ] as const).map(([field, label]) => (
               <label key={field} className="flex flex-col gap-1.5">
                 <span className="text-xs text-on-dark-soft">{label}</span>
                 <input
                   value={form[field]}
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  type={field === "creditLimit" ? "number" : "text"}
+                  type={field === "creditLimit" || field === "paymentTermsDays" ? "number" : "text"}
                   className="h-9 px-2 text-sm bg-surface-dark border border-white/20 rounded-md text-on-dark focus:outline-none focus:border-primary"
                 />
               </label>
             ))}
           </div>
+          <p className="text-xs text-on-dark-soft mt-3">A vendor code (VEN-0001, …) is assigned automatically.</p>
           {error && <p className="text-sm text-error mt-3">{error}</p>}
           <div className="flex justify-end mt-4">
             <button
@@ -123,7 +129,7 @@ export default function DeskVendors() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name, code or contact…"
+          placeholder="Search by name, code, city or contact…"
           className="w-full h-9 pl-9 pr-3 text-sm bg-surface-dark-elevated border border-white/10 rounded-md text-on-dark placeholder:text-on-dark-soft focus:outline-none focus:border-primary"
         />
       </div>
@@ -157,10 +163,11 @@ export default function DeskVendors() {
                   >
                     <td className="px-5 py-3.5">
                       <p className="text-on-dark font-medium">{v.name}</p>
-                      {v.code && <p className="text-[11px] text-on-dark-soft">{v.code}</p>}
+                      {v.code && <p className="text-[11px] font-mono text-on-dark-soft">{v.code}</p>}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-on-dark-soft">
                       {v.contactName ?? "—"}{v.phone ? ` · ${v.phone}` : ""}
+                      {(v.city || v.state) && <p className="text-[11px] text-on-dark-soft/70">{[v.city, v.state].filter(Boolean).join(", ")}</p>}
                     </td>
                     <td className={`px-5 py-3.5 font-medium ${v.balance > 0 ? (nearLimit ? "text-accent-amber" : "text-error") : "text-on-dark-soft"}`}>
                       ₹{(v.balance / 100).toFixed(0)}
