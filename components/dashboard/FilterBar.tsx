@@ -17,10 +17,14 @@ const ctl = "h-8 px-2 text-xs bg-surface-dark-elevated border border-white/15 ro
 export default function FilterBar({
   categories,
   showCategory = true,
+  showBuyer = true,
+  showChannel = true,
   children,
 }: {
   categories?: CategoryOption[];
   showCategory?: boolean;
+  showBuyer?: boolean;
+  showChannel?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -57,17 +61,21 @@ export default function FilterBar({
             <input type="date" aria-label="To date" value={get("to")} className={ctl} onChange={(e) => set({ to: e.target.value })} />
           </>
         )}
-        <select aria-label="Sales channel" value={get("channel")} className={ctl} onChange={(e) => set({ channel: e.target.value || null })}>
-          <option value="">All channels</option>
-          <option value="online">Website</option>
-          <option value="offline">Physical store</option>
-        </select>
-        <select aria-label="Buyer type" value={get("buyer")} className={ctl} onChange={(e) => set({ buyer: e.target.value || null })}>
-          <option value="">All buyers</option>
-          <option value="individual">Individual</option>
-          <option value="school">School</option>
-          <option value="vendor">Vendor</option>
-        </select>
+        {showChannel && (
+          <select aria-label="Sales channel" value={get("channel")} className={ctl} onChange={(e) => set({ channel: e.target.value || null })}>
+            <option value="">All channels</option>
+            <option value="online">Website</option>
+            <option value="offline">Physical store</option>
+          </select>
+        )}
+        {showBuyer && (
+          <select aria-label="Buyer type" value={get("buyer")} className={ctl} onChange={(e) => set({ buyer: e.target.value || null })}>
+            <option value="">All buyers</option>
+            <option value="individual">Individual</option>
+            <option value="school">School</option>
+            <option value="vendor">Vendor</option>
+          </select>
+        )}
         {showCategory && categories && (
           <select aria-label="Category" value={get("cat")} className={`${ctl} max-w-56`} onChange={(e) => set({ cat: e.target.value || null })}>
             <option value="">All categories</option>

@@ -133,3 +133,12 @@ export async function loadAccounts(kind?: Kind, now = Date.now()): Promise<{ acc
     settings,
   };
 }
+
+/** Active accounts with no sale for longer than the inactivity period, longest idle first. */
+export function inactiveAccounts(accounts: Account[], inactiveDays: number, now = Date.now()) {
+  return accounts
+    .filter((a) => a.active)
+    .map((a) => ({ a, days: Math.floor((now - (a.lastSale ?? a.createdAt).getTime()) / 86_400_000) }))
+    .filter((x) => x.days > inactiveDays)
+    .sort((x, y) => y.days - x.days);
+}
