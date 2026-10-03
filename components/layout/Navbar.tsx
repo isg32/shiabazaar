@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ClipboardList, ChevronDown } from "lucide-react";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ClipboardList, ChevronDown, BarChart3 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { useCart } from "@/context/CartContext";
 import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
@@ -193,6 +193,7 @@ function UserMenu() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isClerk, setIsClerk] = useState(false);
+  const [isReader, setIsReader] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -208,6 +209,7 @@ function UserMenu() {
     fetch("/api/auth/admin-status").then(r => r.json()).then(d => {
       setIsAdmin(d.isAdmin ?? false);
       setIsClerk(d.isClerk ?? false);
+      setIsReader(d.isReader ?? false);
     });
   }, [session.data?.user]);
 
@@ -259,6 +261,12 @@ function UserMenu() {
               <Link href="/desk" onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-sm text-primary hover:text-primary-active hover:bg-surface-soft transition-colors">
                 <ClipboardList size={14} /> Desk
+              </Link>
+            )}
+            {(isReader || isAdmin) && (
+              <Link href="/dashboard" onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-primary hover:text-primary-active hover:bg-surface-soft transition-colors">
+                <BarChart3 size={14} /> Dashboard
               </Link>
             )}
             {isAdmin && (

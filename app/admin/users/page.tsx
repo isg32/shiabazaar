@@ -10,10 +10,12 @@ interface User {
   banned: boolean;
   isAdmin: boolean;
   isClerk: boolean;
+  isReader: boolean;
   createdAt: string;
 }
 
 const STATUS_TABS = ["All", "Active", "Banned", "Staff"];
+const isStaff = (u: User) => u.isAdmin || u.isClerk || u.isReader;
 
 export default function AdminUsers() {
   const [query,     setQuery]     = useState("");
@@ -33,24 +35,28 @@ export default function AdminUsers() {
       const tabOk =
         statusTab === "All" ? true :
         statusTab === "Banned" ? u.banned :
-        statusTab === "Staff" ? (u.isAdmin || u.isClerk) :
+        statusTab === "Staff" ? isStaff(u) :
         !u.banned; // Active
       return tabOk && (!q || (u.name ?? "").toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
     });
   }, [users, query, statusTab]);
 
-  async function patchUser(id: string, patch: Partial<Pick<User, "banned" | "isAdmin" | "isClerk">>) {
-    await fetch(`/api/admin/users/${id}`, {
+  async function patchUser(id: string, patch: Partial<Pick<User, "banned" | "isAdmin" | "isClerk" | "isReader">>) {
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+    if (!res.ok) {
+      alert((await res.json().catch(() => ({}))).error ?? "Could not update this user.");
+      return;
+    }
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u));
   }
 
   const active = users.filter(u => !u.banned).length;
   const banned = users.filter(u => u.banned).length;
-  const staff  = users.filter(u => u.isAdmin || u.isClerk).length;
+  const staff  = users.filter(isStaff).length;
 
   return (
     <div className="px-8 py-8 text-on-dark">
@@ -58,6 +64,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-2xl font-semibold text-on-dark">Users</h1>
           <p className="text-sm text-on-dark-soft mt-0.5">{users.length} registered · {active} active · {banned} banned · {staff} staff</p>
+          <p className="text-xs text-on-dark-soft/70 mt-1">Roles can be given to anyone with an account. Clerk = desk, Reader = BI dashboard (read-only), Admin = everything.</p>
         </div>
       </div>
 
@@ -135,6 +142,15 @@ export default function AdminUsers() {
                       }`}
                     >
                       Clerk
+                    </button>
+                    <button
+                      onClick={() => patchUser(u.id, { isReader: !u.isReader })}
+                      title="Read-only access to the BI dashboard"
+                      className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+                        u.isReader ? "bg-accent-teal/20 text-accent-teal hover:bg-accent-teal/30" : "bg-white/5 text-on-dark-soft hover:bg-white/10"
+                      }`}
+                    >
+                      Reader
                     </button>
                   </div>
                 </td>
