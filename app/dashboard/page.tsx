@@ -1,105 +1,76 @@
 import type { Metadata } from "next";
-import { TrendingUp, CalendarDays, CalendarRange, Landmark, Wallet, HandCoins } from "lucide-react";
-import {
-  collections, financialYearStart, inr, istDayStart, outstanding, salesBySegment, salesTotals,
-} from "@/lib/bi";
+import StatTile from "@/components/dashboard/StatTile";
+import ShareBars from "@/components/dashboard/ShareBars";
+import { loadFacts, summarize } from "@/lib/bi/facts";
+import { resolvePeriod } from "@/lib/bi/period";
+import { BUYER_LABEL, CHANNEL_LABEL, type Buyer, type Channel } from "@/lib/bi/filters";
+import { loadAccounts } from "@/lib/bi/credit";
+import { loadAlerts } from "@/lib/bi/alerts";
+import { inr } from "@/lib/bi/format";
+import { VIZ } from "@/lib/bi/colors";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Overview" };
 
-const CHANNEL = { online: "Website", offline: "Physical store" } as const;
-const BUYER = { individual: "Individual", school: "School", vendor: "Vendor" } as const;
+const ALL = { channel: null, buyer: null, category: null } as const;
 
 export default async function DashboardOverview() {
-  const today = istDayStart(0);
-  const last7 = istDayStart(6);
-  const last30 = istDayStart(29);
-  const fy = financialYearStart();
-
-  const [t, w, m, y, collected30, owed, segments] = await Promise.all([
-    salesTotals({ from: today }),
-    salesTotals({ from: last7 }),
-    salesTotals({ from: last30 }),
-    salesTotals({ from: fy }),
-    collections({ from: last30 }),
-    outstanding(),
-    salesBySegment({ from: last30 }),
+  const today = resolvePeriod("today"), d7 = resolvePeriod("7d"), d30 = resolvePeriod("30d"), fy = resolvePeriod("fy");
+  const [fyFacts, { accounts }, alerts] = await Promise.all([
+    loadFacts(ALL, fy.from < d30.from ? fy.from : d30.from, today.to),
+    loadAccounts(),
+    loadAlerts(),
   ]);
+  const win = (from: Date, to: Date) => {
+    const inR = (d: Date) => d >= from && d < to;
+    return summarize(fyFacts.lines.filter((l) => inR(l.at)), fyFacts.returns.filter((r) => inR(r.at)), fyFacts.orders,
+      fyFacts.settlements.filter((s) => inR(s.at)), false);
+  };
+  const t = win(today.from, today.to), w = win(d7.from, d7.to), m = win(d30.from, d30.to), y = win(fy.from, fy.to);
+  const m30 = { ...fyFacts, lines: fyFacts.lines.filter((l) => l.at >= d30.from), returns: fyFacts.returns.filter((r) => r.at >= d30.from) };
 
-  const fyLabel = `FY ${fy.getUTCFullYear() % 100}–${(fy.getUTCFullYear() + 1) % 100}`;
-  const cards = [
-    { label: "Today's sales", value: inr(t.net), sub: `${t.count} transactions`, Icon: TrendingUp },
-    { label: "Last 7 days", value: inr(w.net), sub: `${w.count} transactions · avg ${inr(w.avg)}`, Icon: CalendarDays },
-    { label: "Last 30 days", value: inr(m.net), sub: `${m.count} transactions · avg ${inr(m.avg)}`, Icon: CalendarRange },
-    { label: `Sales ${fyLabel}`, value: inr(y.net), sub: `${y.count} transactions`, Icon: Landmark },
-    { label: "Collected (30 days)", value: inr(collected30), sub: "cash, UPI, card, online & settlements", Icon: HandCoins },
-    { label: "Outstanding receivables", value: inr(owed.school + owed.vendor), sub: `schools ${inr(owed.school)} · vendors ${inr(owed.vendor)}`, Icon: Wallet },
-  ];
+  const owed = accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0);
+  const overdue = accounts.reduce((s, a) => s + a.overdue, 0);
+  const atRisk = accounts.filter((a) => ["exceeded", "near", "reached", "overdue"].includes(a.status)).length;
+  const critical = alerts.filter((a) => a.severity === "critical").length;
+  const fyLabel = `FY ${fy.from.getUTCFullYear() % 100}–${(fy.from.getUTCFullYear() + 1) % 100}`;
 
-  const segTotal = segments.reduce((s, g) => s + g.total, 0);
-  const ordered = [...segments].sort((a, b) => b.total - a.total);
+  const seg = <K extends string>(keys: K[], pick: (l: { channel: Channel; buyer: Buyer }) => K) =>
+    keys.map((k) => ({ k, s: summarize(m30.lines.filter((l) => pick(l) === k), m30.returns.filter((r) => pick(r) === k), m30.orders, [], false) }));
+  const byChannel = seg<Channel>(["online", "offline"], (l) => l.channel);
+  const byBuyer = seg<Buyer>(["individual", "school", "vendor"], (l) => l.buyer);
 
   return (
     <div className="px-8 py-8 text-on-dark">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-on-dark">Overview</h1>
         <p className="text-sm text-on-dark-soft mt-0.5">
-          All channels · net of returns · {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          All channels · net of discounts &amp; returns · {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" })}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8" data-testid="kpis">
-        {cards.map(({ label, value, sub, Icon }) => (
-          <div key={label} className="bg-surface-dark-elevated rounded-xl p-5 border border-white/8">
-            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mb-4">
-              <Icon size={15} className="text-on-dark-soft" />
-            </div>
-            <p className="text-xl font-semibold text-on-dark">{value}</p>
-            <p className="text-xs text-on-dark-soft mt-0.5">{label}</p>
-            <p className="text-[11px] text-on-dark-soft/70 mt-0.5">{sub}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3" data-testid="kpis">
+        <StatTile label="Today's sales" value={inr(t.net)} sub={`${t.transactions} transactions`} href="/dashboard/transactions?range=today" />
+        <StatTile label="Last 7 days" value={inr(w.net)} sub={`${w.transactions} transactions · avg ${inr(w.avg)}`} href="/dashboard/sales?range=7d" />
+        <StatTile label="Last 30 days" value={inr(m.net)} sub={`${m.transactions} transactions · avg ${inr(m.avg)}`} href="/dashboard/sales?range=30d" emphasis />
+        <StatTile label={`Sales ${fyLabel}`} value={inr(y.net)} sub={`${y.transactions} transactions`} href="/dashboard/sales?range=fy" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <StatTile label="Collected (30 days)" value={inr(m.collected)} sub="at sale + settlements" href="/dashboard/sales?range=30d" />
+        <StatTile label="Outstanding receivables" value={inr(owed)} sub={`overdue ${inr(overdue)}`} href="/dashboard/ageing" />
+        <StatTile label="Accounts needing attention" value={String(atRisk)} sub="near/over limit or overdue" href="/dashboard/credit?status=attention" />
+        <StatTile label="Open alerts" value={String(alerts.length)} sub={`${critical} critical`} href="/dashboard/alerts" />
       </div>
 
-      <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/8">
-          <h2 className="text-sm font-medium text-on-dark">Last 30 days by channel and buyer</h2>
-        </div>
-        {ordered.length === 0 ? (
-          <p className="text-sm text-on-dark-soft text-center py-8">No sales in the last 30 days.</p>
-        ) : (
-          <table className="w-full text-sm" data-testid="segments">
-            <thead>
-              <tr className="border-b border-white/8">
-                {["Channel", "Buyer", "Transactions", "Sales", "Avg value", "Share"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-on-dark-soft uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ordered.map((g, i) => {
-                const share = segTotal ? Math.round((g.total / segTotal) * 100) : 0;
-                return (
-                  <tr key={`${g.channel}-${g.buyerType}`} className={i < ordered.length - 1 ? "border-b border-white/8" : ""}>
-                    <td className="px-6 py-3 text-on-dark">{CHANNEL[g.channel]}</td>
-                    <td className="px-6 py-3 text-on-dark-soft">{BUYER[g.buyerType]}</td>
-                    <td className="px-6 py-3 text-on-dark-soft">{g.count}</td>
-                    <td className="px-6 py-3 text-on-dark font-medium">{inr(g.total)}</td>
-                    <td className="px-6 py-3 text-on-dark-soft">{inr(g.count ? Math.round(g.total / g.count) : 0)}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                          <div className="h-full bg-primary" style={{ width: `${share}%` }} />
-                        </div>
-                        <span className="text-xs text-on-dark-soft">{share}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <ShareBars title="Last 30 days · online vs store" rows={byChannel.map(({ k, s }) => ({
+          key: k, label: CHANNEL_LABEL[k], value: s.net, valueText: inr(s.net), color: VIZ.channel[k],
+          sub: `${s.transactions} transactions`, href: `/dashboard/channels?range=30d`,
+        }))} />
+        <ShareBars title="Last 30 days · by buyer type" rows={byBuyer.map(({ k, s }) => ({
+          key: k, label: BUYER_LABEL[k], value: s.net, valueText: inr(s.net), color: VIZ.buyer[k],
+          sub: `${s.transactions} transactions`, href: `/dashboard/buyers?range=30d`,
+        }))} />
       </div>
     </div>
   );

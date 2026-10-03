@@ -64,3 +64,11 @@ export async function requireDashboard(): Promise<{ error: NextResponse } | null
   }
   return null;
 }
+
+/** The signed-in user's dashboard roles for server components (all false when signed out). */
+export async function getDashboardViewer(): Promise<{ isAdmin: boolean; isReader: boolean }> {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) return { isAdmin: false, isReader: false };
+  const user = await db.user.findUnique({ where: { email: session.user.email }, select: { isAdmin: true, isReader: true } });
+  return { isAdmin: !!user?.isAdmin, isReader: !!user?.isReader };
+}
