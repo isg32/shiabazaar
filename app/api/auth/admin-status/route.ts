@@ -7,18 +7,19 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { data: session } = await auth.getSession();
-    if (!session?.user) return NextResponse.json({ isAdmin: false, isClerk: false });
+    if (!session?.user) return NextResponse.json({ isAdmin: false, isClerk: false, isReader: false });
 
     const user = await db.user.findUnique({
       where: { email: session.user.email },
-      select: { isAdmin: true, isClerk: true },
+      select: { isAdmin: true, isClerk: true, isReader: true },
     });
 
     return NextResponse.json({
       isAdmin: user?.isAdmin ?? false,
       isClerk: user?.isClerk ?? false,
+      isReader: user?.isReader ?? false,
     });
   } catch {
-    return NextResponse.json({ isAdmin: false, isClerk: false });
+    return NextResponse.json({ isAdmin: false, isClerk: false, isReader: false });
   }
 }

@@ -45,3 +45,22 @@ export async function getStaffUser(): Promise<{ id: string; isAdmin: boolean; is
   if (!user || (!user.isAdmin && !user.isClerk)) return null;
   return user;
 }
+
+/**
+ * Route-handler guard for the BI dashboard (`/api/dashboard/*`). Passes for
+ * readers OR admins; banned users are refused. Returns `null` on success.
+ */
+export async function requireDashboard(): Promise<{ error: NextResponse } | null> {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  const user = await db.user.findUnique({
+    where: { email: session.user.email },
+    select: { isAdmin: true, isReader: true, banned: true },
+  });
+  if (!user || user.banned || (!user.isAdmin && !user.isReader)) {
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return null;
+}
