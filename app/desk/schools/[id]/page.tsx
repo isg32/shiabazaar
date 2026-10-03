@@ -6,6 +6,7 @@ import { ChevronLeft, Loader2, Plus, X, Ban, Trash2, Pencil, Undo2 } from "lucid
 import LineEditor, { type SaleLine } from "../../sales/LineEditor";
 import PaymentPanel, { type BillDiscount, type PaymentRow, billDiscountRupees, paymentsPayload } from "../../sales/PaymentPanel";
 import ReturnForm, { type ReturnableOrder } from "../../sales/ReturnForm";
+import { buildStatement } from "@/lib/statement";
 
 type OrderItem = ReturnableOrder["items"][number] & { mrp: number | null };
 type OrderReturn = { id: string; amount: number; note: string | null; createdAt: string };
@@ -26,19 +27,13 @@ type Data = {
   viewer: { isAdmin: boolean }; defaultPaymentTermsDays: number;
 };
 
-type LedgerRow = {
-  key: string; date: string; label: string; detail?: string;
-  sale: number; paid: number; creditAdded: number; creditAdjusted: number;
-  running: number; muted: boolean;
-  action?: { kind: "issue"; order: Order } | { kind: "payment"; id: string };
-};
 
 const PAYMENT_METHODS = ["cash", "upi", "card", "bank_transfer", "cheque"];
 const rupees = (paise: number) => `₹${(paise / 100).toFixed(0)}`;
 const money = (paise: number) => (paise ? rupees(paise) : "");
 /** Signed balance: positive = owed to us, negative = advance credit held for them. */
 const balanceLabel = (paise: number) => (paise < 0 ? `${rupees(-paise)} adv` : rupees(paise));
-const day = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const day = (d: string | Date) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const returnable = (o: Order) => o.items.reduce((s, i) => s + i.qty - i.returnLines.reduce((r, x) => r + x.qty, 0), 0);
 
 export default function SchoolDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,58 +54,11 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
 
   const statement = useMemo(() => {
     if (!data) return null;
-    type Ev = Omit<LedgerRow, "running"> & { t: number; effect: number };
-    const evs: Ev[] = [];
-    for (const o of data.orders) {
-      const cancelled = o.status === "cancelled";
-      const first = o.items[0]?.title ?? "—";
-      evs.push({
-        key: `o-${o.id}`, t: new Date(o.createdAt).getTime(), date: o.createdAt,
-        label: `Books issued — ${first}${o.items.length > 1 ? ` +${o.items.length - 1}` : ""}${cancelled ? " (cancelled)" : ""}`,
-        detail: [
-          o.discountAmount ? `bill discount ${rupees(o.discountAmount)}` : "",
-          o.payments.length ? `paid ${o.payments.map((p) => `${p.method.replace(/_/g, " ")} ${rupees(p.amount)}`).join(" + ")}` : "",
-          o.creditOverrideById ? "credit limit overridden by admin" : "",
-        ].filter(Boolean).join(" · "),
-        sale: o.total, paid: o.amountPaid,
-        creditAdded: Math.max(o.total - o.amountPaid, 0),
-        creditAdjusted: Math.max(o.amountPaid - o.total, 0),
-        effect: cancelled ? 0 : o.total - o.amountPaid,
-        muted: cancelled,
-        action: { kind: "issue", order: o },
-      });
-      for (const r of o.returns) {
-        evs.push({
-          key: `r-${r.id}`, t: new Date(r.createdAt).getTime(), date: r.createdAt,
-          label: `Return — ${first}${r.note ? ` (${r.note})` : ""}`,
-          sale: 0, paid: 0, creditAdded: 0, creditAdjusted: r.amount, effect: -r.amount, muted: false,
-        });
-      }
-    }
-    for (const p of data.payments) {
-      evs.push({
-        key: `p-${p.id}`, t: new Date(p.receivedAt).getTime(), date: p.receivedAt,
-        label: `Payment received${p.reference ? ` (${p.reference})` : ""} · ${p.method.replace(/_/g, " ")}`,
-        detail: p.note ?? undefined,
-        sale: 0, paid: p.amount, creditAdded: 0, creditAdjusted: p.amount, effect: -p.amount, muted: false,
-        action: { kind: "payment", id: p.id },
-      });
-    }
-    evs.sort((a, b) => a.t - b.t);
-
-    const fromT = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
-    const toT = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
-    let running = 0;
-    let opening = 0;
-    const rows: LedgerRow[] = [];
-    for (const e of evs) {
-      running += e.effect;
-      if (e.t < fromT) { opening = running; continue; }
-      if (e.t > toT) continue;
-      rows.push({ ...e, running });
-    }
-    const closing = rows.length ? rows[rows.length - 1].running : opening;
-    return { rows, opening, closing };
+    return buildStatement(data.orders, data.payments, {
+      noun: "Books issued",
+      fromMs: from ? new Date(`${from}T00:00:00`).getTime() : -Infinity,
+      toMs: to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity,
+    });
   }, [data, from, to]);
 
   async function cancelIssue(orderId: string) {
@@ -262,8 +210,8 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
                 <td className="px-4 py-3 text-xs font-medium text-on-dark whitespace-nowrap">{balanceLabel(row.running)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {row.action?.kind === "issue" && !row.muted && returnable(row.action.order) > 0 && (() => {
-                      const order = row.action.order;
+                    {row.order && !row.muted && returnable(row.order) > 0 && (() => {
+                      const order = row.order;
                       return (
                         <button onClick={() => { setTab(null); setReturning(order); }}
                           className="flex items-center gap-1 text-[11px] text-primary hover:text-primary-active">
@@ -271,16 +219,16 @@ export default function SchoolDetailPage({ params }: { params: Promise<{ id: str
                         </button>
                       );
                     })()}
-                    {row.action?.kind === "issue" && !row.muted && row.action.order.returns.length === 0 && (() => {
-                      const orderId = row.action.order.id;
+                    {row.order && !row.muted && row.order.returns.length === 0 && (() => {
+                      const orderId = row.order.id;
                       return (
                         <button onClick={() => cancelIssue(orderId)} className="flex items-center gap-1 text-[11px] text-error hover:text-error/80">
                           <Ban size={11} /> Cancel
                         </button>
                       );
                     })()}
-                    {row.action?.kind === "payment" && (() => {
-                      const paymentId = row.action.id;
+                    {row.paymentId && (() => {
+                      const paymentId = row.paymentId;
                       return (
                         <button onClick={() => deletePayment(paymentId)} className="flex items-center gap-1 text-[11px] text-on-dark-soft hover:text-error">
                           <Trash2 size={11} /> Delete

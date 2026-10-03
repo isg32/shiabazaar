@@ -331,12 +331,13 @@ model Customer {
 // Single-row table (id = 1) of business-rule settings used by credit monitoring
 // and the BI dashboard.
 model BusinessSettings {
-  id               Int      @id @default(1)
-  paymentTermsDays Int      @default(30) // credit becomes overdue after this many days unless the school/vendor overrides it
-  creditWatchPct   Int      @default(70) // utilisation ≥ this → "Watch"
-  creditNearPct    Int      @default(90) // utilisation ≥ this → "Near limit"
-  inactiveDays     Int      @default(90) // no purchase for this long → inactive customer/school/vendor
-  updatedAt        DateTime @updatedAt
+  id                 Int      @id @default(1)
+  paymentTermsDays   Int      @default(30) // credit becomes overdue after this many days unless the school/vendor overrides it
+  creditWatchPct     Int      @default(70) // utilisation ≥ this → "Watch"
+  creditNearPct      Int      @default(90) // utilisation ≥ this → "Near limit"
+  inactiveDays       Int      @default(90) // no purchase for this long → inactive customer/school/vendor
+  unusualDiscountPct Int      @default(20) // a bill discounted at least this much (vs MRP) is flagged on the alerts page
+  updatedAt          DateTime @updatedAt
 
   @@map("business_settings")
 }
