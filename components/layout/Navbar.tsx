@@ -187,13 +187,23 @@ function initials(name: string | null | undefined, email: string) {
   return email.slice(0, 2).toUpperCase();
 }
 
+/** Which staff areas the signed-in user may open (all false when signed out). */
+function useStaffRoles(signedIn: boolean) {
+  const [roles, setRoles] = useState({ isAdmin: false, isClerk: false, isReader: false });
+  useEffect(() => {
+    if (!signedIn) return;
+    fetch("/api/auth/admin-status").then(r => r.json()).then(d => setRoles({
+      isAdmin: d.isAdmin ?? false, isClerk: d.isClerk ?? false, isReader: d.isReader ?? false,
+    })).catch(() => {});
+  }, [signedIn]);
+  return signedIn ? roles : { isAdmin: false, isClerk: false, isReader: false };
+}
+
 function UserMenu() {
   const router = useRouter();
   const session = authClient.useSession();
   const [open, setOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isClerk, setIsClerk] = useState(false);
-  const [isReader, setIsReader] = useState(false);
+  const { isAdmin, isClerk, isReader } = useStaffRoles(!!session.data?.user);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -203,15 +213,6 @@ function UserMenu() {
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (!session.data?.user) return;
-    fetch("/api/auth/admin-status").then(r => r.json()).then(d => {
-      setIsAdmin(d.isAdmin ?? false);
-      setIsClerk(d.isClerk ?? false);
-      setIsReader(d.isReader ?? false);
-    });
-  }, [session.data?.user]);
 
   if (session.isPending) return <div className="w-8 h-8 rounded-full bg-surface-soft animate-pulse" />;
   if (!session.data?.user) {
@@ -298,6 +299,7 @@ function NavInner({ onClose }: { onClose?: () => void }) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const megaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const user = session.data?.user;
+  const staff = useStaffRoles(!!user);
 
   useEffect(() => {
     fetch("/api/categories").then(r => r.json()).then(d => setNavCategories(d.categories ?? [])).catch(() => {});
@@ -388,7 +390,7 @@ function NavInner({ onClose }: { onClose?: () => void }) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col px-6 py-8 gap-2" style={{ top: "64px", backgroundColor: "#faf9f5" }}>
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col px-6 py-8 gap-2 overflow-y-auto overscroll-contain" style={{ top: "64px", backgroundColor: "#faf9f5" }}>
           {navLinks.map((link) =>
             link.group ? (
               <MobileNavAccordionItem
@@ -412,6 +414,21 @@ function NavInner({ onClose }: { onClose?: () => void }) {
             <>
               <Link href="/account/orders" className="mt-4 py-3 text-lg font-medium text-ink border-b border-hairline" onClick={close}>Orders</Link>
               <Link href="/account/wishlist" className="py-3 text-lg font-medium text-ink border-b border-hairline" onClick={close}>Wishlist</Link>
+              {(staff.isClerk || staff.isAdmin) && (
+                <Link href="/desk" className="py-3 text-lg font-medium text-primary border-b border-hairline flex items-center gap-2" onClick={close}>
+                  <ClipboardList size={18} /> Desk
+                </Link>
+              )}
+              {(staff.isReader || staff.isAdmin) && (
+                <Link href="/dashboard" className="py-3 text-lg font-medium text-primary border-b border-hairline flex items-center gap-2" onClick={close}>
+                  <BarChart3 size={18} /> Dashboard
+                </Link>
+              )}
+              {staff.isAdmin && (
+                <Link href="/admin" className="py-3 text-lg font-medium text-primary border-b border-hairline flex items-center gap-2" onClick={close}>
+                  <LayoutDashboard size={18} /> Admin Panel
+                </Link>
+              )}
               <button
                 className="mt-4 py-3 text-left text-lg font-medium text-error"
                 onClick={async () => { await authClient.signOut(); close(); router.push("/"); router.refresh(); }}
