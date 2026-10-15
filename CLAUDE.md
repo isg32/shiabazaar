@@ -151,6 +151,8 @@ Closely follows the Anthropic/Claude.com editorial design system, adapted for e-
 
 Base unit: 4px.
 
+> **Tailwind gotcha:** these names are defined as `--spacing-*` theme tokens, so in Tailwind v4 `max-w-sm|md|lg|xl` resolve to 12/16/24/32px, not the usual container widths. Use explicit widths (`max-w-[28rem]`) or `max-w-2xl`+ instead.
+
 | Token | Value | Use |
 |---|---|---|
 | xxs | 4px | Tight icon gaps |

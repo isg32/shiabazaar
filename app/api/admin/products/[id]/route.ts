@@ -37,6 +37,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ? [...new Set(body.categoryIds as string[])]
     : undefined;
   delete data.categoryIds;
+  // Review state is set only through the review endpoints.
+  delete data.reviewStatus;
+  delete data.reviewedAt;
+  delete data.reviewedById;
 
   try {
     const product = await db.$transaction(async (tx) => {

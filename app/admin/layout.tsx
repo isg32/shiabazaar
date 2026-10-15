@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Warehouse,
-  Tag, Users, Image, Home, RotateCcw, FolderOpen, BookOpen, Upload, Truck, ClipboardList, BarChart3,
+  Tag, Users, Image, Home, RotateCcw, FolderOpen, BookOpen, Upload, Truck, ClipboardList, BarChart3, Layers, ListChecks,
 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import DashboardShell, { type NavGroup } from "@/components/layout/DashboardShell";
@@ -22,6 +22,7 @@ const groups: NavGroup[] = [
       { href: "/admin/products",   label: "Products",   Icon: Package    },
       { href: "/admin/categories", label: "Categories", Icon: FolderOpen },
       { href: "/admin/inventory",  label: "Inventory",  Icon: Warehouse  },
+      { href: "/admin/review",     label: "Fix list",   Icon: ListChecks },
     ],
   },
   {
@@ -57,6 +58,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/desk", label: "Clerk Desk", Icon: ClipboardList },
       { href: "/dashboard", label: "BI Dashboard", Icon: BarChart3 },
+      { href: "/desk/review", label: "Review products", Icon: Layers },
     ],
   },
 ];

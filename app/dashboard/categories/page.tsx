@@ -123,7 +123,7 @@ export default async function Categories({ searchParams }: { searchParams: Promi
         </nav>
 
         {!main && (
-          <div className="mb-6 max-w-xl">
+          <div className="mb-6 max-w-[36rem]">
             <ShareBars title="Share of net sales" rows={table.map(({ r, m }) => ({
               key: r.key, label: r.label, value: m.net, valueText: inr(m.net), color: VIZ.main[r.key as MainCategory], href: r.href,
               sub: `${m.qty} units · ${m.tx} transactions`,

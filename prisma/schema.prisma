@@ -52,6 +52,13 @@ enum BuyerType {
   school
 }
 
+// Internal catalogue QA (staff swipe review at /desk/review). Never affects the storefront.
+enum ProductReviewStatus {
+  pending
+  approved
+  rejected
+}
+
 enum StockReason {
   online_sale
   offline_sale
@@ -127,6 +134,10 @@ model Product {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  reviewStatus ProductReviewStatus @default(pending)
+  reviewedAt   DateTime?
+  reviewedById String? // staff User.id who made the current review decision — audit stamp, no FK
+
   extraDelivery Int @default(0) // extra delivery fee in paise (0 | 2000 | 4000)
 
   // Book-specific metadata (null for non-books)
@@ -154,6 +165,7 @@ model Product {
   @@index([type])
   @@index([createdAt])
   @@index([inStock])
+  @@index([reviewStatus])
   @@map("products")
 }
 
