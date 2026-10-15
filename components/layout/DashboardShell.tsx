@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, type LucideIcon } from "lucide-react";
+import { LogOut, Menu, X, type LucideIcon } from "lucide-react";
 
 export type NavItem = { href: string; label: string; Icon: LucideIcon };
 export type NavGroup = { label: string | null; items: NavItem[] };
@@ -34,30 +35,52 @@ export default function DashboardShell({
   children,
 }: Props) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  const brand = (
+    <Link href={homeHref} onClick={close} className="flex items-center gap-2.5 text-on-dark">
+      <svg viewBox="0 0 100 100" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="25" y="25" width="50" height="50" />
+        <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
+        <circle cx="50" cy="50" r="8" />
+      </svg>
+      <div className="flex flex-col leading-none">
+        <span className="text-[15px] font-normal tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+          Shia Bazaar
+        </span>
+        <span className="text-[7px] font-medium tracking-[0.2em] text-accent-amber uppercase mt-0.5">
+          {badge}
+        </span>
+      </div>
+    </Link>
+  );
 
   return (
-    <div className="min-h-screen flex bg-surface-dark">
+    <div className="min-h-screen flex flex-col md:flex-row bg-surface-dark">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-56 shrink-0 flex flex-col bg-surface-dark border-r border-white/8">
+      {/* ── Phone/tablet top bar ── */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-surface-dark border-b border-white/8" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+        {brand}
+        <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open}
+          className="w-10 h-10 -mr-2 flex items-center justify-center rounded-md text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated">
+          <Menu size={20} />
+        </button>
+      </header>
+      {open && <div className="md:hidden fixed inset-0 z-40 bg-black/60" onClick={close} aria-hidden />}
+
+      {/* ── Sidebar (drawer below md) ── */}
+      <aside
+        className={`w-64 md:w-56 shrink-0 flex flex-col bg-surface-dark border-r border-white/8 fixed inset-y-0 left-0 z-50 transition-transform duration-200 motion-reduce:transition-none md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        aria-label="Navigation"
+      >
 
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-white/8">
-          <Link href={homeHref} className="flex items-center gap-2.5 text-on-dark">
-            <svg viewBox="0 0 100 100" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="25" y="25" width="50" height="50" />
-              <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
-              <circle cx="50" cy="50" r="8" />
-            </svg>
-            <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-normal tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-                Shia Bazaar
-              </span>
-              <span className="text-[7px] font-medium tracking-[0.2em] text-accent-amber uppercase mt-0.5">
-                {badge}
-              </span>
-            </div>
-          </Link>
+        <div className="px-5 py-5 border-b border-white/8 flex items-center justify-between">
+          {brand}
+          <button onClick={close} aria-label="Close menu" className="md:hidden w-9 h-9 -mr-2 flex items-center justify-center rounded-md text-on-dark-soft hover:text-on-dark">
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -76,6 +99,7 @@ export default function DashboardShell({
                     <Link
                       key={href}
                       href={href}
+                      onClick={close}
                       className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         active
                           ? "bg-primary/15 text-primary"

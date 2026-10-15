@@ -76,7 +76,7 @@ export default function ReturnForm({ order, onClose, onDone, credit = true }: { 
           })}
         </tbody>
       </table>
-      <label className="flex flex-col gap-1.5 mb-3 max-w-md">
+      <label className="flex flex-col gap-1.5 mb-3 max-w-[28rem]">
         <span className="text-xs text-on-dark-soft">Reason / note (optional)</span>
         <input value={note} onChange={(e) => setNote(e.target.value)}
           className="h-9 px-2 text-sm bg-surface-dark border border-white/20 rounded-md text-on-dark focus:outline-none focus:border-primary" />

@@ -96,7 +96,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-canvas flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-[24rem]">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6 text-2xl font-normal tracking-tight text-ink" style={{ fontFamily: "var(--font-display)" }}>
             Shia Bazaar

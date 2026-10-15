@@ -402,7 +402,7 @@ export default function AdminCategories() {
           <input ref={fileRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
         </div>
         {importResult && (
-          <div className="mt-3 p-3 rounded-md border border-white/10 bg-surface-dark-elevated text-xs max-w-xl">
+          <div className="mt-3 p-3 rounded-md border border-white/10 bg-surface-dark-elevated text-xs max-w-[36rem]">
             <p className="text-on-dark">
               Created <strong>{importResult.created}</strong>
               {importResult.skipped > 0 && <> · skipped <strong>{importResult.skipped}</strong> (slug already existed)</>}

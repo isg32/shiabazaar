@@ -303,7 +303,7 @@ function IssueForm({ vendorId, onDone }: { vendorId: string; onDone: () => void 
         payments={payments}
         onPaymentsChange={setPayments}
       />
-      <label className="flex flex-col gap-1.5 mb-4 max-w-md">
+      <label className="flex flex-col gap-1.5 mb-4 max-w-[28rem]">
         <span className="text-xs text-on-dark-soft">Note (optional)</span>
         <input
           value={note} onChange={(e) => setNote(e.target.value)}
