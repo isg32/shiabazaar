@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import StatTile from "@/components/dashboard/StatTile";
@@ -27,6 +28,7 @@ const SORTS: [string, string, (a: Account, b: Account) => number][] = [
 const day = (d: Date | null) => (d ? d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "—");
 
 export default async function CreditMonitoring({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : (sp[k] as string | undefined)) ?? "";
   const kind = (["school", "vendor"].includes(one("kind")) ? one("kind") : undefined) as Kind | undefined;

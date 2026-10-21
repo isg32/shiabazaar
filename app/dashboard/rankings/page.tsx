@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FilterBar from "@/components/dashboard/FilterBar";
@@ -32,6 +33,7 @@ function Rank({ title, head, rows, more, testId }: { title: string; head: string
 }
 
 export default async function Rankings({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [facts, schools, vendors, { accounts, settings }, people, cats] = await Promise.all([

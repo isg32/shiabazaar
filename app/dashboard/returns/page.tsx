@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import FilterBar from "@/components/dashboard/FilterBar";
 import StatTile from "@/components/dashboard/StatTile";
@@ -32,6 +33,7 @@ function Mini({ title, rows, testId }: { title: string; rows: { key: string; qty
 }
 
 export default async function Returns({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [facts, canc, cats] = await Promise.all([loadFacts(f, f.period.from, f.period.to), cancellations(f, f.period.from, f.period.to), categoryOptions()]);

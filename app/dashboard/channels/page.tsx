@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FilterBar from "@/components/dashboard/FilterBar";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Online vs store" };
 
 export default async function Channels({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [facts, cats] = await Promise.all([loadFacts(f, f.period.from, f.period.to), categoryOptions()]);

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/bi/credit";
-import { getDashboardViewer } from "@/lib/staff-guard";
+import { requireDashboardPage, getDashboardViewer } from "@/lib/staff-guard";
 import SettingsForm from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Settings" };
 
 export default async function DashboardSettings() {
+  await requireDashboardPage();
   const [settings, viewer] = await Promise.all([getSettings(), getDashboardViewer()]);
   return (
     <div className="px-8 py-8 text-on-dark">

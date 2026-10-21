@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import StatTile from "@/components/dashboard/StatTile";
 import ShareBars from "@/components/dashboard/ShareBars";
@@ -15,6 +16,7 @@ export const metadata: Metadata = { title: "Dashboard — Overview" };
 const ALL = { channel: null, buyer: null, category: null } as const;
 
 export default async function DashboardOverview() {
+  await requireDashboardPage();
   const today = resolvePeriod("today"), d7 = resolvePeriod("7d"), d30 = resolvePeriod("30d"), fy = resolvePeriod("fy");
   const [fyFacts, { accounts }, alerts] = await Promise.all([
     loadFacts(ALL, fy.from < d30.from ? fy.from : d30.from, today.to),

@@ -1,3 +1,4 @@
+import { requireClerkPage } from "@/lib/staff-guard";
 import { ShoppingBag, School as SchoolIcon, Wallet, Globe, PackageX, Truck } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -24,6 +25,7 @@ function startOfTodayIST(): Date {
 }
 
 export default async function DeskDashboard() {
+  await requireClerkPage();
   const start = startOfTodayIST();
   const notCancelled = { status: { not: "cancelled" as const } };
 

@@ -348,7 +348,7 @@ Four product types, one unified products table with a `type` discriminator:
 ### Static pages
 - `/about`, `/contact`, `/privacy`, `/terms`, `/returns` — Static content
 
-### Admin (`/admin/*`, protected by middleware)
+### Admin (`/admin/*`, protected by `requireAdminPage` + `requireAdmin`)
 - `/admin` — Analytics dashboard (sales, revenue, top products)
 - `/admin/products` — Product list + add/edit/delete + variant management
 - `/admin/orders` — Order list, update status, add tracking link
@@ -372,7 +372,7 @@ Four product types, one unified products table with a `type` discriminator:
 
 - Rate limiting on `/api/auth/*` and `/api/checkout` (Upstash or `next-rate-limit`)
 - Razorpay webhook signature verified before any DB write
-- `/admin/*` blocked in middleware for non-admin users
+- Staff areas (`/admin`, `/desk`, `/dashboard`): `middleware.ts` does an **optimistic cookie-presence check only** — never a DB query or upstream session call. Middleware runs on every request incl. sidebar-link prefetches, in the edge region nearest the visitor (bom1), far from Neon (us-east-1); a DB check there made every staff click hang for seconds. The real role check is `requireAdminPage` / `requireClerkPage` / `requireDashboardPage` (`lib/staff-guard.ts`), called in the area's `layout.tsx` **and at the top of every server `page.tsx` that reads data** (client-side navigations re-render only the page, not the layout). Every staff API route calls `requireAdmin` / `requireClerk` / `requireDashboard`.
 - CSP + security headers in `next.config.ts`
 - Cloudinary signed uploads — secret stays server-side
 
@@ -413,6 +413,6 @@ Channel behavior:
 
 `lib/desk-orders.ts` (`createDeskOrder`/`updateDeskOrder`/`cancelDeskOrder`) is generic over `buyerType` — always sets `channel: "offline"`, branches only on `buyerType` for which balance (school vs vendor) to adjust and which `StockReason` to record (`offline_sale` | `school_issue` | `vendor_issue`).
 
-**Convention:** every `db.order.*` query **outside `/desk` and `/api/desk/**`** must filter `channel: "online"` — otherwise offline cash and unrealised school/vendor credit leak into storefront/admin metrics. Desk lives at `/desk/*` (pages) + `/api/desk/*` (routes), gated by `middleware.ts` + `requireClerk()` (`lib/staff-guard.ts`) for `isClerk || isAdmin`.
+**Convention:** every `db.order.*` query **outside `/desk` and `/api/desk/**`** must filter `channel: "online"` — otherwise offline cash and unrealised school/vendor credit leak into storefront/admin metrics. Desk lives at `/desk/*` (pages) + `/api/desk/*` (routes), gated by `requireClerkPage()` in layout + server pages and `requireClerk()` in routes (`lib/staff-guard.ts`) for `isClerk || isAdmin`.
 
-**Exception — BI dashboard:** `/dashboard/*` (+ future `/api/dashboard/*`) intentionally spans both channels and breaks every figure down by `channel` × `buyerType`. It must use the shared definitions in `lib/bi/` (`COUNTED_SALE`: not cancelled, online only once paid; net of `order_returns`; receivables = positive school/vendor balances only). Gated by `middleware.ts` + `requireDashboard()` for `isReader || isAdmin`. `isReader` is a read-only role assigned by an admin on `/admin/users`. Pages and the report library (`lib/bi/reports.ts` → `/api/dashboard/reports/[id]?format=csv|xlsx|pdf`) must build from the same datasets (`lib/bi/facts.ts`, `analytics.ts`, `credit.ts`) so an export always matches its page; credit ageing/overdue settles payments FIFO against the oldest issues.
+**Exception — BI dashboard:** `/dashboard/*` (+ future `/api/dashboard/*`) intentionally spans both channels and breaks every figure down by `channel` × `buyerType`. It must use the shared definitions in `lib/bi/` (`COUNTED_SALE`: not cancelled, online only once paid; net of `order_returns`; receivables = positive school/vendor balances only). Gated by `requireDashboardPage()` in layout + every page and `requireDashboard()` in routes, for `isReader || isAdmin`. `isReader` is a read-only role assigned by an admin on `/admin/users`. Pages and the report library (`lib/bi/reports.ts` → `/api/dashboard/reports/[id]?format=csv|xlsx|pdf`) must build from the same datasets (`lib/bi/facts.ts`, `analytics.ts`, `credit.ts`) so an export always matches its page; credit ageing/overdue settles payments FIFO against the oldest issues.

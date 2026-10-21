@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import FilterBar from "@/components/dashboard/FilterBar";
 import { loadFacts } from "@/lib/bi/facts";
@@ -49,6 +50,7 @@ function ProductTable({ title, rows, metric, testId }: { title: string; rows: Pr
 }
 
 export default async function Products({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [facts, cats] = await Promise.all([loadFacts(f, f.period.from, f.period.to), categoryOptions()]);

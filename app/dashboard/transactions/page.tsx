@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FilterBar from "@/components/dashboard/FilterBar";
@@ -13,6 +14,7 @@ export const metadata: Metadata = { title: "Dashboard — Transactions" };
 const PAGE = 50;
 
 export default async function Transactions({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const page = Math.max(1, Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1);

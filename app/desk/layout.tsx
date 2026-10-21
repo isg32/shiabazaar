@@ -1,61 +1,7 @@
-"use client";
+import { requireClerkPage } from "@/lib/staff-guard";
+import DeskShell from "./DeskShell";
 
-import { useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, School, Truck, Warehouse, Globe, Layers } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
-import DashboardShell, { type NavGroup } from "@/components/layout/DashboardShell";
-
-const groups: NavGroup[] = [
-  {
-    label: null,
-    items: [
-      { href: "/desk", label: "Dashboard", Icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Offline",
-    items: [
-      { href: "/desk/sales", label: "Sales", Icon: ShoppingBag },
-    ],
-  },
-  {
-    label: "Schools",
-    items: [
-      { href: "/desk/schools", label: "Schools", Icon: School },
-    ],
-  },
-  {
-    label: "Vendors",
-    items: [
-      { href: "/desk/vendors", label: "Vendors", Icon: Truck },
-    ],
-  },
-  {
-    label: "Stock",
-    items: [
-      { href: "/desk/inventory", label: "Inventory", Icon: Warehouse },
-      { href: "/desk/review", label: "Review products", Icon: Layers },
-    ],
-  },
-  {
-    label: "Online",
-    items: [
-      { href: "/desk/online", label: "Orders", Icon: Globe },
-    ],
-  },
-];
-
-export default function DeskLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-
-  async function signOut() {
-    await authClient.signOut();
-    router.push("/");
-  }
-
-  return (
-    <DashboardShell groups={groups} badge="Desk" activeBase="/desk" onSignOut={signOut}>
-      {children}
-    </DashboardShell>
-  );
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  await requireClerkPage();
+  return <DeskShell>{children}</DeskShell>;
 }

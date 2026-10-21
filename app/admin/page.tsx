@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/staff-guard";
 import { ShoppingBag, Package, Users, TrendingUp, Clock } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -22,6 +23,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  await requireAdminPage();
   // Storefront metrics only — offline sales and school issues live on the clerk desk.
   const online = { channel: "online" as const };
 

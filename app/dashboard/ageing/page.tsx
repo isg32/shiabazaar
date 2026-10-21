@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import StatTile from "@/components/dashboard/StatTile";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Credit ageing" };
 
 export default async function Ageing({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const k = Array.isArray(sp.kind) ? sp.kind[0] : sp.kind;
   const kind = (k === "school" || k === "vendor" ? k : undefined) as Kind | undefined;
