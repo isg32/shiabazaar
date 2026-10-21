@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,6 +25,7 @@ function cell(v: Row[string], c: Col) {
 }
 
 export default async function ReportView({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const { id } = await params;
   const report = getReport(id);
   if (!report) notFound();

@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import FilterBar from "@/components/dashboard/FilterBar";
 import ShareBars from "@/components/dashboard/ShareBars";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Staff performance" };
 
 export default async function Staff({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [rows, cats] = await Promise.all([staffPerformance(f, f.period.from, f.period.to), categoryOptions()]);

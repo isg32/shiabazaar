@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FilterBar from "@/components/dashboard/FilterBar";
@@ -19,6 +20,7 @@ const slice = (f: Facts, from: Date, to: Date) => {
 };
 
 export default async function SalesAnalytics({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const { period } = f;

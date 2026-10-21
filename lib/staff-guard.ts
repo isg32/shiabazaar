@@ -1,6 +1,43 @@
+import { cache } from "react";
+import { redirect } from "next/navigation";
 import { auth } from "./auth/server";
 import { db } from "./db";
 import { NextResponse } from "next/server";
+
+/**
+ * Page/layout guards for the staff areas. `middleware.ts` only checks that a
+ * session cookie exists (it runs in the edge region nearest the visitor, far
+ * from the database), so the real role check happens here, in the function
+ * region next to Neon. Call from the area's layout AND from every server page
+ * that reads data — a client-side navigation re-renders only the page, not the
+ * shared layout. Memoised per request, so layout + page cost one lookup.
+ */
+const currentRoles = cache(async () => {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) return null;
+  return db.user.findUnique({
+    where: { email: session.user.email },
+    select: { isAdmin: true, isClerk: true, isReader: true, banned: true },
+  });
+});
+
+export async function requireAdminPage(): Promise<void> {
+  const user = await currentRoles();
+  if (!user) redirect("/auth/sign-in");
+  if (!user.isAdmin) redirect("/");
+}
+
+export async function requireClerkPage(): Promise<void> {
+  const user = await currentRoles();
+  if (!user) redirect("/auth/sign-in");
+  if (user.banned || (!user.isAdmin && !user.isClerk)) redirect("/");
+}
+
+export async function requireDashboardPage(): Promise<void> {
+  const user = await currentRoles();
+  if (!user) redirect("/auth/sign-in");
+  if (user.banned || (!user.isAdmin && !user.isReader)) redirect("/");
+}
 
 /**
  * Route-handler guard for the clerk desk. Passes for clerks OR admins (an admin

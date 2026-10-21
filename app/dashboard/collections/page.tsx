@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import FilterBar from "@/components/dashboard/FilterBar";
 import StatTile from "@/components/dashboard/StatTile";
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Payments & collections" };
 
 export default async function Collections({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = { ...parseFilters(sp), category: null };
   const [facts, { accounts }] = await Promise.all([loadFacts(f, f.period.from, f.period.to), loadAccounts()]);

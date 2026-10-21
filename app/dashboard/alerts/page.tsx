@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertOctagon, AlertTriangle, ChevronRight } from "lucide-react";
@@ -14,6 +15,7 @@ const SEV: Record<Severity, { label: string; color: string; Icon: typeof AlertOc
 };
 
 export default async function Alerts() {
+  await requireDashboardPage();
   const alerts = await loadAlerts();
   const groups: Alert["group"][] = ["Credit", "Sales", "Operations"];
   const count = (s: Severity) => alerts.filter((a) => a.severity === s).length;

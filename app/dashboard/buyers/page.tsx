@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FilterBar from "@/components/dashboard/FilterBar";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Sales by buyer type" };
 
 export default async function Buyers({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const [facts, cats, schoolOwed, vendorOwed] = await Promise.all([

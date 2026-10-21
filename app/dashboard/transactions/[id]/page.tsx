@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard — Transaction" };
 
 export default async function TransactionDetail({ params }: { params: Promise<{ id: string }> }) {
+  await requireDashboardPage();
   const { id } = await params;
   const o = await db.order.findUnique({
     where: { id },

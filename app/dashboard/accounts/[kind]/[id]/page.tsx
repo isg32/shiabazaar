@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,6 +21,7 @@ const bal = (p: number) => (p < 0 ? `${inr(-p)} adv` : inr(p));
 const money = (p: number) => (p ? inr(p) : "");
 
 export default async function AccountStatement({ params, searchParams }: { params: Promise<{ kind: string; id: string }>; searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const { kind, id } = await params;
   if (kind !== "school" && kind !== "vendor") notFound();
   const sp = await searchParams;

@@ -1,3 +1,4 @@
+import { requireDashboardPage } from "@/lib/staff-guard";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -27,6 +28,7 @@ function metrics(a: Agg) {
 }
 
 export default async function Categories({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireDashboardPage();
   const sp = await searchParams;
   const f = parseFilters(sp);
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : (sp[k] as string | undefined));
