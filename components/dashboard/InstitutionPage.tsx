@@ -48,12 +48,12 @@ export default async function InstitutionPage({ kind, sp }: { kind: Kind; sp: Se
       </div>
       <FilterBar categories={cats} showBuyer={false} showChannel={false}>
         <div className="flex flex-wrap gap-2 mb-4" data-testid="segments">
-          <Link href={withFilters(`/dashboard/${noun}`, sp, { seg: null })}
+          <Link prefetch={false} href={withFilters(`/dashboard/${noun}`, sp, { seg: null })}
             className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${!seg ? "bg-primary/20 text-primary" : "bg-white/5 text-on-dark-soft hover:text-on-dark"}`}>
             All · {all.length}
           </Link>
           {SEGMENTS.map((s) => (
-            <Link key={s} href={withFilters(`/dashboard/${noun}`, sp, { seg: s })} title={SEGMENT_HELP[s]}
+            <Link prefetch={false} key={s} href={withFilters(`/dashboard/${noun}`, sp, { seg: s })} title={SEGMENT_HELP[s]}
               className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${seg === s ? "bg-primary/20 text-primary" : "bg-white/5 text-on-dark-soft hover:text-on-dark"}`}>
               {SEGMENT_LABEL[s]} · {all.filter((r) => r.segments.includes(s)).length}
             </Link>
@@ -78,7 +78,7 @@ export default async function InstitutionPage({ kind, sp }: { kind: Kind; sp: Se
               ) : rows.map((r) => (
                 <tr key={r.account.id} className="border-b border-white/5">
                   <td className="px-3 py-2.5 min-w-48">
-                    <Link href={`/dashboard/accounts/${kind}/${r.account.id}`} className="text-on-dark hover:underline">{r.account.name}</Link>
+                    <Link prefetch={false} href={`/dashboard/accounts/${kind}/${r.account.id}`} className="text-on-dark hover:underline">{r.account.name}</Link>
                     <span className="block text-[11px] text-on-dark-soft font-mono">{r.account.code ?? "no code"}{r.account.city ? ` · ${r.account.city}` : ""}</span>
                   </td>
                   <td className="px-3 py-2.5 text-on-dark font-medium">{inr(r.sales)}</td>

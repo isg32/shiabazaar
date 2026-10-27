@@ -51,7 +51,7 @@ export default async function AccountStatement({ params, searchParams }: { param
 
   return (
     <div className="px-8 py-8 text-on-dark">
-      <Link href="/dashboard/credit" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
+      <Link prefetch={false} href="/dashboard/credit" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
         <ChevronLeft size={13} /> Credit monitoring
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
@@ -90,7 +90,7 @@ export default async function AccountStatement({ params, searchParams }: { param
               <tbody className="tabular-nums">
                 {a.open.map((i) => (
                   <tr key={i.orderId} className="border-b border-white/5">
-                    <td className="px-4 py-2 text-xs"><Link href={`/dashboard/transactions/${i.orderId}`} className="font-mono text-primary">#{i.orderId.slice(0, 8).toUpperCase()}</Link></td>
+                    <td className="px-4 py-2 text-xs"><Link prefetch={false} href={`/dashboard/transactions/${i.orderId}`} className="font-mono text-primary">#{i.orderId.slice(0, 8).toUpperCase()}</Link></td>
                     <td className="px-4 py-2 text-xs text-on-dark-soft">{day(i.at)}</td>
                     <td className="px-4 py-2 text-xs text-on-dark-soft">{i.ageDays} days</td>
                     <td className="px-4 py-2 text-xs text-on-dark">{inr(i.open)} <span className="text-on-dark-soft">of {inr(i.charge)}</span></td>
@@ -132,7 +132,7 @@ export default async function AccountStatement({ params, searchParams }: { param
               <tr key={r.key} className={`border-b border-white/5 ${r.muted ? "opacity-40" : ""}`}>
                 <td className="px-4 py-2.5 text-xs text-on-dark-soft whitespace-nowrap">{day(r.date)}</td>
                 <td className="px-4 py-2.5 text-xs text-on-dark">
-                  {r.order ? <Link href={`/dashboard/transactions/${r.order.id}`} className="hover:underline">{r.label}</Link> : r.label}
+                  {r.order ? <Link prefetch={false} href={`/dashboard/transactions/${r.order.id}`} className="hover:underline">{r.label}</Link> : r.label}
                   {r.detail && <span className="block text-[11px] text-on-dark-soft">{r.detail}</span>}
                 </td>
                 <td className="px-4 py-2.5 text-xs text-on-dark">{money(r.sale)}</td>

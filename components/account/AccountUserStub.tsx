@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 
 function initials(name: string | null | undefined, email: string) {
   if (name?.trim()) {
@@ -13,7 +13,7 @@ function initials(name: string | null | undefined, email: string) {
 }
 
 export function AccountUserStub() {
-  const session = authClient.useSession();
+  const session = useSession();
   const user = session.data?.user;
 
   if (session.isPending) {

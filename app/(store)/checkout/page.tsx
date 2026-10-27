@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Lock, Loader2 } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 
 const steps = ["Address", "Payment"];
 
@@ -41,7 +41,7 @@ function loadRazorpayScript(): Promise<boolean> {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const session = authClient.useSession();
+  const session = useSession();
   const isLoggedIn = !!session.data?.user;
   const [step, setStep] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);

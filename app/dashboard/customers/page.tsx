@@ -76,7 +76,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
           <Table title="New customers" rows={has("new").sort((a, b) => b.total - a.total).slice(0, 15)} testId="new" />
         </div>
         <p className="text-[11px] text-on-dark-soft/70 mt-4">
-          Walk-in sales without a phone number can&apos;t be attributed to a customer and are not counted here. <Link className="text-primary" href="/dashboard/settings">Change the inactivity period</Link>.
+          Walk-in sales without a phone number can&apos;t be attributed to a customer and are not counted here. <Link prefetch={false} className="text-primary" href="/dashboard/settings">Change the inactivity period</Link>.
         </p>
       </FilterBar>
     </div>

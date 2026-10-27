@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 
 const LS_KEY = "sb_cart";
 
@@ -34,7 +34,7 @@ async function fetchDbCart(): Promise<CartItem[]> {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const session = authClient.useSession();
+  const session = useSession();
   const [items, setItems]   = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const mergedRef = useRef(false);

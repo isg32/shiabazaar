@@ -52,7 +52,7 @@ export default async function Ageing({ searchParams }: { searchParams: Promise<S
             ) : rows.map((a) => (
               <tr key={`${a.kind}-${a.id}`} className="border-b border-white/5">
                 <td className="px-3 py-2.5 min-w-48">
-                  <Link href={`/dashboard/accounts/${a.kind}/${a.id}`} className="text-on-dark hover:underline">{a.name}</Link>
+                  <Link prefetch={false} href={`/dashboard/accounts/${a.kind}/${a.id}`} className="text-on-dark hover:underline">{a.name}</Link>
                   <span className="block text-[11px] text-on-dark-soft font-mono">{a.code ?? "no code"}</span>
                 </td>
                 <td className="px-3 py-2.5 text-xs text-on-dark-soft capitalize">{a.kind}</td>

@@ -9,6 +9,7 @@ import {
   getBanners,
   getCategoryCounts,
   getActivePopup,
+  toCard,
 } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { HomepagePopup } from "@/components/shared/HomepagePopup";
@@ -322,7 +323,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {popularBooks.map((product, i) => (
               <FadeIn key={product.id} delay={i * 60}>
-                <ProductCard product={product} />
+                <ProductCard product={toCard(product)} />
               </FadeIn>
             ))}
           </div>
@@ -345,7 +346,7 @@ export default async function HomePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {featured.map((product, i) => (
             <FadeIn key={product.id} delay={i * 60}>
-              <ProductCard product={product} />
+              <ProductCard product={toCard(product)} />
             </FadeIn>
           ))}
         </div>

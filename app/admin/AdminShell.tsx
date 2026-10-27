@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, Warehouse,
   Tag, Users, Image, Home, RotateCcw, FolderOpen, BookOpen, Upload, Truck, ClipboardList, BarChart3, Layers, ListChecks,
 } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { signOut as authSignOut } from "@/lib/auth/session";
 import DashboardShell, { type NavGroup } from "@/components/layout/DashboardShell";
 
 const groups: NavGroup[] = [
@@ -67,7 +67,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
 
   async function signOut() {
-    await authClient.signOut();
+    await authSignOut();
     router.push("/");
   }
 

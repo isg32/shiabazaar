@@ -40,7 +40,7 @@ export default async function TransactionDetail({ params }: { params: Promise<{ 
 
   return (
     <div className="px-8 py-8 text-on-dark max-w-5xl">
-      <Link href="/dashboard/transactions" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
+      <Link prefetch={false} href="/dashboard/transactions" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
         <ChevronLeft size={13} /> Transactions
       </Link>
       <h1 className="text-2xl font-semibold text-on-dark">
@@ -51,7 +51,7 @@ export default async function TransactionDetail({ params }: { params: Promise<{ 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-surface-dark-elevated rounded-xl border border-white/8 p-5 my-6" data-testid="tx-facts">
         {fact("Date", o.createdAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }))}
         {fact("Channel", CHANNEL_LABEL[o.channel])}
-        {fact("Buyer", <>{account ? <Link className="text-primary hover:text-primary-active" href={`/dashboard/accounts/${account.kind}/${account.id}`}>{buyerName(o)}</Link> : buyerName(o)} <span className="text-on-dark-soft">· {BUYER_LABEL[o.buyerType]}</span></>)}
+        {fact("Buyer", <>{account ? <Link prefetch={false} className="text-primary hover:text-primary-active" href={`/dashboard/accounts/${account.kind}/${account.id}`}>{buyerName(o)}</Link> : buyerName(o)} <span className="text-on-dark-soft">· {BUYER_LABEL[o.buyerType]}</span></>)}
         {fact("Entered by", o.recordedById ? who(o.recordedById) : o.channel === "online" ? "Website checkout" : "—")}
         {fact("Gross (MRP)", inr(gross))}
         {fact("Discount", inr(gross - net))}

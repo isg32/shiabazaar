@@ -282,7 +282,7 @@ export default function ProductReview() {
                     </div>
                   )}
                   {isTop && (
-                    <Link href={`/products/${p.slug}`} target="_blank" className="text-[11px] text-on-dark-soft hover:text-on-dark underline mt-auto self-start">View in shop</Link>
+                    <Link prefetch={false} href={`/products/${p.slug}`} target="_blank" className="text-[11px] text-on-dark-soft hover:text-on-dark underline mt-auto self-start">View in shop</Link>
                   )}
                 </div>
               </div>

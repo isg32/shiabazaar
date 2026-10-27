@@ -27,7 +27,7 @@ export default async function ReportLibrary({ searchParams }: { searchParams: Pr
               {REPORTS.filter((r) => r.group === g).map((r) => (
                 <div key={r.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/5 last:border-0">
                   <div className="flex-1 min-w-0">
-                    <Link href={withFilters(`/dashboard/reports/${r.id}`, sp)} className="text-sm text-on-dark hover:underline">{r.title}</Link>
+                    <Link prefetch={false} href={withFilters(`/dashboard/reports/${r.id}`, sp)} className="text-sm text-on-dark hover:underline">{r.title}</Link>
                     {r.snapshot && <span className="ml-2 text-[10px] uppercase tracking-wide text-on-dark-soft">snapshot</span>}
                     <p className="text-xs text-on-dark-soft truncate">{r.description}</p>
                   </div>

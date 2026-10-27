@@ -61,7 +61,7 @@ export default function DeskSales() {
           <h1 className="text-2xl font-semibold text-on-dark">Offline Sales</h1>
           <p className="text-sm text-on-dark-soft mt-0.5">Walk-in sales recorded at the desk</p>
         </div>
-        <Link href="/desk/sales/new" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+        <Link prefetch={false} href="/desk/sales/new" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
           <Plus size={14} /> New Sale
         </Link>
       </div>
@@ -123,12 +123,12 @@ export default function DeskSales() {
                       ) : (
                         <div className="flex items-center gap-1.5">
                           {s.returns.length === 0 && (
-                            <Link href={`/desk/sales/${s.id}/edit`}
+                            <Link prefetch={false} href={`/desk/sales/${s.id}/edit`}
                               className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-white/5 text-on-dark-soft hover:bg-white/10 transition-colors">
                               <Pencil size={11} /> Edit
                             </Link>
                           )}
-                          <Link href={`/desk/sales/${s.id}/return`}
+                          <Link prefetch={false} href={`/desk/sales/${s.id}/return`}
                             className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                             <Undo2 size={11} /> Return
                           </Link>

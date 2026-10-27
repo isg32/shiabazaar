@@ -71,6 +71,21 @@ export function toUI(p: DBProductFull): ProductUI {
   };
 }
 
+/**
+ * Only the fields a product card renders. Listing pages hand up to 200
+ * products to a client component, so sending the full record (descriptions,
+ * tables of contents, categories…) bloated the page and froze the browser while
+ * it parsed them.
+ */
+export function toCard(p: ProductUI): ProductUI {
+  return {
+    id: p.id, slug: p.slug, type: p.type, title: p.title, author: p.author,
+    price: p.price, originalPrice: p.originalPrice, coverImage: p.coverImage,
+    badge: p.badge, inStock: p.inStock, rating: p.rating, reviewCount: p.reviewCount,
+    variants: p.variants,
+  };
+}
+
 export const include = { images: true, variants: true, categories: { include: { category: true } } } as const;
 
 export const getFeaturedProducts = unstable_cache(

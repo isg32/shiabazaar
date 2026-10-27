@@ -34,7 +34,7 @@ export default function StatTile({
   );
   const cls = "block bg-surface-dark-elevated rounded-xl p-4 border border-white/8";
   return href ? (
-    <Link href={href} className={`${cls} hover:border-white/20 transition-colors`} data-testid={`tile-${label}`}>{body}</Link>
+    <Link prefetch={false} href={href} className={`${cls} hover:border-white/20 transition-colors`} data-testid={`tile-${label}`}>{body}</Link>
   ) : (
     <div className={cls} data-testid={`tile-${label}`}>{body}</div>
   );

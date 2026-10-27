@@ -51,7 +51,7 @@ export default function FixList() {
             {counts ? <>Products disapproved in review · {counts.rejected} to fix · {counts.approved} approved · {counts.pending} not reviewed yet (of {total})</> : "Loading…"}
           </p>
         </div>
-        <Link href="/desk/review" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+        <Link prefetch={false} href="/desk/review" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
           <Layers size={14} /> Review products
         </Link>
       </div>
@@ -90,7 +90,7 @@ export default function FixList() {
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <Link href={r.type === "book" ? `/admin/books/${r.id}/edit` : `/admin/products/${r.id}/edit`}
+              <Link prefetch={false} href={r.type === "book" ? `/admin/books/${r.id}/edit` : `/admin/products/${r.id}/edit`}
                 className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded bg-white/5 text-on-dark-soft hover:bg-white/10 hover:text-on-dark transition-colors">
                 <Pencil size={11} /> Edit
               </Link>

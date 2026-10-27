@@ -18,7 +18,7 @@ function Rank({ title, head, rows, more, testId }: { title: string; head: string
     <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden" data-testid={testId}>
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
         <h2 className="text-sm font-medium text-on-dark">{title}</h2>
-        {more && <Link href={more} className="text-xs text-primary">Full report</Link>}
+        {more && <Link prefetch={false} href={more} className="text-xs text-primary">Full report</Link>}
       </div>
       {rows.length === 0 ? <p className="text-sm text-on-dark-soft text-center py-6">None.</p> : (
         <table className="w-full text-xs">

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { getProducts, getProductsByCategoryId, toUI, include } from "@/lib/queries";
+import { getProducts, getProductsByCategoryId, toUI, toCard, include } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import { db } from "@/lib/db";
 import { getDescendantIds } from "@/lib/category-tree";
@@ -42,7 +42,7 @@ export default async function CategoryPage({ params }: Props) {
       <CollectionView
         label="Tazeem Publication"
         crumbs={[{ label: "Home", href: "/" }, { label: "Tazeem Publication" }]}
-        products={rows.map(toUI)}
+        products={rows.map((r) => toCard(toUI(r)))}
       />
     );
   }
@@ -59,7 +59,7 @@ export default async function CategoryPage({ params }: Props) {
       <CollectionView
         label="Other Publications"
         crumbs={[{ label: "Home", href: "/" }, { label: "Other Publications" }]}
-        products={rows.map(toUI)}
+        products={rows.map((r) => toCard(toUI(r)))}
       />
     );
   }
@@ -74,7 +74,7 @@ export default async function CategoryPage({ params }: Props) {
       <CollectionView
         label="Other Products"
         crumbs={[{ label: "Home", href: "/" }, { label: "Other Products" }]}
-        products={[...ladies, ...gents]}
+        products={[...ladies, ...gents].map(toCard)}
       />
     );
   }
@@ -87,7 +87,7 @@ export default async function CategoryPage({ params }: Props) {
       <CollectionView
         label={typeMeta.label}
         crumbs={[{ label: "Home", href: "/" }, { label: typeMeta.label }]}
-        products={products}
+        products={products.map(toCard)}
       />
     );
   }
@@ -106,7 +106,7 @@ export default async function CategoryPage({ params }: Props) {
     <CollectionView
       label={cat.name}
       crumbs={[{ label: "Home", href: "/" }, { label: cat.name }]}
-      products={products}
+      products={products.map(toCard)}
     />
   );
 }

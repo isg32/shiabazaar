@@ -47,7 +47,7 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
   if (order.status === "cancelled" || order.returns.length > 0) {
     return (
       <div className="px-8 py-8 text-on-dark">
-        <Link href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
+        <Link prefetch={false} href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
           <ChevronLeft size={13} /> Back to sales
         </Link>
         <p className="text-sm text-on-dark-soft">
@@ -79,7 +79,7 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="px-8 py-8 text-on-dark">
-      <Link href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
+      <Link prefetch={false} href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
         <ChevronLeft size={13} /> Back to sales
       </Link>
       <h1 className="text-2xl font-semibold text-on-dark mb-6">
