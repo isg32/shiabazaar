@@ -46,7 +46,7 @@ export default function AdminBooks() {
           <h1 className="text-2xl font-normal text-on-dark" style={{ fontFamily: "var(--font-display)" }}>Books</h1>
           <p className="text-sm text-on-dark-soft mt-0.5">{books.length} books in catalog</p>
         </div>
-        <Link
+        <Link prefetch={false}
           href="/admin/books/new"
           className="flex items-center gap-2 h-9 px-4 text-sm font-medium bg-primary text-on-primary rounded-md hover:bg-primary-active transition-colors"
         >
@@ -106,7 +106,7 @@ export default function AdminBooks() {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
-                      <Link href={`/admin/books/${b.id}/edit`}
+                      <Link prefetch={false} href={`/admin/books/${b.id}/edit`}
                         className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/8 text-on-dark-soft hover:text-on-dark transition-colors">
                         <Pencil size={13} />
                       </Link>

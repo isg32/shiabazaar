@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, X, type LucideIcon } from "lucide-react";
+import { Loader2, LogOut, Menu, X, type LucideIcon } from "lucide-react";
 
 export type NavItem = { href: string; label: string; Icon: LucideIcon };
 export type NavGroup = { label: string | null; items: NavItem[] };
@@ -35,11 +35,15 @@ export default function DashboardShell({
   children,
 }: Props) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
+  // The phone drawer remembers the path it was opened on, so it closes by itself
+  // once a tapped link's page has arrived — keeping the pending spinner visible
+  // until then instead of dropping the user back on the old page.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === pathname;
+  const close = () => setOpenOn(null);
 
   const brand = (
-    <Link href={homeHref} onClick={close} className="flex items-center gap-2.5 text-on-dark">
+    <Link prefetch={false} href={homeHref} onClick={close} className="flex items-center gap-2.5 text-on-dark">
       <svg viewBox="0 0 100 100" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="25" y="25" width="50" height="50" />
         <rect x="25" y="25" width="50" height="50" transform="rotate(45 50 50)" />
@@ -62,7 +66,7 @@ export default function DashboardShell({
       {/* ── Phone/tablet top bar ── */}
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 bg-surface-dark border-b border-white/8" style={{ top: "env(safe-area-inset-top, 0px)" }}>
         {brand}
-        <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open}
+        <button onClick={() => setOpenOn(pathname)} aria-label="Open menu" aria-expanded={open}
           className="w-10 h-10 -mr-2 flex items-center justify-center rounded-md text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated">
           <Menu size={20} />
         </button>
@@ -95,18 +99,22 @@ export default function DashboardShell({
               <div className="flex flex-col gap-0.5">
                 {group.items.map(({ href, label, Icon }) => {
                   const active = href === activeBase ? pathname === activeBase : pathname.startsWith(href);
+                  // prefetch={false} on every staff-area link: each prefetch renders the whole
+                  // (dynamic, DB-heavy) page server-side, so ~20 sidebar links + filter links
+                  // fired dozens of report renders at once and real clicks queued behind them.
+                  // NavIcon shows a spinner on the clicked item until its page arrives.
                   return (
-                    <Link
+                    <Link prefetch={false}
                       key={href}
                       href={href}
-                      onClick={close}
+                      onClick={() => { if (href === pathname) close(); }}
                       className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         active
                           ? "bg-primary/15 text-primary"
                           : "text-on-dark-soft hover:text-on-dark hover:bg-surface-dark-elevated"
                       }`}
                     >
-                      <Icon size={15} />
+                      <NavIcon Icon={Icon} />
                       {label}
                     </Link>
                   );
@@ -136,4 +144,10 @@ export default function DashboardShell({
 
     </div>
   );
+}
+
+/** Sidebar icon that turns into a spinner while its link's navigation is pending. */
+function NavIcon({ Icon }: { Icon: LucideIcon }) {
+  const { pending } = useLinkStatus();
+  return pending ? <Loader2 size={15} className="animate-spin" aria-label="Loading" /> : <Icon size={15} />;
 }

@@ -22,7 +22,7 @@ export default function ReturnSalePage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="px-8 py-8 text-on-dark max-w-3xl">
-      <Link href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
+      <Link prefetch={false} href="/desk/sales" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
         <ChevronLeft size={13} /> Back to sales
       </Link>
       <h1 className="text-2xl font-semibold text-on-dark mb-2">

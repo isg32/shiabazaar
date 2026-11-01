@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 import { useRouter } from "next/navigation";
 
 export function WishlistButton({ productId }: { productId: string }) {
-  const session = authClient.useSession();
+  const session = useSession();
   const router = useRouter();
   const [wishlisted, setWishlisted] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -23,7 +23,7 @@ export default function ShareBars({ rows, title }: { rows: ShareRow[]; title: st
             return (
               <div key={r.key}>
                 <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                  {r.href ? <Link href={r.href} className="hover:underline">{label}</Link> : label}
+                  {r.href ? <Link prefetch={false} href={r.href} className="hover:underline">{label}</Link> : label}
                   <span className="text-sm tabular-nums">
                     <span className="text-on-dark font-medium">{r.valueText}</span>
                     <span className="text-on-dark-soft ml-2">{share}%</span>

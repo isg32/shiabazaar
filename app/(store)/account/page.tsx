@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Heart, Star, ArrowRight, Loader2 } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 
 const STATUS_COLOR: Record<string, string> = {
   pending:    "text-muted",
@@ -22,7 +22,7 @@ function fmtDate(iso: string) {
 }
 
 export default function AccountDashboard() {
-  const session = authClient.useSession();
+  const session = useSession();
   const [stats, setStats]   = useState<{ orders: number; wishlist: number; reviews: number } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -84,7 +84,7 @@ export default async function AdminDashboard() {
             {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <Link href="/admin/orders" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+        <Link prefetch={false} href="/admin/orders" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
           <ShoppingBag size={14} /> View Orders
         </Link>
       </div>
@@ -107,7 +107,7 @@ export default async function AdminDashboard() {
         <div className="lg:col-span-2 bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
           <div className="px-6 py-4 border-b border-white/8 flex items-center justify-between">
             <h2 className="text-sm font-medium text-on-dark">Recent Orders</h2>
-            <Link href="/admin/orders" className="text-xs text-primary hover:text-primary-active transition-colors">View all</Link>
+            <Link prefetch={false} href="/admin/orders" className="text-xs text-primary hover:text-primary-active transition-colors">View all</Link>
           </div>
           {recentOrders.length === 0 ? (
             <p className="text-sm text-on-dark-soft text-center py-8">No orders yet.</p>

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { searchProducts, getProducts } from "@/lib/queries";
+import { searchProducts, getProducts, toCard } from "@/lib/queries";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { FadeIn } from "@/components/shared/FadeIn";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -49,7 +49,7 @@ async function Results({ q, page }: { q: string; page: number }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
           {paged.map((p, i) => (
             <FadeIn key={p.id} delay={Math.min(i, 7) * 60}>
-              <ProductCard product={p} />
+              <ProductCard product={toCard(p)} />
             </FadeIn>
           ))}
         </div>

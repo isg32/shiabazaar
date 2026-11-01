@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
+import { refreshSession } from "@/lib/auth/session";
 
 type View = "sign-in" | "sign-up" | "forgot-password";
 
@@ -43,6 +44,7 @@ export function AuthForm({ view }: AuthFormProps) {
           callbackURL: "/",
         });
         if (err) { setError(err.message ?? "Incorrect email or password."); return; }
+        await refreshSession();
         router.push("/");
         router.refresh();
 
@@ -54,6 +56,7 @@ export function AuthForm({ view }: AuthFormProps) {
           callbackURL: "/",
         });
         if (err) { setError(err.message ?? "Could not create account."); return; }
+        await refreshSession();
         router.push("/");
         router.refresh();
 

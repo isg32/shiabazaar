@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart, Heart, User, Search, Menu, X, LogOut, Package, Heart as HeartIcon, LayoutDashboard, ClipboardList, ChevronDown, BarChart3 } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession, signOut as authSignOut } from "@/lib/auth/session";
 import { useCart } from "@/context/CartContext";
 import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 
@@ -201,7 +201,7 @@ function useStaffRoles(signedIn: boolean) {
 
 function UserMenu() {
   const router = useRouter();
-  const session = authClient.useSession();
+  const session = useSession();
   const [open, setOpen] = useState(false);
   const { isAdmin, isClerk, isReader } = useStaffRoles(!!session.data?.user);
   const ref = useRef<HTMLDivElement>(null);
@@ -227,7 +227,7 @@ function UserMenu() {
   const inits = initials(user.name, user.email);
 
   async function signOut() {
-    await authClient.signOut();
+    await authSignOut();
     setOpen(false);
     router.push("/");
     router.refresh();
@@ -292,7 +292,7 @@ function UserMenu() {
 // Shared inner nav — used by both fixed (layout) and sticky (homepage) versions
 function NavInner({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
-  const session = authClient.useSession();
+  const session = useSession();
   const { count: cartCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [navCategories, setNavCategories] = useState<NavCategory[]>([]);
@@ -431,7 +431,7 @@ function NavInner({ onClose }: { onClose?: () => void }) {
               )}
               <button
                 className="mt-4 py-3 text-left text-lg font-medium text-error"
-                onClick={async () => { await authClient.signOut(); close(); router.push("/"); router.refresh(); }}
+                onClick={async () => { await authSignOut(); close(); router.push("/"); router.refresh(); }}
               >Sign out</button>
             </>
           ) : (

@@ -70,7 +70,7 @@ export default async function Transactions({ searchParams }: { searchParams: Pro
                       {o.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}
                     </td>
                     <td className="px-3 py-2.5">
-                      <Link href={`/dashboard/transactions/${o.id}`} className="font-mono text-xs text-primary hover:text-primary-active">
+                      <Link prefetch={false} href={`/dashboard/transactions/${o.id}`} className="font-mono text-xs text-primary hover:text-primary-active">
                         #{o.id.slice(0, 8).toUpperCase()}
                       </Link>
                     </td>
@@ -96,8 +96,8 @@ export default async function Transactions({ searchParams }: { searchParams: Pro
           <div className="flex items-center justify-between mt-4 text-xs text-on-dark-soft">
             <span>Page {page} of {pages}</span>
             <div className="flex gap-2">
-              {page > 1 && <Link href={withFilters("/dashboard/transactions", sp, { page: String(page - 1) })} className="px-3 h-7 inline-flex items-center rounded-md bg-white/5 hover:bg-white/10">Previous</Link>}
-              {page < pages && <Link href={withFilters("/dashboard/transactions", sp, { page: String(page + 1) })} className="px-3 h-7 inline-flex items-center rounded-md bg-white/5 hover:bg-white/10">Next</Link>}
+              {page > 1 && <Link prefetch={false} href={withFilters("/dashboard/transactions", sp, { page: String(page - 1) })} className="px-3 h-7 inline-flex items-center rounded-md bg-white/5 hover:bg-white/10">Previous</Link>}
+              {page < pages && <Link prefetch={false} href={withFilters("/dashboard/transactions", sp, { page: String(page + 1) })} className="px-3 h-7 inline-flex items-center rounded-md bg-white/5 hover:bg-white/10">Next</Link>}
             </div>
           </div>
         )}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Loader2, Pencil, CheckCircle2, ImageOff, Layers } from "lucide-react";
+import { Search, Loader2, Pencil, CheckCircle2, ImageOff, Layers, Camera } from "lucide-react";
 
 type Row = {
-  id: string; title: string; sku: string | null; type: string; reviewedAt: string | null; reviewedBy: string | null;
-  images: { url: string }[];
+  id: string; slug: string; title: string; sku: string | null; type: string; reviewedAt: string | null; reviewedBy: string | null;
+  images: { id: string; url: string; cloudinaryId: string }[];
 };
 type Counts = { pending: number; approved: number; rejected: number };
 const FILTERS: [string, string][] = [["all", "All"], ["books", "Books"], ["other", "Other products"], ["noimage", "No image"]];
@@ -40,6 +40,43 @@ export default function FixList() {
     setCounts((c) => c && { ...c, rejected: c.rejected - 1, approved: c.approved + 1 });
   }
 
+  async function replaceImage(row: Row, file: File) {
+    setBusy(row.id); setError(null);
+    try {
+      if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+      const folder = `shiabazaar/products/${row.slug}`;
+      const sign = await fetch("/api/upload", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder }),
+      }).then((r) => r.json());
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("timestamp", sign.timestamp);
+      fd.append("signature", sign.signature);
+      fd.append("api_key", sign.apiKey);
+      fd.append("folder", sign.folder);
+      const up = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, { method: "POST", body: fd }).then((r) => r.json());
+      if (!up.secure_url) throw new Error(up.error?.message ?? "Upload failed.");
+
+      // Add the new image as cover first, then drop the old one — a failure never leaves the product bare.
+      const add = await fetch(`/api/admin/products/${row.id}/images`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: up.secure_url, cloudinaryId: up.public_id, isCover: true }),
+      });
+      if (!add.ok) throw new Error("Could not save the new image.");
+      const { image } = await add.json();
+      const old = row.images[0];
+      if (old) {
+        await fetch(`/api/admin/products/${row.id}/images`, {
+          method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageId: old.id }),
+        });
+      }
+      setRows((rs) => rs.map((x) => (x.id === row.id ? { ...x, images: [{ id: image.id, url: image.url, cloudinaryId: image.cloudinaryId }] } : x)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not replace the image.");
+    }
+    setBusy(null);
+  }
+
   const total = counts ? counts.pending + counts.approved + counts.rejected : 0;
 
   return (
@@ -51,7 +88,7 @@ export default function FixList() {
             {counts ? <>Products disapproved in review · {counts.rejected} to fix · {counts.approved} approved · {counts.pending} not reviewed yet (of {total})</> : "Loading…"}
           </p>
         </div>
-        <Link href="/desk/review" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+        <Link prefetch={false} href="/desk/review" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
           <Layers size={14} /> Review products
         </Link>
       </div>
@@ -72,35 +109,56 @@ export default function FixList() {
 
       {error && <p className="text-sm text-error mb-3">{error}</p>}
 
-      <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden" data-testid="fix-list">
-        {loading ? (
-          <div className="flex items-center justify-center py-16 gap-2 text-on-dark-soft"><Loader2 size={16} className="animate-spin" /> Loading…</div>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-on-dark-soft text-center py-12">Nothing to fix. Disapproved products from review show up here.</p>
-        ) : rows.map((r) => (
-          <div key={r.id} className="flex items-center gap-4 px-4 sm:px-5 py-3 border-b border-white/8 last:border-0">
-            <div className="relative w-12 h-16 shrink-0 rounded bg-white/5 overflow-hidden flex items-center justify-center">
-              {r.images[0] ? <Image src={r.images[0].url} alt="" fill sizes="48px" className="object-cover" /> : <ImageOff size={16} className="text-on-dark-soft" aria-label="No image" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-on-dark truncate">{r.title}</p>
-              <p className="text-[11px] text-on-dark-soft">
-                <span className="font-mono">{r.sku ?? "—"}</span> · {TYPE_LABEL[r.type] ?? r.type}
-                {r.reviewedAt && <> · disapproved {new Date(r.reviewedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{r.reviewedBy ? ` by ${r.reviewedBy}` : ""}</>}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Link href={r.type === "book" ? `/admin/books/${r.id}/edit` : `/admin/products/${r.id}/edit`}
-                className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded bg-white/5 text-on-dark-soft hover:bg-white/10 hover:text-on-dark transition-colors">
-                <Pencil size={11} /> Edit
-              </Link>
-              <button onClick={() => markFixed(r.id)} disabled={busy === r.id}
-                className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50">
-                <CheckCircle2 size={11} /> Mark fixed
-              </button>
-            </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 gap-2 text-on-dark-soft"><Loader2 size={16} className="animate-spin" /> Loading…</div>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-on-dark-soft text-center py-12 bg-surface-dark-elevated rounded-xl border border-white/8">Nothing to fix. Disapproved products from review show up here.</p>
+      ) : (
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" data-testid="fix-list">
+          {rows.map((r) => <FixCard key={r.id} r={r} busy={busy === r.id} onReplace={(f) => replaceImage(r, f)} onFixed={() => markFixed(r.id)} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FixCard({ r, busy, onReplace, onFixed }: { r: Row; busy: boolean; onReplace: (f: File) => void; onFixed: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden flex flex-col">
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} aria-label={`Replace image for ${r.title}`}
+        className="relative aspect-[3/4] w-full bg-white/5 flex items-center justify-center group disabled:cursor-wait">
+        {r.images[0]
+          ? <Image src={r.images[0].url} alt={r.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
+          : <span className="flex flex-col items-center gap-1 text-on-dark-soft text-xs"><ImageOff size={24} />No image</span>}
+        {busy && <span className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-white" /></span>}
+      </button>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onReplace(f); }} />
+      <div className="p-3 flex flex-col gap-3 flex-1">
+        <div className="min-w-0">
+          <p className="text-sm text-on-dark line-clamp-2">{r.title}</p>
+          <p className="text-[11px] text-on-dark-soft mt-0.5">
+            <span className="font-mono">{r.sku ?? "—"}</span> · {TYPE_LABEL[r.type] ?? r.type}
+            {r.reviewedAt && <> · disapproved {new Date(r.reviewedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{r.reviewedBy ? ` by ${r.reviewedBy}` : ""}</>}
+          </p>
+        </div>
+        <div className="mt-auto flex flex-col gap-2">
+          <button onClick={() => fileRef.current?.click()} disabled={busy}
+            className="h-11 flex items-center justify-center gap-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary-active transition-colors disabled:opacity-50">
+            <Camera size={15} /> {r.images[0] ? "Replace image" : "Add image"}
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={onFixed} disabled={busy}
+              className="h-10 flex items-center justify-center gap-1.5 text-xs rounded-md bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50">
+              <CheckCircle2 size={13} /> Mark fixed
+            </button>
+            <Link prefetch={false} href={r.type === "book" ? `/admin/books/${r.id}/edit` : `/admin/products/${r.id}/edit`}
+              className="h-10 flex items-center justify-center gap-1.5 text-xs rounded-md bg-white/5 text-on-dark-soft hover:bg-white/10 hover:text-on-dark transition-colors">
+              <Pencil size={13} /> Edit
+            </Link>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

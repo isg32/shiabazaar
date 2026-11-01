@@ -1,4 +1,4 @@
-import { getProducts } from "@/lib/queries";
+import { getProducts, toCard } from "@/lib/queries";
 import { CollectionView } from "@/components/shared/CollectionView";
 import type { Metadata } from "next";
 
@@ -10,7 +10,7 @@ export default async function ProductsPage() {
     <CollectionView
       label="All Products"
       crumbs={[{ label: "Home", href: "/" }, { label: "All Products" }]}
-      products={products}
+      products={products.map(toCard)}
     />
   );
 }

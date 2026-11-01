@@ -76,7 +76,7 @@ export default async function Discounts({ searchParams }: { searchParams: Promis
           <Mini title="Category-wise discount" head={["Main category", "MRP value", "Discount", "%"]}
             rows={discountByMain(facts).map((r) => [r.main, inr(r.gross), inr(r.discount), `${pct(r.discount, r.gross)}%`])} />
         </div>
-        <p className="text-[11px] text-on-dark-soft/70 mt-4">Click through to individual transactions from the <Link href="/dashboard/reports/discounts" className="text-primary">discount report</Link>.</p>
+        <p className="text-[11px] text-on-dark-soft/70 mt-4">Click through to individual transactions from the <Link prefetch={false} href="/dashboard/reports/discounts" className="text-primary">discount report</Link>.</p>
       </FilterBar>
     </div>
   );

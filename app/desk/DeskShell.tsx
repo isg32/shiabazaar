@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { LayoutDashboard, ShoppingBag, School, Truck, Warehouse, Globe, Layers } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { signOut as authSignOut } from "@/lib/auth/session";
 import DashboardShell, { type NavGroup } from "@/components/layout/DashboardShell";
 
 const groups: NavGroup[] = [
@@ -49,7 +49,7 @@ export default function DeskShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   async function signOut() {
-    await authClient.signOut();
+    await authSignOut();
     router.push("/");
   }
 

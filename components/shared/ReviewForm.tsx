@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Star } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 import { useRouter } from "next/navigation";
 
 export function ReviewForm({ productId }: { productId?: string }) {
-  const session = authClient.useSession();
+  const session = useSession();
   const router = useRouter();
   const [rating,  setRating]  = useState(0);
   const [hovered, setHovered] = useState(0);

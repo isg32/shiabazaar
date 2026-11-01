@@ -53,7 +53,7 @@ export default async function ChannelPage({ channel, sp }: { channel: Channel; s
         </div>
         <div className="flex items-center gap-1 mb-3">
           {GRAINS_LINKS.map(([g, label]) => (
-            <Link key={g} href={withFilters(path, sp, { grain: g })}
+            <Link prefetch={false} key={g} href={withFilters(path, sp, { grain: g })}
               className={`px-3 h-7 inline-flex items-center text-xs rounded-md ${f.grain === g ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}>{label}</Link>
           ))}
         </div>
@@ -79,7 +79,7 @@ export default async function ChannelPage({ channel, sp }: { channel: Channel; s
               <p className="text-sm text-on-dark-soft">Accounts that bought: <span className="text-on-dark">{web.filter((r) => r.periodValue > 0).length}</span></p>
               <p className="text-sm text-on-dark-soft">New customers: <span className="text-on-dark">{web.filter((r) => r.segments.includes("new")).length}</span></p>
               <p className="text-sm text-on-dark-soft">Repeat customers: <span className="text-on-dark">{web.filter((r) => r.segments.includes("repeat")).length}</span></p>
-              <Link href="/dashboard/customers?channel=online" className="text-xs text-primary mt-3 inline-block">All customers →</Link>
+              <Link prefetch={false} href="/dashboard/customers?channel=online" className="text-xs text-primary mt-3 inline-block">All customers →</Link>
             </div>
           )}
         </div>

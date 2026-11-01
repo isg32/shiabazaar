@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Check } from "lucide-react";
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/session";
 
 const inputCls = "w-full h-10 px-3 text-sm border border-hairline rounded-md bg-canvas text-ink placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors";
 const labelCls = "text-xs font-medium text-muted uppercase tracking-wide block mb-1.5";
@@ -21,7 +21,7 @@ type Address = {
 };
 
 export default function ProfilePage() {
-  const session = authClient.useSession();
+  const session = useSession();
   const [name, setName]           = useState("");
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);

@@ -70,7 +70,7 @@ export default async function SalesAnalytics({ searchParams }: { searchParams: P
 
         <div className="flex items-center gap-1 mb-3" data-testid="grain-switch">
           {GRAINS.map(([g, label]) => (
-            <Link key={g} href={withFilters("/dashboard/sales", sp, { grain: g })}
+            <Link prefetch={false} key={g} href={withFilters("/dashboard/sales", sp, { grain: g })}
               className={`px-3 h-7 inline-flex items-center text-xs rounded-md ${f.grain === g ? "bg-white/10 text-on-dark" : "text-on-dark-soft hover:text-on-dark"}`}>
               {label}
             </Link>

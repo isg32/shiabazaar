@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     orderBy: [{ reviewedAt: "desc" }, { id: "asc" }],
     take: 500,
     select: {
-      id: true, title: true, sku: true, type: true, reviewedAt: true, reviewedById: true,
-      images: { select: { url: true }, orderBy: [{ isCover: "desc" }, { position: "asc" }], take: 1 },
+      id: true, slug: true, title: true, sku: true, type: true, reviewedAt: true, reviewedById: true,
+      images: { select: { id: true, url: true, cloudinaryId: true }, orderBy: [{ isCover: "desc" }, { position: "asc" }], take: 1 },
     },
   });
   const ids = [...new Set(products.map((p) => p.reviewedById).filter(Boolean) as string[])];

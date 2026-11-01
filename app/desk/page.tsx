@@ -87,7 +87,7 @@ export default async function DeskDashboard() {
             {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <Link href="/desk/sales/new" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
+        <Link prefetch={false} href="/desk/sales/new" className="h-9 px-4 bg-primary text-white text-sm font-medium rounded-md flex items-center gap-2 hover:bg-primary-active transition-colors">
           <ShoppingBag size={14} /> New Sale
         </Link>
       </div>
@@ -111,7 +111,7 @@ export default async function DeskDashboard() {
         <div className="lg:col-span-2 bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
           <div className="px-6 py-4 border-b border-white/8 flex items-center justify-between">
             <h2 className="text-sm font-medium text-on-dark">Recent Offline Sales</h2>
-            <Link href="/desk/sales" className="text-xs text-primary hover:text-primary-active transition-colors">View all</Link>
+            <Link prefetch={false} href="/desk/sales" className="text-xs text-primary hover:text-primary-active transition-colors">View all</Link>
           </div>
           {recentSales.length === 0 ? (
             <p className="text-sm text-on-dark-soft text-center py-8">No offline sales yet.</p>
@@ -146,7 +146,7 @@ export default async function DeskDashboard() {
           <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
               <h2 className="text-sm font-medium text-on-dark">Recent School Issues</h2>
-              <Link href="/desk/schools" className="text-xs text-primary hover:text-primary-active transition-colors">Schools</Link>
+              <Link prefetch={false} href="/desk/schools" className="text-xs text-primary hover:text-primary-active transition-colors">Schools</Link>
             </div>
             <div className="px-5 py-3 flex flex-col gap-3">
               {recentSchoolIssues.length === 0 ? (
@@ -166,7 +166,7 @@ export default async function DeskDashboard() {
           <div className="bg-surface-dark-elevated rounded-xl border border-white/8 overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
               <h2 className="text-sm font-medium text-on-dark">Recent Vendor Issues</h2>
-              <Link href="/desk/vendors" className="text-xs text-primary hover:text-primary-active transition-colors">Vendors</Link>
+              <Link prefetch={false} href="/desk/vendors" className="text-xs text-primary hover:text-primary-active transition-colors">Vendors</Link>
             </div>
             <div className="px-5 py-3 flex flex-col gap-3">
               {recentVendorIssues.length === 0 ? (
@@ -207,7 +207,7 @@ export default async function DeskDashboard() {
               })}
             </div>
             <div className="px-5 py-3 border-t border-white/8">
-              <Link href="/desk/inventory" className="text-xs text-primary hover:text-primary-active transition-colors">Manage stock</Link>
+              <Link prefetch={false} href="/desk/inventory" className="text-xs text-primary hover:text-primary-active transition-colors">Manage stock</Link>
             </div>
           </div>
         </div>

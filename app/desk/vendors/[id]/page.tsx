@@ -97,7 +97,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="px-8 py-8 text-on-dark">
-      <Link href="/desk/vendors" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
+      <Link prefetch={false} href="/desk/vendors" className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4 transition-colors">
         <ChevronLeft size={13} /> Back to vendors
       </Link>
 

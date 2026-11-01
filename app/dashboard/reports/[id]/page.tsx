@@ -35,7 +35,7 @@ export default async function ReportView({ params, searchParams }: { params: Pro
 
   return (
     <div className="px-8 py-8 text-on-dark">
-      <Link href={withFilters("/dashboard/reports", sp)} className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
+      <Link prefetch={false} href={withFilters("/dashboard/reports", sp)} className="inline-flex items-center gap-1 text-xs text-on-dark-soft hover:text-on-dark mb-4">
         <ChevronLeft size={13} /> Reports
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">

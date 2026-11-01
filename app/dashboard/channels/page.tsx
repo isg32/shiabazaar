@@ -53,7 +53,7 @@ export default async function Channels({ searchParams }: { searchParams: Promise
                 {rows.map(({ ch, s }) => (
                   <tr key={ch} className="border-b border-white/5">
                     <td className="px-4 py-3">
-                      <Link href={withFilters("/dashboard/transactions", sp, { channel: ch })} className="flex items-center gap-2 text-on-dark hover:underline">
+                      <Link prefetch={false} href={withFilters("/dashboard/transactions", sp, { channel: ch })} className="flex items-center gap-2 text-on-dark hover:underline">
                         <span className="w-2.5 h-2.5 rounded-sm" style={{ background: VIZ.channel[ch] }} />{CHANNEL_LABEL[ch]}
                       </Link>
                     </td>

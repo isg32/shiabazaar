@@ -62,7 +62,7 @@ export default async function Buyers({ searchParams }: { searchParams: Promise<S
                 {rows.map(({ b, s, buyers }) => (
                   <tr key={b} className="border-b border-white/5">
                     <td className="px-4 py-3">
-                      <Link href={withFilters("/dashboard/transactions", sp, { buyer: b })} className="flex items-center gap-2 text-on-dark hover:underline">
+                      <Link prefetch={false} href={withFilters("/dashboard/transactions", sp, { buyer: b })} className="flex items-center gap-2 text-on-dark hover:underline">
                         <span className="w-2.5 h-2.5 rounded-sm" style={{ background: VIZ.buyer[b] }} />{BUYER_LABEL[b]}
                       </Link>
                     </td>
@@ -74,7 +74,7 @@ export default async function Buyers({ searchParams }: { searchParams: Promise<S
                     <td className="px-4 py-3 text-on-dark-soft">{dash(inr(s.collected))}</td>
                     <td className="px-4 py-3 text-on-dark-soft">{b === "individual" ? "—" : dash(inr(s.creditGenerated))}</td>
                     <td className="px-4 py-3 text-on-dark-soft">
-                      {owed[b] == null ? "—" : <Link href="/dashboard/credit" className="hover:underline">{inr(owed[b]!)}</Link>}
+                      {owed[b] == null ? "—" : <Link prefetch={false} href="/dashboard/credit" className="hover:underline">{inr(owed[b]!)}</Link>}
                     </td>
                   </tr>
                 ))}

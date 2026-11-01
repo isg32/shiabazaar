@@ -119,7 +119,7 @@ export default async function Categories({ searchParams }: { searchParams: Promi
           {crumbs.map((c, i) => (
             <span key={c.href} className="flex items-center gap-1">
               {i > 0 && <ChevronRight size={13} className="text-on-dark-soft" />}
-              {i < crumbs.length - 1 ? <Link href={c.href} className="text-primary hover:text-primary-active">{c.label}</Link> : <span className="text-on-dark">{c.label}</span>}
+              {i < crumbs.length - 1 ? <Link prefetch={false} href={c.href} className="text-primary hover:text-primary-active">{c.label}</Link> : <span className="text-on-dark">{c.label}</span>}
             </span>
           ))}
         </nav>
@@ -148,7 +148,7 @@ export default async function Categories({ searchParams }: { searchParams: Promi
               ) : table.map(({ r, m }) => (
                 <tr key={r.key} className="border-b border-white/5">
                   <td className="px-4 py-3">
-                    {r.href ? <Link href={r.href} className="text-on-dark hover:underline">{r.label}</Link> : <span className="text-on-dark-soft">{r.label}</span>}
+                    {r.href ? <Link prefetch={false} href={r.href} className="text-on-dark hover:underline">{r.label}</Link> : <span className="text-on-dark-soft">{r.label}</span>}
                   </td>
                   <td className="px-4 py-3 text-on-dark font-medium">{inr(m.net)}</td>
                   <td className="px-4 py-3 text-on-dark-soft">{m.qty}</td>
