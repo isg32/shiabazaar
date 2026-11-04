@@ -15,6 +15,7 @@ const TYPE_LABEL: Record<string, string> = { book: "Book", gift: "Gift", ladies:
 
 export default function FixList() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [unreviewed, setUnreviewed] = useState<Row[]>([]);
   const [counts, setCounts] = useState<Counts | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -23,9 +24,15 @@ export default function FixList() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback((f: string, query: string) => {
-    fetch(`/api/admin/review?filter=${f}&q=${encodeURIComponent(query)}`)
-      .then((r) => r.json())
-      .then((d) => { setRows(d.products ?? []); setCounts(d.counts ?? null); setLoading(false); });
+    Promise.all([
+      fetch(`/api/admin/review?filter=${f}&q=${encodeURIComponent(query)}`).then(r => r.json()),
+      fetch(`/api/admin/review/covers`).then(r => r.json()),
+    ]).then(([main, covers]) => {
+      setRows(main.products ?? []);
+      setCounts(main.counts ?? null);
+      setUnreviewed(covers.products ?? []);
+      setLoading(false);
+    });
   }, []);
   useEffect(() => { load("all", ""); }, [load]);
 
@@ -38,6 +45,14 @@ export default function FixList() {
     if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? "Could not mark as fixed."); return; }
     setRows((r) => r.filter((x) => x.id !== id));
     setCounts((c) => c && { ...c, rejected: c.rejected - 1, approved: c.approved + 1 });
+  }
+
+  async function markCoverReviewed(id: string) {
+    setBusy(id); setError(null);
+    const res = await fetch(`/api/admin/review/covers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: id }) });
+    setBusy(null);
+    if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? "Could not mark as reviewed."); return; }
+    setUnreviewed((r) => r.filter((x) => x.id !== id));
   }
 
   async function replaceImage(row: Row, file: File) {
@@ -109,6 +124,18 @@ export default function FixList() {
 
       {error && <p className="text-sm text-error mb-3">{error}</p>}
 
+      {unreviewed.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-on-dark mb-3 flex items-center gap-2">
+            <Camera size={18} className="text-primary" />
+            Recently Uploaded Covers — Please Review ({unreviewed.length})
+          </h2>
+          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {unreviewed.map((r) => <CoverReviewCard key={r.id} r={r} busy={busy === r.id} onReviewed={() => markCoverReviewed(r.id)} />)}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16 gap-2 text-on-dark-soft"><Loader2 size={16} className="animate-spin" /> Loading…</div>
       ) : rows.length === 0 ? (
@@ -159,6 +186,29 @@ function FixCard({ r, busy, onReplace, onFixed }: { r: Row; busy: boolean; onRep
             </Link>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CoverReviewCard({ r, busy, onReviewed }: { r: Row; busy: boolean; onReviewed: () => void }) {
+  return (
+    <div className="bg-surface-dark-elevated rounded-xl border border-primary/30 overflow-hidden flex flex-col">
+      <div className="relative aspect-[3/4] w-full bg-white/5 flex items-center justify-center">
+        {r.images[0]
+          ? <Image src={r.images[0].url} alt={r.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
+          : <span className="flex flex-col items-center gap-1 text-on-dark-soft text-xs"><ImageOff size={24} />No image</span>}
+        {busy && <span className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 size={24} className="animate-spin text-white" /></span>}
+      </div>
+      <div className="p-3 flex flex-col gap-3 flex-1">
+        <div className="min-w-0">
+          <p className="text-sm text-on-dark line-clamp-2">{r.title}</p>
+          <p className="text-[11px] text-on-dark-soft mt-0.5"><span className="font-mono">{r.sku ?? "—"}</span> · {TYPE_LABEL[r.type] ?? r.type}</p>
+        </div>
+        <button onClick={onReviewed} disabled={busy}
+          className="h-10 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-active transition-colors disabled:opacity-50">
+          <CheckCircle2 size={13} /> Looks good
+        </button>
       </div>
     </div>
   );
