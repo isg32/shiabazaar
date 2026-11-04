@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ products });
 }
 
-/** Mark a cover image as reviewed */
+/** Mark a cover image as reviewed (approved) */
 export async function POST(req: NextRequest) {
   const guard = await requireAdmin();
   if (guard) return guard.error;
@@ -55,6 +55,24 @@ export async function POST(req: NextRequest) {
       data: { reviewStatus: "approved", reviewedAt: new Date() },
     });
   }
+
+  return NextResponse.json({ success: true });
+}
+
+/** Reject a cover image (delete it, keep product rejected) */
+export async function DELETE(req: NextRequest) {
+  const guard = await requireAdmin();
+  if (guard) return guard.error;
+
+  const { productId } = await req.json();
+  if (!productId) {
+    return NextResponse.json({ error: "productId required" }, { status: 400 });
+  }
+
+  // Delete all cover images for this product
+  await db.productImage.deleteMany({
+    where: { productId, isCover: true },
+  });
 
   return NextResponse.json({ success: true });
 }

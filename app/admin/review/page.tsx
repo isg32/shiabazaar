@@ -55,6 +55,14 @@ export default function FixList() {
     setUnreviewed((r) => r.filter((x) => x.id !== id));
   }
 
+  async function rejectCover(id: string) {
+    setBusy(id); setError(null);
+    const res = await fetch(`/api/admin/review/covers`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: id }) });
+    setBusy(null);
+    if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? "Could not reject cover."); return; }
+    setUnreviewed((r) => r.filter((x) => x.id !== id));
+  }
+
   async function replaceImage(row: Row, file: File) {
     setBusy(row.id); setError(null);
     try {
@@ -131,7 +139,7 @@ export default function FixList() {
             Recently Uploaded Covers — Please Review ({unreviewed.length})
           </h2>
           <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {unreviewed.map((r) => <CoverReviewCard key={r.id} r={r} busy={busy === r.id} onReviewed={() => markCoverReviewed(r.id)} />)}
+            {unreviewed.map((r) => <CoverReviewCard key={r.id} r={r} busy={busy === r.id} onReviewed={() => markCoverReviewed(r.id)} onReject={() => rejectCover(r.id)} />)}
           </div>
         </div>
       )}
@@ -191,7 +199,7 @@ function FixCard({ r, busy, onReplace, onFixed }: { r: Row; busy: boolean; onRep
   );
 }
 
-function CoverReviewCard({ r, busy, onReviewed }: { r: Row; busy: boolean; onReviewed: () => void }) {
+function CoverReviewCard({ r, busy, onReviewed, onReject }: { r: Row; busy: boolean; onReviewed: () => void; onReject: () => void }) {
   return (
     <div className="bg-surface-dark-elevated rounded-xl border border-primary/30 overflow-hidden flex flex-col">
       <div className="relative aspect-[3/4] w-full bg-white/5 flex items-center justify-center">
@@ -205,10 +213,16 @@ function CoverReviewCard({ r, busy, onReviewed }: { r: Row; busy: boolean; onRev
           <p className="text-sm text-on-dark line-clamp-2">{r.title}</p>
           <p className="text-[11px] text-on-dark-soft mt-0.5"><span className="font-mono">{r.sku ?? "—"}</span> · {TYPE_LABEL[r.type] ?? r.type}</p>
         </div>
-        <button onClick={onReviewed} disabled={busy}
-          className="h-10 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-active transition-colors disabled:opacity-50">
-          <CheckCircle2 size={13} /> Looks good
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={onReviewed} disabled={busy}
+            className="h-10 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-active transition-colors disabled:opacity-50">
+            <CheckCircle2 size={13} /> Looks good
+          </button>
+          <button onClick={onReject} disabled={busy}
+            className="h-10 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md bg-error/10 text-error hover:bg-error/20 transition-colors disabled:opacity-50">
+            <ImageOff size={13} /> Reject
+          </button>
+        </div>
       </div>
     </div>
   );
